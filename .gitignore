@@ -98,9 +98,6 @@ typings/
 # TernJS port file
 .tern-port
 
-# Local Test File
-test.js
-
 #env 
 .env
 
