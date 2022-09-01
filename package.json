@@ -4,16 +4,20 @@
     "description": "",
     "main": "app.js",
     "scripts": {
-        "start:server": "cd server/dist && node app.js",
-        "start:agent": "cd agent/dist && node app.js",
-        "dev:server": "cd server/dist && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,tsc-cli,nm \"tsc -p ../tsconfig.json -w\" \"tsc -p ../../client/tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
-        "dev:agent": "cd agent/dist && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc -p ../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
+        "start:server": "cd service/dist/server && node app.js",
+        "start:agent": "cd service/dist/agent && node app.js",
+        "dev:server": "cd service/dist/server && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,tsc-cli,nm \"tsc -p ../../tsconfig.json -w\" \"tsc -p ../../../client/tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
+        "dev:agent": "cd service/dist/agent && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc -p ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
     },
     "author": "Sean Lynch - KK6BEB",
     "license": "ISC",
     "devDependencies": {
+        "@types/node": "^18.7.14",
         "concurrently": "^7.3.0",
         "nodemon": "^2.0.19",
         "typescript": "^4.8.2"
+    },
+    "dependencies": {
+        "yaml": "^2.1.1"
     }
 }
