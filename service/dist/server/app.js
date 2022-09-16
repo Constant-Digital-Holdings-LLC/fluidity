@@ -5,6 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const ring_buffer_ts_1 = require("ring-buffer-ts");
+//blah
+const mylib_1 = require("../../../client/dist/public/js/lib/mylib");
+(0, mylib_1.showMessage)();
 console.log('test from server -- from TS');
 const app = (0, express_1.default)();
 const port = 3000;

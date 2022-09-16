@@ -1,6 +1,10 @@
 import express, { Application, Request, Response } from 'express';
 import { RingBuffer } from 'ring-buffer-ts';
 
+//blah
+import { showMessage } from '../../../client/dist/public/js/lib/mylib';
+showMessage();
+
 console.log('test from server -- from TS');
 
 const app: Application = express();

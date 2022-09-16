@@ -1,11 +1,12 @@
 {
-    "extends": "../tsconfig.json",
     "compilerOptions": {
         /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
         /* Projects */
-        // "incremental": true,                              /* Enable incremental compilation */
-        // "composite": true,                                /* Enable constraints that allow a TypeScript project to be used with project references. */
+        // "incremental": true,
+        "declaration": true,
+        "declarationMap": true /* Enable incremental compilation */,
+        "composite": true /* Enable constraints that allow a TypeScript project to be used with project references. */,
         // "tsBuildInfoFile": "./",                          /* Specify the folder for .tsbuildinfo incremental compilation files. */
         // "disableSourceOfProjectReferenceRedirect": true,  /* Disable preferring source files instead of declaration files when referencing composite projects */
         // "disableSolutionSearching": true,                 /* Opt a project out of multi-project reference checking when editing. */
@@ -65,7 +66,7 @@
         // "noEmitHelpers": true,                            /* Disable generating custom helper functions like `__extends` in compiled output. */
         // "noEmitOnError": true,                            /* Disable emitting files if any type checking errors are reported. */
         // "preserveConstEnums": true,                       /* Disable erasing `const enum` declarations in generated code. */
-        // "declarationDir": "./",                           /* Specify the output directory for generated declaration files. */
+        "declarationDir": "./dist" /* Specify the output directory for generated declaration files. */,
         // "preserveValueImports": true,                     /* Preserve unused imported values in the JavaScript output that would otherwise be removed. */
 
         /* Interop Constraints */
