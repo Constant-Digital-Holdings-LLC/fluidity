@@ -1,9 +1,9 @@
 import express, { Application, Request, Response } from 'express';
-import { RingBuffer } from 'ring-buffer-ts';
-
-//blah
-import { showMessage } from '../../../client/dist/public/js/lib/mylib';
-showMessage();
+import rb from 'ring-buffer-ts';
+const { RingBuffer } = rb;
+import path from 'path';
+import { test } from '../../../client/dist/public/modules/logger.js';
+test();
 
 console.log('test from server -- from TS');
 
@@ -12,11 +12,10 @@ const port = 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('../../../client/dist/public', { maxAge: 300000 })); //300k ms = 5 min cache
 
-app.get('/', async (req: Request, res: Response): Promise<Response> => {
-    return res.status(200).send({
-        message: 'Hello World!'
-    });
+app.get('/', (_, res) => {
+    res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
 
 try {

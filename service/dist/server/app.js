@@ -1,22 +1,17 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const ring_buffer_ts_1 = require("ring-buffer-ts");
-//blah
-const mylib_1 = require("../../../client/dist/public/js/lib/mylib");
-(0, mylib_1.showMessage)();
+import express from 'express';
+import rb from 'ring-buffer-ts';
+const { RingBuffer } = rb;
+import path from 'path';
+import { test } from '../../../client/dist/public/modules/logger.js';
+test();
 console.log('test from server -- from TS');
-const app = (0, express_1.default)();
+const app = express();
 const port = 3000;
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
-app.get('/', async (req, res) => {
-    return res.status(200).send({
-        message: 'Hello World!'
-    });
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('../../../client/dist/public', { maxAge: 300000 })); //300k ms = 5 min cache
+app.get('/', (_, res) => {
+    res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
 try {
     app.listen(port, () => {
@@ -26,7 +21,7 @@ try {
 catch (err) {
     console.error(err);
 }
-const ringBuffer = new ring_buffer_ts_1.RingBuffer(5);
+const ringBuffer = new RingBuffer(5);
 ringBuffer.add(1);
 ringBuffer.add(2, 3);
 ringBuffer.add(4, 5, 6);
