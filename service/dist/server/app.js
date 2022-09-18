@@ -1,6 +1,6 @@
 import express from 'express';
-import rb from 'ring-buffer-ts';
-const { RingBuffer } = rb;
+import rb_pgk from 'ring-buffer-ts';
+const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { test } from '../../../client/dist/public/modules/logger.js';
 test();

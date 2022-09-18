@@ -1,4 +1,4 @@
-import { config } from '../lib/config';
+import { config } from '../modules/config.js';
 console.debug(config);
 //to-do next week:
 //  work on tsconfig.json
