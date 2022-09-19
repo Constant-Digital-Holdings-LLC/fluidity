@@ -11,7 +11,9 @@ const app = express();
 const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('../../../client/dist/public', { maxAge: 300000 })); //300k ms = 5 min cache
+//5min cache ttl:
+// app.use(express.static('../../../client/dist/public', { maxAge: 300000 }));
+app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 app.get('/', (_, res) => {
     res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
