@@ -1,10 +1,11 @@
 import express from 'express';
+// import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { test } from '../../../client/dist/public/modules/logger.js';
+import { test } from '#shared/modules/logger.js';
 test();
-//1
+//2
 console.log('test from server -- from TS');
 const app = express();
 const port = 3000;

@@ -1,6 +1,9 @@
 {
-    "name": "fluidity",
+    "imports": {
+        "#shared/*": "./client/dist/public/shared/*"
+    },
     "type": "module",
+    "name": "fluidity",
     "version": "1.0.0",
     "description": "",
     "main": "app.js",

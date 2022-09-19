@@ -1,4 +1,4 @@
-export function test(): void {
+export function test() {
     console.log("You made it to the logger module's test function!!");
 }
-//1
+//3
