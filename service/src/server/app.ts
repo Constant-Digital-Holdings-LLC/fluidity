@@ -5,6 +5,8 @@ import path from 'path';
 import { test } from '../../../client/dist/public/modules/logger.js';
 test();
 
+//1
+
 console.log('test from server -- from TS');
 
 const app: Application = express();
