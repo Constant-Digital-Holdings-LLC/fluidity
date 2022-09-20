@@ -6,7 +6,7 @@ import path from 'path';
 import { test } from '#@shared/modules/logger.js';
 test();
 
-//2
+//3
 
 console.log('test from server -- from TS');
 

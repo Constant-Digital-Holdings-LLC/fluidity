@@ -1,3 +1,3 @@
 export function test(): void {
-    console.log('v 8');
+    console.log('v 9');
 }

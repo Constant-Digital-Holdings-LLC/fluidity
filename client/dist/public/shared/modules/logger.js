@@ -1,4 +1,4 @@
 export function test() {
-    console.log('v 8');
+    console.log('v 9');
 }
 //# sourceMappingURL=logger.js.map
