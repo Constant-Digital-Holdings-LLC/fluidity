@@ -1,15 +1,19 @@
-var LogLevel;
+export var LogLevel;
 (function (LogLevel) {
-    LogLevel[LogLevel["trace"] = 0] = "trace";
-    LogLevel[LogLevel["debug"] = 1] = "debug";
-    LogLevel[LogLevel["info"] = 2] = "info";
-    LogLevel[LogLevel["warn"] = 3] = "warn";
-    LogLevel[LogLevel["error"] = 4] = "error";
-    LogLevel[LogLevel["critical"] = 5] = "critical";
-    LogLevel[LogLevel["none"] = 6] = "none";
-})(LogLevel || (LogLevel = {}));
+    LogLevel[LogLevel["debug"] = 0] = "debug";
+    LogLevel[LogLevel["info"] = 1] = "info";
+    LogLevel[LogLevel["warn"] = 2] = "warn";
+    LogLevel[LogLevel["error"] = 3] = "error";
+    LogLevel[LogLevel["none"] = 4] = "none";
+})(LogLevel = LogLevel || (LogLevel = {}));
+export class ConsoleLogFormatter {
+    constructor(runtime) {
+        this.runtime = runtime;
+    }
+}
 export class Logger {
-    constructor(formatter, transport) {
+    constructor(loglevel, formatter, transport) {
+        this.loglevel = loglevel;
         this.formatter = formatter;
         this.transport = transport;
     }
