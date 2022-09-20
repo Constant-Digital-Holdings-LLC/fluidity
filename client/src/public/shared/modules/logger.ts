@@ -1,4 +1,12 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+enum LogLevel {
+    trace,
+    debug,
+    info,
+    warn,
+    error,
+    critical,
+    none
+}
 
 interface LogData {
     level: LogLevel;
