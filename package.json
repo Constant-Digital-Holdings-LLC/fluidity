@@ -1,6 +1,8 @@
 {
     "imports": {
-        "#shared/*": "./client/dist/public/shared/*"
+        "#@shared/*": "./client/dist/public/shared/*",
+        "#@FE/*": "./client/dist/public/FE/*",
+        "#@BE/*": "./service/dist/BE/*"
     },
     "type": "module",
     "name": "fluidity",
@@ -11,7 +13,7 @@
         "start:server": "cd service/dist/server && node app.js",
         "start:agent": "cd service/dist/agent && node app.js",
         "dev:server": "cd service/dist/server && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
-        "dev:agent": "cd service/dist/agent && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc -p ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
+        "dev:agent": "cd service/dist/agent && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
     },
     "author": "Sean Lynch - KK6BEB",
     "license": "ISC",
