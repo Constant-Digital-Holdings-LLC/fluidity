@@ -3,7 +3,7 @@ import express, { Application, Request, Response } from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { test } from '#shared/modules/logger.js';
+import { test } from '#@shared/modules/logger.js';
 test();
 
 //2
