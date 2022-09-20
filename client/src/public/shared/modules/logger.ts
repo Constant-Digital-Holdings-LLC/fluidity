@@ -1,5 +1,7 @@
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
 interface LogData {
-    level: 'debug' | 'info' | 'warn' | 'error';
+    level: LogLevel;
     message: unknown; //could be obj, array or string?
     timestamp: Date;
 }
@@ -9,10 +11,7 @@ interface LogFormatter {
 }
 
 interface LogTransport {
-    debug(logline: string): void;
-    info(logline: string): void;
-    warn(logline: string): void;
-    error(logline: string): void;
+    send(loglevel: LogLevel, logline: string): void;
 }
 
 export class Logger {
