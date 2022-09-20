@@ -1,8 +1,8 @@
 {
     "imports": {
         "#@shared/*": "./client/dist/public/shared/*",
-        "#@FE/*": "./client/dist/public/FE/*",
-        "#@BE/*": "./service/dist/BE/*"
+        "#@client/*": "./client/dist/public/local/*",
+        "#@service/*": "./service/dist/local/*"
     },
     "type": "module",
     "name": "fluidity",
