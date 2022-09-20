@@ -28,7 +28,9 @@ try {
         console.log(`Connected successfully on port ${port}`);
     });
 } catch (err) {
-    console.error(err);
+    if (err instanceof Error) {
+        console.error(err);
+    }
 }
 
 const ringBuffer = new RingBuffer<number>(5);

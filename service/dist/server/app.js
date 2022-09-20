@@ -1,18 +1,14 @@
 import express from 'express';
-// import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { test } from '#shared/modules/logger.js';
 test();
-//2
 console.log('test from server -- from TS');
 const app = express();
 const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-//5min cache ttl:
-// app.use(express.static('../../../client/dist/public', { maxAge: 300000 }));
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 app.get('/', (_, res) => {
     res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
@@ -23,7 +19,9 @@ try {
     });
 }
 catch (err) {
-    console.error(err);
+    if (err instanceof Error) {
+        console.error(err);
+    }
 }
 const ringBuffer = new RingBuffer(5);
 ringBuffer.add(1);

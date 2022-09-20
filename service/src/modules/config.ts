@@ -8,7 +8,7 @@ try {
     const devConfig = YAML.parse(fs.readFileSync('./devConfig.yaml', 'utf8'));
     const prodConfig = YAML.parse(fs.readFileSync('./prodConfig.yaml', 'utf8'));
 
-    process.env.NODE_ENV === 'development'
+    process.env['NODE_ENV'] === 'development'
         ? (config = Object.assign(commonConfig, devConfig))
         : (config = Object.assign(commonConfig, prodConfig));
 } catch (err) {
