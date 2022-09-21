@@ -15,11 +15,9 @@ interface LogData<T> {
 }
 
 //pretty - https://github.com/Chris-Baker/pretty-print-object
-//table (in node): - https://www.npmjs.com/package/table
-//table (in browser): have main method simply call console.table
 
 interface LogFormatter {
-    format<T>(data: LogData<T>, options?: { style?: 'pretty' | 'table' }): string;
+    format<T>(data: LogData<T>, options?: { style?: 'pretty' }): string;
 }
 
 interface LogTransport {
@@ -30,6 +28,7 @@ export class ConsoleLogFormatter {
     constructor(public runtime: Runtime) {}
 }
 
+// https://stackoverflow.com/questions/63288162/fluent-api-with-typescript/63288282#63288282
 //logger.pretty() //info loglevel
 //logger.debug().pretty()
 //logger.info().table()
