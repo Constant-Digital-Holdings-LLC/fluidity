@@ -1,23 +1,28 @@
-export var LogLevel;
-(function (LogLevel) {
-    LogLevel[LogLevel["debug"] = 0] = "debug";
-    LogLevel[LogLevel["info"] = 1] = "info";
-    LogLevel[LogLevel["warn"] = 2] = "warn";
-    LogLevel[LogLevel["error"] = 3] = "error";
-    LogLevel[LogLevel["none"] = 4] = "none";
-})(LogLevel = LogLevel || (LogLevel = {}));
-export class ConsoleLogFormatter {
+const levelsArr = ['debug', 'info', 'warn', 'error'];
+class ConsoleLogFormatter {
     constructor(runtime) {
         this.runtime = runtime;
     }
+    format(data) {
+        return `${data} foo`;
+    }
+}
+class ConsoleLogTransport {
+    send(level, line) {
+        console[level].bind(global.console, line);
+    }
 }
 export class Logger {
-    constructor(loglevel, formatter, transport) {
-        this.loglevel = loglevel;
+    constructor(level, formatter, transport) {
+        this.level = level;
         this.formatter = formatter;
         this.transport = transport;
     }
+    shoudLog(level) {
+        return levelsArr.indexOf(level) >= levelsArr.indexOf(this.level);
+    }
 }
+export default new Logger('debug', new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport());
 export function test() {
     console.log('v 9');
 }

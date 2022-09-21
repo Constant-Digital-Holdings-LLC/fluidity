@@ -1,11 +1,5 @@
-import { Runtime } from '#@shared/types.js';
-export declare enum LogLevel {
-    debug = 0,
-    info = 1,
-    warn = 2,
-    error = 3,
-    none = 4
-}
+declare const levelsArr: readonly ["debug", "info", "warn", "error"];
+declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 interface LogData<T> {
     level: LogLevel;
     message: T;
@@ -19,16 +13,14 @@ interface LogFormatter {
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
-export declare class ConsoleLogFormatter {
-    runtime: Runtime;
-    constructor(runtime: Runtime);
-}
 export declare class Logger {
-    loglevel: LogLevel;
+    level: LogLevel;
     formatter: LogFormatter;
     transport: LogTransport;
-    constructor(loglevel: LogLevel, formatter: LogFormatter, transport: LogTransport);
+    constructor(level: LogLevel, formatter: LogFormatter, transport: LogTransport);
+    private shoudLog;
 }
+declare const _default: Logger;
+export default _default;
 export declare function test(): void;
-export {};
 //# sourceMappingURL=logger.d.ts.map
