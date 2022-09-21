@@ -13,7 +13,7 @@ interface LogData<T> {
 }
 interface LogFormatter {
     format<T>(data: LogData<T>, options?: {
-        style?: 'pretty';
+        style?: 'pretty' | 'table';
     }): string;
 }
 interface LogTransport {
