@@ -31,8 +31,9 @@ export class ConsoleLogFormatter {
 // https://stackoverflow.com/questions/63288162/fluent-api-with-typescript/63288282#63288282
 //logger.pretty() //info loglevel
 //logger.debug().pretty()
-//logger.info().table()
-//logger.debug().table()
+//logger.info()
+//logger.debug()
+//logger.error() //log trace details by default
 
 export class Logger {
     constructor(public loglevel: LogLevel, public formatter: LogFormatter, public transport: LogTransport) {}
