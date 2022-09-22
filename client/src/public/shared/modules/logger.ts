@@ -33,8 +33,6 @@ class ConsoleLogTransport {
         } catch (err) {
             if (err instanceof Error) {
                 if (this.runtime === 'browser') {
-                    //to do: look at sourcemapped-stacktrace npm and see how to emulate that behaviour
-
                     //find out which line in stack trace has logger.js/ts and +1 to find caller. make this more automatic...
 
                     console[level](`${line} ${err.stack?.split('\n')[4]}`);
