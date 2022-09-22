@@ -1,4 +1,4 @@
-import { test } from '#@shared/modules/logger.js';
+import { logger } from '#@shared/modules/logger.js';
 import { TestType } from '#@shared/types.js';
 
 const Obj: TestType = {
@@ -12,6 +12,6 @@ const Obj: TestType = {
 
 Obj.sayHi();
 
-test();
+logger.info('hi Im in the browser');
 
 //2

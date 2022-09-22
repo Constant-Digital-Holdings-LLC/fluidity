@@ -19,15 +19,20 @@ interface LogTransport {
 }
 
 class ConsoleLogFormatter {
-    constructor(public runtime: Runtime) {}
-    format<T>(data: LogData<T>) {
-        return `${data} foo`;
+    constructor(private runtime: Runtime) {}
+    format<T>(data: LogData<T>): string {
+        return JSON.stringify(data);
     }
 }
 
 class ConsoleLogTransport {
+    constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
-        console[level].bind(global.console, line);
+        if (this.runtime === 'browser') {
+            console[level].call(window.console, line);
+        } else {
+            console[level].call(global.console, line);
+        }
     }
 }
 
@@ -39,16 +44,31 @@ class ConsoleLogTransport {
 //logger.error() //log trace details by default
 
 export class Logger {
-    constructor(public level: LogLevel, public formatter: LogFormatter, public transport: LogTransport) {}
+    constructor(public level: LogLevel, private formatter: LogFormatter, private transport: LogTransport) {}
 
-    private shoudLog(level: LogLevel): boolean {
-        return levelsArr.indexOf(level) >= levelsArr.indexOf(this.level);
+    private log<T>(data: LogData<T>): void {
+        if (levelsArr.indexOf(data.level) >= levelsArr.indexOf(this.level)) {
+            this.transport.send(this.level, this.formatter.format(data));
+        }
+    }
+
+    info<T>(data: T) {
+        this.log<T>({ level: 'info', message: data, timestamp: new Date() });
+    }
+
+    static browserConsole(level: LogLevel): Logger {
+        return new Logger(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
+    }
+
+    static nodeConsole(level: LogLevel): Logger {
+        return new Logger(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
     }
 }
 
-//determine runtime and export default the right thing....
-export default new Logger('debug', new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport());
+export let logger: Logger;
 
-export function test(): void {
-    console.log('v 9');
+if (typeof window === 'undefined' && typeof process === 'object') {
+    logger = Logger.nodeConsole('debug');
+} else {
+    logger = Logger.browserConsole('debug');
 }

@@ -15,12 +15,14 @@ interface LogTransport {
 }
 export declare class Logger {
     level: LogLevel;
-    formatter: LogFormatter;
-    transport: LogTransport;
+    private formatter;
+    private transport;
     constructor(level: LogLevel, formatter: LogFormatter, transport: LogTransport);
-    private shoudLog;
+    private log;
+    info<T>(data: T): void;
+    static browserConsole(level: LogLevel): Logger;
+    static nodeConsole(level: LogLevel): Logger;
 }
-declare const _default: Logger;
-export default _default;
-export declare function test(): void;
+export declare let logger: Logger;
+export {};
 //# sourceMappingURL=logger.d.ts.map

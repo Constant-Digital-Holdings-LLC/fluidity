@@ -1,4 +1,4 @@
-import { test } from '#@shared/modules/logger.js';
+import { logger } from '#@shared/modules/logger.js';
 const Obj = {
     property1: 'foo',
     property2: 'bar',
@@ -8,5 +8,5 @@ const Obj = {
     }
 };
 Obj.sayHi();
-test();
+logger.info('hi Im in the browser');
 //# sourceMappingURL=index.js.map

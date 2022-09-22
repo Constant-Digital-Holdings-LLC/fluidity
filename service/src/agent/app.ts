@@ -1,8 +1,7 @@
 import { config } from '#@service/modules/config.js';
-import { test } from '#@shared/modules/logger.js';
+import { logger } from '#@shared/modules/logger.js';
 
-test();
-console.debug(config);
+logger.info(config);
 
 //to-do next week:
 //  work on tsconfig.json
