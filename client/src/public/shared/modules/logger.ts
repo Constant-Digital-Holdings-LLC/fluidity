@@ -1,5 +1,8 @@
 import { Runtime } from '#@shared/types.js';
 
+// look at this more:
+// https://stackoverflow.com/questions/13815640/a-proper-wrapper-for-console-log-with-correct-line-number/13815846#13815846
+
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
