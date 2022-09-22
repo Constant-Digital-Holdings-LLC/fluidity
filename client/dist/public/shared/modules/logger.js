@@ -12,7 +12,20 @@ class ConsoleLogTransport {
         this.runtime = runtime;
     }
     send(level, line) {
-        console[level](line);
+        var _a, _b;
+        try {
+            throw Error('');
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                if (this.runtime === 'browser') {
+                    console[level](`${line} ${(_a = err.stack) === null || _a === void 0 ? void 0 : _a.split('\n')[4]}`);
+                }
+                else {
+                    console[level](`${line} ${(_b = err.stack) === null || _b === void 0 ? void 0 : _b.split('\n')[8]}`);
+                }
+            }
+        }
     }
 }
 export class LoggerUtil {
