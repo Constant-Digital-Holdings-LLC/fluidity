@@ -1,8 +1,5 @@
 import { Runtime } from '#@shared/types.js';
 
-// look at this more:
-// https://stackoverflow.com/questions/13815640/a-proper-wrapper-for-console-log-with-correct-line-number/13815846#13815846
-
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
@@ -31,11 +28,7 @@ class ConsoleLogFormatter {
 class ConsoleLogTransport {
     constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
-        if (this.runtime === 'browser') {
-            console[level].call(window.console, line);
-        } else {
-            console[level].call(global.console, line);
-        }
+        console[level](line);
     }
 }
 
@@ -47,11 +40,11 @@ class ConsoleLogTransport {
 //logger.error() //log trace details by default
 
 export class LoggerUtil implements Logger {
-    constructor(public level: LogLevel, private formatter: LogFormatter, private transport: LogTransport) {}
+    constructor(public levelSetting: LogLevel, private formatter: LogFormatter, private transport: LogTransport) {}
 
     private log<T>(level: LogLevel, data: T): void {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.level)) {
-            this.transport.send(this.level, this.formatter.format({ level, data, timestamp: new Date() }));
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
+            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date() }));
         }
     }
 

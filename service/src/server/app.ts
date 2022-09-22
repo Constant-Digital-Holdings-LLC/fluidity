@@ -5,7 +5,10 @@ const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { logger } from '#@shared/modules/logger.js';
 
-logger.info('server here');
+logger.info('info - hi from Node');
+logger.debug('debug - hi from node');
+logger.warn('warn - hi from node');
+logger.error('error - hi from node');
 
 //3
 

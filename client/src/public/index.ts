@@ -12,6 +12,9 @@ const Obj: TestType = {
 
 Obj.sayHi();
 
-logger.info('hi Im in the browser');
+logger.info('info - hi Im in the browser');
+logger.debug('debug - hi Im in the browser');
+logger.warn('warn - hi Im in the browser');
+logger.error('error - hi Im in the browser');
 
 //2

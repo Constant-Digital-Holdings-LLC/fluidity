@@ -12,23 +12,18 @@ class ConsoleLogTransport {
         this.runtime = runtime;
     }
     send(level, line) {
-        if (this.runtime === 'browser') {
-            console[level].call(window.console, line);
-        }
-        else {
-            console[level].call(global.console, line);
-        }
+        console[level](line);
     }
 }
 export class LoggerUtil {
-    constructor(level, formatter, transport) {
-        this.level = level;
+    constructor(levelSetting, formatter, transport) {
+        this.levelSetting = levelSetting;
         this.formatter = formatter;
         this.transport = transport;
     }
     log(level, data) {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.level)) {
-            this.transport.send(this.level, this.formatter.format({ level, data, timestamp: new Date() }));
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
+            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date() }));
         }
     }
     debug(data) {

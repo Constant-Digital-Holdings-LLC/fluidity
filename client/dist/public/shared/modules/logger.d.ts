@@ -17,10 +17,10 @@ interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 export declare class LoggerUtil implements Logger {
-    level: LogLevel;
+    levelSetting: LogLevel;
     private formatter;
     private transport;
-    constructor(level: LogLevel, formatter: LogFormatter, transport: LogTransport);
+    constructor(levelSetting: LogLevel, formatter: LogFormatter, transport: LogTransport);
     private log;
     debug<T>(data: T): void;
     info<T>(data: T): void;
