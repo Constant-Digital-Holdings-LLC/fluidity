@@ -10,10 +10,10 @@
     "description": "",
     "main": "app.js",
     "scripts": {
-        "start:server": "cd service/dist/server && node app.js",
-        "start:agent": "cd service/dist/agent && node app.js",
-        "dev:server": "cd service/dist/server && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
-        "dev:agent": "cd service/dist/agent && set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
+        "start:server": "cd service/dist/server && node --enable-source-maps app.js",
+        "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
+        "dev:server": "cd service/dist/server && set NODE_OPTIONS=--enable-source-maps&& set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
+        "dev:agent": "cd service/dist/agent && set NODE_OPTIONS=--enable-source-maps&& set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
     },
     "author": "Sean Lynch - KK6BEB",
     "license": "ISC",
@@ -28,6 +28,7 @@
         "es-module-shims": "^1.5.18",
         "express": "^4.18.1",
         "ring-buffer-ts": "^1.0.3",
+        "sourcemapped-stacktrace": "^1.1.11",
         "yaml": "^2.1.1"
     }
 }
