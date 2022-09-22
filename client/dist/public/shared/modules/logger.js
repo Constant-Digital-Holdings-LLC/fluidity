@@ -20,32 +20,41 @@ class ConsoleLogTransport {
         }
     }
 }
-export class Logger {
+export class LoggerUtil {
     constructor(level, formatter, transport) {
         this.level = level;
         this.formatter = formatter;
         this.transport = transport;
     }
-    log(data) {
-        if (levelsArr.indexOf(data.level) >= levelsArr.indexOf(this.level)) {
-            this.transport.send(this.level, this.formatter.format(data));
+    log(level, data) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.level)) {
+            this.transport.send(this.level, this.formatter.format({ level, data, timestamp: new Date() }));
         }
     }
+    debug(data) {
+        this.log('debug', data);
+    }
     info(data) {
-        this.log({ level: 'info', message: data, timestamp: new Date() });
+        this.log('info', data);
+    }
+    warn(data) {
+        this.log('warn', data);
+    }
+    error(data) {
+        this.log('error', data);
     }
     static browserConsole(level) {
-        return new Logger(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
+        return new LoggerUtil(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
     }
     static nodeConsole(level) {
-        return new Logger(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
+        return new LoggerUtil(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
     }
 }
 export let logger;
 if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = Logger.nodeConsole('debug');
+    logger = LoggerUtil.nodeConsole('debug');
 }
 else {
-    logger = Logger.browserConsole('debug');
+    logger = LoggerUtil.browserConsole('debug');
 }
 //# sourceMappingURL=logger.js.map

@@ -1,12 +1,12 @@
 import { Runtime } from '#@shared/types.js';
 
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
-
 type LogLevel = typeof levelsArr[number] & keyof typeof console;
+type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
 interface LogData<T> {
     level: LogLevel;
-    message: T;
+    data: T;
     timestamp: Date;
 }
 
@@ -43,32 +43,44 @@ class ConsoleLogTransport {
 //logger.debug()
 //logger.error() //log trace details by default
 
-export class Logger {
+export class LoggerUtil implements Logger {
     constructor(public level: LogLevel, private formatter: LogFormatter, private transport: LogTransport) {}
 
-    private log<T>(data: LogData<T>): void {
-        if (levelsArr.indexOf(data.level) >= levelsArr.indexOf(this.level)) {
-            this.transport.send(this.level, this.formatter.format(data));
+    private log<T>(level: LogLevel, data: T): void {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.level)) {
+            this.transport.send(this.level, this.formatter.format({ level, data, timestamp: new Date() }));
         }
     }
 
+    debug<T>(data: T) {
+        this.log('debug', data);
+    }
+
     info<T>(data: T) {
-        this.log<T>({ level: 'info', message: data, timestamp: new Date() });
+        this.log('info', data);
+    }
+
+    warn<T>(data: T) {
+        this.log('warn', data);
+    }
+
+    error<T>(data: T) {
+        this.log('error', data);
     }
 
     static browserConsole(level: LogLevel): Logger {
-        return new Logger(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
+        return new LoggerUtil(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
     }
 
     static nodeConsole(level: LogLevel): Logger {
-        return new Logger(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
+        return new LoggerUtil(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
     }
 }
 
 export let logger: Logger;
 
 if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = Logger.nodeConsole('debug');
+    logger = LoggerUtil.nodeConsole('debug');
 } else {
-    logger = Logger.browserConsole('debug');
+    logger = LoggerUtil.browserConsole('debug');
 }
