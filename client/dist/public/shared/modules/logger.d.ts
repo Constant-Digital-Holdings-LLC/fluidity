@@ -1,3 +1,4 @@
+import { Runtime } from '#@shared/types.js';
 declare const levelsArr: readonly ["debug", "info", "warn", "error"];
 declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 declare type Logger = {
@@ -7,6 +8,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     timestamp: Date;
+    location?: string;
 }
 interface LogFormatter {
     format<T>(data: LogData<T>, options?: {
@@ -20,7 +22,8 @@ export declare class LoggerUtil implements Logger {
     levelSetting: LogLevel;
     private formatter;
     private transport;
-    constructor(levelSetting: LogLevel, formatter: LogFormatter, transport: LogTransport);
+    private runtime;
+    constructor(levelSetting: LogLevel, formatter: LogFormatter, transport: LogTransport, runtime: Runtime);
     private log;
     debug<T>(data: T): void;
     info<T>(data: T): void;

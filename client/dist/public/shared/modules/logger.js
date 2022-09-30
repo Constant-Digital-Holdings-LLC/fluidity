@@ -12,31 +12,31 @@ class ConsoleLogTransport {
         this.runtime = runtime;
     }
     send(level, line) {
-        var _a, _b;
-        try {
-            throw Error('');
-        }
-        catch (err) {
-            if (err instanceof Error) {
-                if (this.runtime === 'browser') {
-                    console[level](`${line} ${(_a = err.stack) === null || _a === void 0 ? void 0 : _a.split('\n')[4]}`);
-                }
-                else {
-                    console[level](`${line} ${(_b = err.stack) === null || _b === void 0 ? void 0 : _b.split('\n')[8]}`);
-                }
-            }
-        }
+        console[level](line);
     }
 }
 export class LoggerUtil {
-    constructor(levelSetting, formatter, transport) {
+    constructor(levelSetting, formatter, transport, runtime) {
         this.levelSetting = levelSetting;
         this.formatter = formatter;
         this.transport = transport;
+        this.runtime = runtime;
     }
     log(level, data) {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
-            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date() }));
+            let location = '';
+            try {
+                throw Error('');
+            }
+            catch (err) {
+                if (err instanceof Error) {
+                    if (this.runtime === 'browser') {
+                    }
+                    else {
+                    }
+                }
+            }
+            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date(), location }));
         }
     }
     debug(data) {
@@ -52,10 +52,12 @@ export class LoggerUtil {
         this.log('error', data);
     }
     static browserConsole(level) {
-        return new LoggerUtil(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
+        const runtime = 'browser';
+        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
     static nodeConsole(level) {
-        return new LoggerUtil(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
+        const runtime = 'nodejs';
+        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
 }
 export let logger;

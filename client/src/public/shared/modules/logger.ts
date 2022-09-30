@@ -8,6 +8,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     timestamp: Date;
+    location?: string;
 }
 
 interface LogFormatter {
@@ -28,19 +29,7 @@ class ConsoleLogFormatter {
 class ConsoleLogTransport {
     constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
-        try {
-            throw Error('');
-        } catch (err) {
-            if (err instanceof Error) {
-                if (this.runtime === 'browser') {
-                    //find out which line in stack trace has logger.js/ts and +1 to find caller. make this more automatic...
-
-                    console[level](`${line} ${err.stack?.split('\n')[4]}`);
-                } else {
-                    console[level](`${line} ${err.stack?.split('\n')[8]}`);
-                }
-            }
-        }
+        console[level](line);
     }
 }
 
@@ -52,11 +41,31 @@ class ConsoleLogTransport {
 //logger.error() //log trace details by default
 
 export class LoggerUtil implements Logger {
-    constructor(public levelSetting: LogLevel, private formatter: LogFormatter, private transport: LogTransport) {}
+    constructor(
+        public levelSetting: LogLevel,
+        private formatter: LogFormatter,
+        private transport: LogTransport,
+        private runtime: Runtime
+    ) {}
 
     private log<T>(level: LogLevel, data: T): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
-            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date() }));
+            let location: string = '';
+
+            try {
+                throw Error('');
+            } catch (err) {
+                if (err instanceof Error) {
+                    if (this.runtime === 'browser') {
+                        //find out which line in stack trace has logger.js/ts and +1 to find caller. make this more automatic...
+                        // location = err.stack?.split('\n')[4];
+                    } else {
+                        // location = err.stack?.split('\n')[8];
+                    }
+                }
+            }
+
+            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date(), location }));
         }
     }
 
@@ -77,11 +86,13 @@ export class LoggerUtil implements Logger {
     }
 
     static browserConsole(level: LogLevel): Logger {
-        return new LoggerUtil(level, new ConsoleLogFormatter('browser'), new ConsoleLogTransport('browser'));
+        const runtime: Runtime = 'browser';
+        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
 
     static nodeConsole(level: LogLevel): Logger {
-        return new LoggerUtil(level, new ConsoleLogFormatter('nodejs'), new ConsoleLogTransport('nodejs'));
+        const runtime: Runtime = 'nodejs';
+        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
 }
 
