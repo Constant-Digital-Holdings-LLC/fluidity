@@ -8,7 +8,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     timestamp: Date;
-    location?: string;
+    location: string;
 }
 interface LogFormatter {
     format<T>(data: LogData<T>, options?: {

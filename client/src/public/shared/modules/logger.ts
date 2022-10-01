@@ -1,4 +1,5 @@
 import { Runtime } from '#@shared/types.js';
+import type { StackFrame } from 'stacktrace-js';
 
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 type LogLevel = typeof levelsArr[number] & keyof typeof console;
@@ -8,7 +9,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     timestamp: Date;
-    location?: string;
+    location: string;
 }
 
 interface LogFormatter {
@@ -50,22 +51,25 @@ export class LoggerUtil implements Logger {
 
     private log<T>(level: LogLevel, data: T): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
-            let location: string = '';
+            let location: string | undefined = 'zaz';
 
-            try {
-                throw Error('');
-            } catch (err) {
-                if (err instanceof Error) {
-                    if (this.runtime === 'browser') {
-                        //find out which line in stack trace has logger.js/ts and +1 to find caller. make this more automatic...
-                        // location = err.stack?.split('\n')[4];
-                    } else {
-                        // location = err.stack?.split('\n')[8];
-                    }
-                }
+            if (this.runtime === 'browser') {
+                // StackTrace.get().then(callback).catch(errback);
+
+                StackTrace.get()
+                    .then((sf: StackFrame[]) => {
+                        location = `${sf[2]?.fileName?.split('/').slice(-1)}:${sf[2]?.lineNumber}`;
+                        this.transport.send(
+                            level,
+                            this.formatter.format({ level, data, timestamp: new Date(), location })
+                        );
+                    })
+                    .catch((err: Error) => {
+                        console.error(err);
+                    });
+            } else {
+                this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date(), location }));
             }
-
-            this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date(), location }));
         }
     }
 
