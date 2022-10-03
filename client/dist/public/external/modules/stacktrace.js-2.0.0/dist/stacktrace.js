@@ -2557,7 +2557,10 @@
                         function _xdr(url) {
                             return new Promise(function (resolve, reject) {
                                 var req = new XMLHttpRequest();
-                                req.open('get', url);
+                                // console.log(url);
+                                if (url.includes('http') && !url.includes('.ts')) {
+                                    req.open('get', url);
+                                }
                                 req.onerror = reject;
                                 req.onreadystatechange = function onreadystatechange() {
                                     if (req.readyState === 4) {
@@ -2567,6 +2570,7 @@
                                         ) {
                                             resolve(req.responseText);
                                         } else {
+                                            console.warn(req.status);
                                             reject(new Error('HTTP status: ' + req.status + ' retrieving ' + url));
                                         }
                                     }
@@ -2732,7 +2736,7 @@
                                 return new Promise(
                                     function (resolve, reject) {
                                         //force offline:
-                                        reject(new Error('Cannot make network requests in offline mode'));
+                                        // reject(new Error('Cannot make network requests in offline mode'));
 
                                         var isDataUrl = location.substr(0, 5) === 'data:';
                                         if (this.sourceCache[location]) {
