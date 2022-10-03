@@ -2717,10 +2717,9 @@
                          */
                         return function StackTraceGPS(opts) {
                             if (!(this instanceof StackTraceGPS)) {
-                                opts.offline = true;
                                 return new StackTraceGPS(opts);
                             }
-                            opts = opts || { offline: true };
+                            opts = opts || {};
 
                             this.sourceCache = opts.sourceCache || {};
                             this.sourceMapConsumerCache = opts.sourceMapConsumerCache || {};
