@@ -1,3 +1,12 @@
+// to-do: get the node trace stuff working:
+// https://www.npmjs.com/package/stack-trace
+//
+// make loc info dynamic based on locLevel
+//
+// make 'pretty JSON' dynamic based on logLevel
+//
+// expose config module to logger module
+
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 
