@@ -7,8 +7,12 @@ declare type Logger = {
 interface LogData<T> {
     level: LogLevel;
     data: T;
-    timestamp: Date;
-    location: string;
+    ts: Date;
+    loc: StackLocation;
+}
+interface StackLocation {
+    line: number | undefined;
+    file: string | undefined;
 }
 interface LogFormatter {
     format<T>(data: LogData<T>, options?: {

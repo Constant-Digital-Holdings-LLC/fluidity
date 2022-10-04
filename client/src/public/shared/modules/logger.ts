@@ -8,8 +8,13 @@ type Logger = { [K in LogLevel]: <T>(data: T) => void };
 interface LogData<T> {
     level: LogLevel;
     data: T;
-    timestamp: Date;
-    location: string;
+    ts: Date;
+    loc: StackLocation;
+}
+
+interface StackLocation {
+    line: number | undefined;
+    file: string | undefined;
 }
 
 interface LogFormatter {
@@ -51,41 +56,44 @@ export class LoggerUtil implements Logger {
 
     private log<T>(level: LogLevel, data: T): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
-            let location: string | undefined = 'zaz';
-
             if (this.runtime === 'browser') {
-                // StackTrace.get().then(callback).catch(errback);
-
                 StackTrace.get()
                     .then((sf: StackFrame[]) => {
-                        location = `${sf[2]?.fileName?.split('/').slice(-1)}:${sf[2]?.lineNumber}`;
                         this.transport.send(
                             level,
-                            this.formatter.format({ level, data, timestamp: new Date(), location })
+                            this.formatter.format({
+                                level,
+                                data,
+                                ts: new Date(),
+                                loc: { file: sf[2]?.fileName?.split('/').slice(-1).toString(), line: sf[2]?.lineNumber }
+                            })
                         );
                     })
                     .catch((err: Error) => {
                         console.error(err);
                     });
             } else {
-                this.transport.send(level, this.formatter.format({ level, data, timestamp: new Date(), location }));
+                this.transport.send(
+                    level,
+                    this.formatter.format({ level, data, ts: new Date(), loc: { file: 'foo', line: 47 } })
+                );
             }
         }
     }
 
-    debug<T>(data: T) {
+    debug<T>(data: T): void {
         this.log('debug', data);
     }
 
-    info<T>(data: T) {
+    info<T>(data: T): void {
         this.log('info', data);
     }
 
-    warn<T>(data: T) {
+    warn<T>(data: T): void {
         this.log('warn', data);
     }
 
-    error<T>(data: T) {
+    error<T>(data: T): void {
         this.log('error', data);
     }
 
