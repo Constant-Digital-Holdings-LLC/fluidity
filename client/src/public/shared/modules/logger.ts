@@ -25,14 +25,14 @@ interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 
-class ConsoleLogFormatter {
+class ConsoleLogFormatter implements LogFormatter {
     constructor(private runtime: Runtime) {}
     format<T>(data: LogData<T>): string {
         return JSON.stringify(data);
     }
 }
 
-class ConsoleLogTransport {
+class ConsoleLogTransport implements LogTransport {
     constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
         console[level](line);
