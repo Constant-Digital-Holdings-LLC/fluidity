@@ -18,17 +18,15 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     ts: Date;
-    loc: StackLocation;
+    loc?: {
+        line: number | undefined;
+        file: string | undefined;
+    };
 }
 
 interface LevelSettings {
     locLevel: LogLevel;
     logLevel: LogLevel;
-}
-
-interface StackLocation {
-    line: number | undefined;
-    file: string | undefined;
 }
 
 interface LogFormatter {
