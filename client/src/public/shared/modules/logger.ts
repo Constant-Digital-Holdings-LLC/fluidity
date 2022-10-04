@@ -12,6 +12,11 @@ interface LogData<T> {
     loc: StackLocation;
 }
 
+interface LevelSettings {
+    locLevel: LogLevel;
+    logLevel: LogLevel;
+}
+
 interface StackLocation {
     line: number | undefined;
     file: string | undefined;
@@ -39,23 +44,16 @@ class ConsoleLogTransport implements LogTransport {
     }
 }
 
-// https://stackoverflow.com/questions/63288162/fluent-api-with-typescript/63288282#63288282
-//logger.pretty() //info loglevel
-//logger.debug().pretty()
-//logger.info()
-//logger.debug()
-//logger.error() //log trace details by default
-
 export class LoggerUtil implements Logger {
     constructor(
-        public levelSetting: LogLevel,
+        private levelSettings: LevelSettings,
         private formatter: LogFormatter,
         private transport: LogTransport,
         private runtime: Runtime
     ) {}
 
     private log<T>(level: LogLevel, data: T): void {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSetting)) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
             if (this.runtime === 'browser') {
                 StackTrace.get()
                     .then((sf: StackFrame[]) => {
@@ -97,21 +95,31 @@ export class LoggerUtil implements Logger {
         this.log('error', data);
     }
 
-    static browserConsole(level: LogLevel): Logger {
+    static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         const runtime: Runtime = 'browser';
-        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(
+            levelSettings,
+            new ConsoleLogFormatter(runtime),
+            new ConsoleLogTransport(runtime),
+            runtime
+        );
     }
 
-    static nodeConsole(level: LogLevel): Logger {
+    static nodeConsole(levelSettings: LevelSettings): LoggerUtil {
         const runtime: Runtime = 'nodejs';
-        return new LoggerUtil(level, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(
+            levelSettings,
+            new ConsoleLogFormatter(runtime),
+            new ConsoleLogTransport(runtime),
+            runtime
+        );
     }
 }
 
 export let logger: Logger;
 
 if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = LoggerUtil.nodeConsole('debug');
+    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'debug' });
 } else {
-    logger = LoggerUtil.browserConsole('debug');
+    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'debug' });
 }

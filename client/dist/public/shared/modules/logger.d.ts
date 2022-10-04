@@ -10,6 +10,10 @@ interface LogData<T> {
     ts: Date;
     loc: StackLocation;
 }
+interface LevelSettings {
+    locLevel: LogLevel;
+    logLevel: LogLevel;
+}
 interface StackLocation {
     line: number | undefined;
     file: string | undefined;
@@ -23,18 +27,18 @@ interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 export declare class LoggerUtil implements Logger {
-    levelSetting: LogLevel;
+    private levelSettings;
     private formatter;
     private transport;
     private runtime;
-    constructor(levelSetting: LogLevel, formatter: LogFormatter, transport: LogTransport, runtime: Runtime);
+    constructor(levelSettings: LevelSettings, formatter: LogFormatter, transport: LogTransport, runtime: Runtime);
     private log;
     debug<T>(data: T): void;
     info<T>(data: T): void;
     warn<T>(data: T): void;
     error<T>(data: T): void;
-    static browserConsole(level: LogLevel): Logger;
-    static nodeConsole(level: LogLevel): Logger;
+    static browserConsole(levelSettings: LevelSettings): LoggerUtil;
+    static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
 }
 export declare let logger: Logger;
 export {};
