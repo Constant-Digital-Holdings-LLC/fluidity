@@ -22,26 +22,50 @@ export class LoggerUtil {
         this.transport = transport;
         this.runtime = runtime;
     }
-    log(level, data) {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+    getStackLocation() {
+        return new Promise((resolve, reject) => {
             if (this.runtime === 'browser') {
                 StackTrace.get()
                     .then((sf) => {
                     var _a, _b, _c;
-                    this.transport.send(level, this.formatter.format({
-                        level,
-                        data,
-                        ts: new Date(),
-                        loc: { file: (_b = (_a = sf[2]) === null || _a === void 0 ? void 0 : _a.fileName) === null || _b === void 0 ? void 0 : _b.split('/').slice(-1).toString(), line: (_c = sf[2]) === null || _c === void 0 ? void 0 : _c.lineNumber }
-                    }));
+                    resolve({
+                        file: (_b = (_a = sf[4]) === null || _a === void 0 ? void 0 : _a.fileName) === null || _b === void 0 ? void 0 : _b.split('/').slice(-1).toString(),
+                        line: (_c = sf[4]) === null || _c === void 0 ? void 0 : _c.lineNumber
+                    });
                 })
                     .catch((err) => {
-                    console.error(err);
+                    reject(err);
                 });
             }
             else {
-                this.transport.send(level, this.formatter.format({ level, data, ts: new Date(), loc: { file: 'foo', line: 47 } }));
+                try {
+                    throw new Error('get logger.ts telemetry');
+                }
+                catch (err) {
+                    import('stack-trace').then(v8Strace => {
+                        var _a, _b;
+                        if (err instanceof Error) {
+                            const sf = v8Strace.parse(err);
+                            resolve({
+                                file: (_a = sf[5]) === null || _a === void 0 ? void 0 : _a.getFileName().split('/').slice(-1).toString(),
+                                line: (_b = sf[5]) === null || _b === void 0 ? void 0 : _b.getLineNumber()
+                            });
+                        }
+                    });
+                }
             }
+        });
+    }
+    log(level, data) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+            this.getStackLocation().then(loc => {
+                this.transport.send(level, this.formatter.format({
+                    level,
+                    data,
+                    ts: new Date(),
+                    loc
+                }));
+            });
         }
     }
     debug(data) {

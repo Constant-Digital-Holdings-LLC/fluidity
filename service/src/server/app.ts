@@ -5,8 +5,8 @@ const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { logger } from '#@shared/modules/logger.js';
 
-logger.info('info - hi from Node');
 logger.debug('debug - hi from node');
+logger.info('info - hi from node');
 logger.warn('warn - hi from node');
 logger.error('error - hi from node');
 
@@ -24,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 
 app.get('/', (_, res) => {
+    logger.info('req made...');
     res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
 
@@ -42,4 +43,4 @@ ringBuffer.add(1);
 ringBuffer.add(2, 3);
 ringBuffer.add(4, 5, 6);
 
-console.log(ringBuffer.toArray());
+logger.info(ringBuffer.toArray());

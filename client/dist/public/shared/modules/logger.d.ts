@@ -4,14 +4,15 @@ declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 declare type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
+interface StackLocation {
+    line: number | undefined;
+    file: string | undefined;
+}
 interface LogData<T> {
     level: LogLevel;
     data: T;
     ts: Date;
-    loc?: {
-        line: number | undefined;
-        file: string | undefined;
-    };
+    loc?: StackLocation;
 }
 interface LevelSettings {
     locLevel: LogLevel;
@@ -31,6 +32,7 @@ export declare class LoggerUtil implements Logger {
     private transport;
     private runtime;
     constructor(levelSettings: LevelSettings, formatter: LogFormatter, transport: LogTransport, runtime: Runtime);
+    private getStackLocation;
     private log;
     debug<T>(data: T): void;
     info<T>(data: T): void;

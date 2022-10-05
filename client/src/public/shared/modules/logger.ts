@@ -6,6 +6,8 @@
 // make 'pretty JSON' dynamic based on logLevel
 //
 // expose config module to logger module
+//
+// if in nodejs runtime, report a warning that loglines may be out of order if trace is on
 
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
@@ -14,14 +16,16 @@ const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
+interface StackLocation {
+    line: number | undefined;
+    file: string | undefined;
+}
+
 interface LogData<T> {
     level: LogLevel;
     data: T;
     ts: Date;
-    loc?: {
-        line: number | undefined;
-        file: string | undefined;
-    };
+    loc?: StackLocation;
 }
 
 interface LevelSettings {
@@ -59,30 +63,51 @@ export class LoggerUtil implements Logger {
         private runtime: Runtime
     ) {}
 
-    private log<T>(level: LogLevel, data: T): void {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+    private getStackLocation(): Promise<StackLocation> {
+        return new Promise((resolve, reject) => {
             if (this.runtime === 'browser') {
                 StackTrace.get()
                     .then((sf: StackFrame[]) => {
-                        this.transport.send(
-                            level,
-                            this.formatter.format({
-                                level,
-                                data,
-                                ts: new Date(),
-                                loc: { file: sf[2]?.fileName?.split('/').slice(-1).toString(), line: sf[2]?.lineNumber }
-                            })
-                        );
+                        resolve({
+                            file: sf[4]?.fileName?.split('/').slice(-1).toString(),
+                            line: sf[4]?.lineNumber
+                        });
                     })
                     .catch((err: Error) => {
-                        console.error(err);
+                        reject(err);
                     });
             } else {
+                try {
+                    throw new Error('get logger.ts telemetry');
+                } catch (err) {
+                    import('stack-trace').then(v8Strace => {
+                        if (err instanceof Error) {
+                            const sf = v8Strace.parse(err);
+
+                            resolve({
+                                file: sf[5]?.getFileName().split('/').slice(-1).toString(),
+                                line: sf[5]?.getLineNumber()
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private log<T>(level: LogLevel, data: T): void {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+            this.getStackLocation().then(loc => {
                 this.transport.send(
                     level,
-                    this.formatter.format({ level, data, ts: new Date(), loc: { file: 'foo', line: 47 } })
+                    this.formatter.format({
+                        level,
+                        data,
+                        ts: new Date(),
+                        loc
+                    })
                 );
-            }
+            });
         }
     }
 
