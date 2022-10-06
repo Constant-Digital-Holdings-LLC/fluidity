@@ -110,7 +110,7 @@ export class LoggerUtil implements Logger {
                 );
             };
 
-            if (levelsArr.indexOf(level) <= levelsArr.indexOf(this.levelSettings.locLevel)) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
                 this.getStackLocation().then(sendData);
             } else {
                 sendData();
@@ -158,7 +158,7 @@ export class LoggerUtil implements Logger {
 export let logger: Logger;
 
 if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'debug' });
+    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'warn' });
 } else {
-    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'debug' });
+    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'warn' });
 }

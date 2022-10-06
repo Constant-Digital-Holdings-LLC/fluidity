@@ -66,7 +66,7 @@ export class LoggerUtil {
                     loc
                 }));
             };
-            if (levelsArr.indexOf(level) <= levelsArr.indexOf(this.levelSettings.locLevel)) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
                 this.getStackLocation().then(sendData);
             }
             else {
@@ -97,9 +97,9 @@ export class LoggerUtil {
 }
 export let logger;
 if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'debug' });
+    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'warn' });
 }
 else {
-    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'debug' });
+    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'warn' });
 }
 //# sourceMappingURL=logger.js.map
