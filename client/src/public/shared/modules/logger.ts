@@ -10,6 +10,7 @@
 // if in nodejs runtime, report a warning that loglines may be out of order if trace is on
 
 import { Runtime } from '#@shared/types.js';
+import { send } from 'process';
 import type { StackFrame } from 'stacktrace-js';
 
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
@@ -25,7 +26,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     ts: Date;
-    loc?: StackLocation;
+    loc?: StackLocation | undefined;
 }
 
 interface LevelSettings {
@@ -97,7 +98,7 @@ export class LoggerUtil implements Logger {
 
     private log<T>(level: LogLevel, data: T): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
-            this.getStackLocation().then(loc => {
+            const sendData = (loc?: StackLocation) => {
                 this.transport.send(
                     level,
                     this.formatter.format({
@@ -107,7 +108,13 @@ export class LoggerUtil implements Logger {
                         loc
                     })
                 );
-            });
+            };
+
+            if (levelsArr.indexOf(level) <= levelsArr.indexOf(this.levelSettings.locLevel)) {
+                this.getStackLocation().then(sendData);
+            } else {
+                sendData();
+            }
         }
     }
 

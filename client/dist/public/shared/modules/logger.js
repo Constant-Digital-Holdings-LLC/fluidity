@@ -58,14 +58,20 @@ export class LoggerUtil {
     }
     log(level, data) {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
-            this.getStackLocation().then(loc => {
+            const sendData = (loc) => {
                 this.transport.send(level, this.formatter.format({
                     level,
                     data,
                     ts: new Date(),
                     loc
                 }));
-            });
+            };
+            if (levelsArr.indexOf(level) <= levelsArr.indexOf(this.levelSettings.locLevel)) {
+                this.getStackLocation().then(sendData);
+            }
+            else {
+                sendData();
+            }
         }
     }
     debug(data) {

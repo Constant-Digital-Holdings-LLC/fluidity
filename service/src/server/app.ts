@@ -5,14 +5,31 @@ const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { logger } from '#@shared/modules/logger.js';
 
-logger.debug('debug - hi from node');
-logger.info('info - hi from node');
-logger.warn('warn - hi from node');
-logger.error('error - hi from node');
+logger.debug('debug 1 - nodejs');
+logger.debug('debug 2 - nodejs');
 
-//3
+logger.info('info 1 - nodejs');
+logger.info('info 2 - nodejs');
 
-console.log('test from server -- from TS');
+logger.warn('warn 1 - nodejs');
+logger.warn('warn 2 - nodejs');
+
+logger.error('error 1 - nodejs');
+logger.error('error 2 - nodejs');
+
+// setInterval(_ => {
+//     logger.debug('debug 1 - nodejs');
+//     logger.debug('debug 2 - nodejs');
+
+//     logger.info('info 1 - nodejs');
+//     logger.info('info 2 - nodejs');
+
+//     logger.warn('warn 1 - nodejs');
+//     logger.warn('warn 2 - nodejs');
+
+//     logger.error('error 1 - nodejs');
+//     logger.error('error 2 - nodejs');
+// }, 250);
 
 const app: Application = express();
 const port = 3000;

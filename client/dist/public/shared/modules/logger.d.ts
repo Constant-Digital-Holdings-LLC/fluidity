@@ -12,7 +12,7 @@ interface LogData<T> {
     level: LogLevel;
     data: T;
     ts: Date;
-    loc?: StackLocation;
+    loc?: StackLocation | undefined;
 }
 interface LevelSettings {
     locLevel: LogLevel;
