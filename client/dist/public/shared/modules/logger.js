@@ -18,12 +18,19 @@ class SimpleFormatter {
         else {
             formattedMesg = message;
         }
-        if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
-            const { location: { file, line } } = data;
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg} (${file}:${line})`;
+        let timeString;
+        if (this.levelSettings.logLevel === 'debug') {
+            timeString = timestamp.toISOString().slice(11, -1);
         }
         else {
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg}`;
+            timeString = timestamp.toISOString();
+        }
+        if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
+            const { location: { file, line } } = data;
+            return `[${timeString}]: ${formattedMesg} (${file}:${line})`;
+        }
+        else {
+            return `[${timeString}]: ${formattedMesg}`;
         }
     }
 }

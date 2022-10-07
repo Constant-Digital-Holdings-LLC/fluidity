@@ -39,6 +39,7 @@ interface LogTransport {
 
 class SimpleFormatter implements LogFormatter {
     constructor(private levelSettings: LevelSettings) {}
+
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
         let formattedMesg: string;
@@ -53,14 +54,22 @@ class SimpleFormatter implements LogFormatter {
             formattedMesg = message;
         }
 
+        let timeString: string;
+
+        if (this.levelSettings.logLevel === 'debug') {
+            timeString = timestamp.toISOString().slice(11, -1);
+        } else {
+            timeString = timestamp.toISOString();
+        }
+
         if (data.location?.file && data.location?.line) {
             const {
                 location: { file, line }
             } = data;
 
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg} (${file}:${line})`;
+            return `[${timeString}]: ${formattedMesg} (${file}:${line})`;
         } else {
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg}`;
+            return `[${timeString}]: ${formattedMesg}`;
         }
     }
 }
