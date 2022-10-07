@@ -24,9 +24,9 @@ interface StackLocation {
 
 interface LogData<T> {
     level: LogLevel;
-    data: T;
-    ts: Date;
-    loc?: StackLocation | undefined;
+    message: T;
+    timestamp: Date;
+    location?: StackLocation | undefined;
 }
 
 interface LevelSettings {
@@ -42,7 +42,35 @@ interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 
-class ConsoleLogFormatter implements LogFormatter {
+class BrowserConsoleFormatter implements LogFormatter {
+    constructor(private runtime: Runtime) {}
+    format<T>(data: LogData<T>): string {
+        const { message, timestamp } = data;
+
+        if (data.location?.file && data.location?.line) {
+            const {
+                location: { file, line }
+            } = data;
+
+            return `${timestamp.toLocaleTimeString('en-US', {
+                hour12: false
+            })}.${timestamp.getMilliseconds()}: ${message} [${file}:${line}]`;
+        } else {
+            return `${timestamp.toLocaleTimeString('en-US', {
+                hour12: false
+            })}.${timestamp.getMilliseconds()}: ${message}`;
+        }
+    }
+}
+
+class NodeConsoleFormatter implements LogFormatter {
+    constructor(private runtime: Runtime) {}
+    format<T>(data: LogData<T>): string {
+        return JSON.stringify(data);
+    }
+}
+
+class JSONFormatter implements LogFormatter {
     constructor(private runtime: Runtime) {}
     format<T>(data: LogData<T>): string {
         return JSON.stringify(data);
@@ -96,24 +124,24 @@ export class LoggerUtil implements Logger {
         });
     }
 
-    private log<T>(level: LogLevel, data: T): void {
+    private log<T>(level: LogLevel, message: T): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
-            const sendData = (loc?: StackLocation) => {
+            const snd = (location?: StackLocation) => {
                 this.transport.send(
                     level,
                     this.formatter.format({
                         level,
-                        data,
-                        ts: new Date(),
-                        loc
+                        message,
+                        timestamp: new Date(),
+                        location
                     })
                 );
             };
 
             if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
-                this.getStackLocation().then(sendData);
+                this.getStackLocation().then(snd);
             } else {
-                sendData();
+                snd();
             }
         }
     }
@@ -138,7 +166,7 @@ export class LoggerUtil implements Logger {
         const runtime: Runtime = 'browser';
         return new LoggerUtil(
             levelSettings,
-            new ConsoleLogFormatter(runtime),
+            new BrowserConsoleFormatter(runtime),
             new ConsoleLogTransport(runtime),
             runtime
         );
@@ -148,7 +176,7 @@ export class LoggerUtil implements Logger {
         const runtime: Runtime = 'nodejs';
         return new LoggerUtil(
             levelSettings,
-            new ConsoleLogFormatter(runtime),
+            new NodeConsoleFormatter(runtime),
             new ConsoleLogTransport(runtime),
             runtime
         );

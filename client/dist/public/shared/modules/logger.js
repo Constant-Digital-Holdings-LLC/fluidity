@@ -1,5 +1,33 @@
 const levelsArr = ['debug', 'info', 'warn', 'error'];
-class ConsoleLogFormatter {
+class BrowserConsoleFormatter {
+    constructor(runtime) {
+        this.runtime = runtime;
+    }
+    format(data) {
+        var _a, _b;
+        const { message, timestamp } = data;
+        if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
+            const { location: { file, line } } = data;
+            return `${timestamp.toLocaleTimeString('en-US', {
+                hour12: false
+            })}.${timestamp.getMilliseconds()}: ${message} [${file}:${line}]`;
+        }
+        else {
+            return `${timestamp.toLocaleTimeString('en-US', {
+                hour12: false
+            })}.${timestamp.getMilliseconds()}: ${message}`;
+        }
+    }
+}
+class NodeConsoleFormatter {
+    constructor(runtime) {
+        this.runtime = runtime;
+    }
+    format(data) {
+        return JSON.stringify(data);
+    }
+}
+class JSONFormatter {
     constructor(runtime) {
         this.runtime = runtime;
     }
@@ -56,21 +84,21 @@ export class LoggerUtil {
             }
         });
     }
-    log(level, data) {
+    log(level, message) {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
-            const sendData = (loc) => {
+            const snd = (location) => {
                 this.transport.send(level, this.formatter.format({
                     level,
-                    data,
-                    ts: new Date(),
-                    loc
+                    message,
+                    timestamp: new Date(),
+                    location
                 }));
             };
             if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
-                this.getStackLocation().then(sendData);
+                this.getStackLocation().then(snd);
             }
             else {
-                sendData();
+                snd();
             }
         }
     }
@@ -88,11 +116,11 @@ export class LoggerUtil {
     }
     static browserConsole(levelSettings) {
         const runtime = 'browser';
-        return new LoggerUtil(levelSettings, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
     static nodeConsole(levelSettings) {
         const runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new ConsoleLogFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
     }
 }
 export let logger;

@@ -10,9 +10,9 @@ interface StackLocation {
 }
 interface LogData<T> {
     level: LogLevel;
-    data: T;
-    ts: Date;
-    loc?: StackLocation | undefined;
+    message: T;
+    timestamp: Date;
+    location?: StackLocation | undefined;
 }
 interface LevelSettings {
     locLevel: LogLevel;
