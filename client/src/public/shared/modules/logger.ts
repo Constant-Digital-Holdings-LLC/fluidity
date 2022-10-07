@@ -1,4 +1,7 @@
 //
+// in SimpleFormatter class, the timestamp format should display
+// date (in addition to time) if loglevel *setting is higher than debug
+//
 // expose config module to logger module
 //
 
