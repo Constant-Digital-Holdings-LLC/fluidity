@@ -38,13 +38,13 @@ interface LogTransport {
 }
 
 class SimpleFormatter implements LogFormatter {
-    constructor() {}
+    constructor(private levelSettings: LevelSettings) {}
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
         let formattedMesg: string;
 
         if (typeof message !== 'string') {
-            if (level === 'debug') {
+            if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
                 formattedMesg = JSON.stringify(message, undefined, '\t');
             } else {
                 formattedMesg = JSON.stringify(message);
@@ -78,6 +78,7 @@ class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
 }
 
 class JSONFormatter implements LogFormatter {
+    constructor(private levelSettings: LevelSettings) {}
     format<T>(data: LogData<T>): string {
         return JSON.stringify(data);
     }
@@ -168,15 +169,15 @@ export class LoggerUtil implements Logger {
     }
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
-        return new LoggerUtil(levelSettings, new SimpleFormatter(), new ConsoleTransport(), 'browser');
+        return new LoggerUtil(levelSettings, new SimpleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
 
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil {
-        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(), new ConsoleTransport(), 'nodejs');
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 
     static EmitJSON(levelSettings: LevelSettings): LoggerUtil {
-        return new LoggerUtil(levelSettings, new JSONFormatter(), new ConsoleTransport(), 'nodejs');
+        return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
 

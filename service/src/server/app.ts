@@ -17,19 +17,10 @@ logger.warn('warn 2 - nodejs');
 logger.error('error 1 - nodejs');
 logger.error('error 2 - nodejs');
 
-// setInterval(_ => {
-//     logger.debug('debug 1 - nodejs');
-//     logger.debug('debug 2 - nodejs');
+const testObj = { foo1: { bar: 'baz', word: 'blah' }, foo2: 'hi' };
 
-//     logger.info('info 1 - nodejs');
-//     logger.info('info 2 - nodejs');
-
-//     logger.warn('warn 1 - nodejs');
-//     logger.warn('warn 2 - nodejs');
-
-//     logger.error('error 1 - nodejs');
-//     logger.error('error 2 - nodejs');
-// }, 250);
+logger.debug(testObj);
+logger.error(testObj);
 
 const app: Application = express();
 const port = 3000;

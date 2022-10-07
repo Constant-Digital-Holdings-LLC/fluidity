@@ -1,12 +1,14 @@
 const levelsArr = ['debug', 'info', 'warn', 'error'];
 class SimpleFormatter {
-    constructor() { }
+    constructor(levelSettings) {
+        this.levelSettings = levelSettings;
+    }
     format(data) {
         var _a, _b;
         const { message, timestamp, level } = data;
         let formattedMesg;
         if (typeof message !== 'string') {
-            if (level === 'debug') {
+            if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
                 formattedMesg = JSON.stringify(message, undefined, '\t');
             }
             else {
@@ -36,6 +38,9 @@ class NodeConsoleFormatter extends SimpleFormatter {
     }
 }
 class JSONFormatter {
+    constructor(levelSettings) {
+        this.levelSettings = levelSettings;
+    }
     format(data) {
         return JSON.stringify(data);
     }
@@ -117,13 +122,13 @@ export class LoggerUtil {
         this.log('error', data);
     }
     static browserConsole(levelSettings) {
-        return new LoggerUtil(levelSettings, new SimpleFormatter(), new ConsoleTransport(), 'browser');
+        return new LoggerUtil(levelSettings, new SimpleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
     static nodeConsole(levelSettings) {
-        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(), new ConsoleTransport(), 'nodejs');
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
     static EmitJSON(levelSettings) {
-        return new LoggerUtil(levelSettings, new JSONFormatter(), new ConsoleTransport(), 'nodejs');
+        return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
 export let logger;
