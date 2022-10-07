@@ -52,13 +52,9 @@ class BrowserConsoleFormatter implements LogFormatter {
                 location: { file, line }
             } = data;
 
-            return `${timestamp.toLocaleTimeString('en-US', {
-                hour12: false
-            })}.${timestamp.getMilliseconds()}: ${message} [${file}:${line}]`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} (${file}:${line})`;
         } else {
-            return `${timestamp.toLocaleTimeString('en-US', {
-                hour12: false
-            })}.${timestamp.getMilliseconds()}: ${message}`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} ${message}`;
         }
     }
 }

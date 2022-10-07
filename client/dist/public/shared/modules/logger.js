@@ -8,14 +8,10 @@ class BrowserConsoleFormatter {
         const { message, timestamp } = data;
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;
-            return `${timestamp.toLocaleTimeString('en-US', {
-                hour12: false
-            })}.${timestamp.getMilliseconds()}: ${message} [${file}:${line}]`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} (${file}:${line})`;
         }
         else {
-            return `${timestamp.toLocaleTimeString('en-US', {
-                hour12: false
-            })}.${timestamp.getMilliseconds()}: ${message}`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} ${message}`;
         }
     }
 }
