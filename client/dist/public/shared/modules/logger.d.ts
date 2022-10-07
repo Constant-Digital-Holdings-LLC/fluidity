@@ -40,7 +40,7 @@ export declare class LoggerUtil implements Logger {
     error<T>(data: T): void;
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
-    static JSONConsole(levelSettings: LevelSettings): LoggerUtil;
+    static EmitJSON(levelSettings: LevelSettings): LoggerUtil;
 }
 export declare let logger: Logger;
 export {};

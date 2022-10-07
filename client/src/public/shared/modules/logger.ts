@@ -175,7 +175,7 @@ export class LoggerUtil implements Logger {
         return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
 
-    static JSONConsole(levelSettings: LevelSettings): LoggerUtil {
+    static EmitJSON(levelSettings: LevelSettings): LoggerUtil {
         const runtime: Runtime = 'nodejs';
         return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }

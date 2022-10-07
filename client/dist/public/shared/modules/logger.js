@@ -123,7 +123,7 @@ export class LoggerUtil {
         const runtime = 'nodejs';
         return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
-    static JSONConsole(levelSettings) {
+    static EmitJSON(levelSettings) {
         const runtime = 'nodejs';
         return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
