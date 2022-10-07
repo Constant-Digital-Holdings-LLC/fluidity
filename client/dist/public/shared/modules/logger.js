@@ -1,26 +1,31 @@
 const levelsArr = ['debug', 'info', 'warn', 'error'];
-class BrowserConsoleFormatter {
+class SimpleFormatter {
     constructor(runtime) {
         this.runtime = runtime;
     }
     format(data) {
         var _a, _b;
-        const { message, timestamp } = data;
-        if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
-            const { location: { file, line } } = data;
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} (${file}:${line})`;
+        const { message, timestamp, level } = data;
+        let formattedMesg;
+        if (typeof message !== 'string') {
+            formattedMesg = JSON.stringify(message);
         }
         else {
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} ${message}`;
+            formattedMesg = message;
+        }
+        if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
+            const { location: { file, line } } = data;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg} (${file}:${line})`;
+        }
+        else {
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg}`;
         }
     }
 }
-class NodeConsoleFormatter {
-    constructor(runtime) {
-        this.runtime = runtime;
-    }
+class NodeConsoleFormatter extends SimpleFormatter {
     format(data) {
-        return JSON.stringify(data);
+        const map = [94, 97, 33, 91];
+        return `\x1b[${map[levelsArr.indexOf(data.level)]}m${super.format(data)}\x1b[0m`;
     }
 }
 class JSONFormatter {
@@ -31,7 +36,7 @@ class JSONFormatter {
         return JSON.stringify(data);
     }
 }
-class ConsoleLogTransport {
+class ConsoleTransport {
     constructor(runtime) {
         this.runtime = runtime;
     }
@@ -112,11 +117,15 @@ export class LoggerUtil {
     }
     static browserConsole(levelSettings) {
         const runtime = 'browser';
-        return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new SimpleFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
     static nodeConsole(levelSettings) {
         const runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleLogTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+    }
+    static JSONConsole(levelSettings) {
+        const runtime = 'nodejs';
+        return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
 }
 export let logger;

@@ -10,7 +10,6 @@
 // if in nodejs runtime, report a warning that loglines may be out of order if trace is on
 
 import { Runtime } from '#@shared/types.js';
-import { send } from 'process';
 import type { StackFrame } from 'stacktrace-js';
 
 const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
@@ -42,27 +41,35 @@ interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 
-class BrowserConsoleFormatter implements LogFormatter {
+class SimpleFormatter implements LogFormatter {
     constructor(private runtime: Runtime) {}
     format<T>(data: LogData<T>): string {
-        const { message, timestamp } = data;
+        const { message, timestamp, level } = data;
+        let formattedMesg: string;
+
+        if (typeof message !== 'string') {
+            formattedMesg = JSON.stringify(message);
+        } else {
+            formattedMesg = message;
+        }
 
         if (data.location?.file && data.location?.line) {
             const {
                 location: { file, line }
             } = data;
 
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} (${file}:${line})`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg} (${file}:${line})`;
         } else {
-            return `[${timestamp.toISOString().slice(11, -1)}]: ${message} ${message}`;
+            return `[${timestamp.toISOString().slice(11, -1)}]: ${formattedMesg}`;
         }
     }
 }
 
-class NodeConsoleFormatter implements LogFormatter {
-    constructor(private runtime: Runtime) {}
-    format<T>(data: LogData<T>): string {
-        return JSON.stringify(data);
+class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
+    override format<T>(data: LogData<T>): string {
+        const map = [94, 97, 33, 91];
+
+        return `\x1b[${map[levelsArr.indexOf(data.level)]}m${super.format(data)}\x1b[0m`;
     }
 }
 
@@ -73,7 +80,7 @@ class JSONFormatter implements LogFormatter {
     }
 }
 
-class ConsoleLogTransport implements LogTransport {
+class ConsoleTransport implements LogTransport {
     constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
         console[level](line);
@@ -160,22 +167,17 @@ export class LoggerUtil implements Logger {
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         const runtime: Runtime = 'browser';
-        return new LoggerUtil(
-            levelSettings,
-            new BrowserConsoleFormatter(runtime),
-            new ConsoleLogTransport(runtime),
-            runtime
-        );
+        return new LoggerUtil(levelSettings, new SimpleFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
 
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil {
         const runtime: Runtime = 'nodejs';
-        return new LoggerUtil(
-            levelSettings,
-            new NodeConsoleFormatter(runtime),
-            new ConsoleLogTransport(runtime),
-            runtime
-        );
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+    }
+
+    static JSONConsole(levelSettings: LevelSettings): LoggerUtil {
+        const runtime: Runtime = 'nodejs';
+        return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
     }
 }
 
