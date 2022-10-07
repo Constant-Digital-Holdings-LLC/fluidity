@@ -14,7 +14,7 @@ Obj.sayHi();
 
 const testObj = { foo1: { bar: 'baz', word: 'blah' }, foo2: 'hi' };
 
-logger.debug(testObj);
+logger.error(testObj);
 
 logger.info('hi Im info in the browser');
 logger.debug('hi Im debug data in the browser');
