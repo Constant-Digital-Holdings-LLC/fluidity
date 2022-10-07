@@ -1,13 +1,6 @@
-// to-do: get the node trace stuff working:
-// https://www.npmjs.com/package/stack-trace
-//
-// make loc info dynamic based on locLevel
-//
-// make 'pretty JSON' dynamic based on logLevel
 //
 // expose config module to logger module
 //
-// if in nodejs runtime, report a warning that loglines may be out of order if trace is on
 
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
@@ -42,7 +35,7 @@ interface LogTransport {
 }
 
 class SimpleFormatter implements LogFormatter {
-    constructor(private runtime: Runtime) {}
+    constructor() {}
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
         let formattedMesg: string;
@@ -74,14 +67,12 @@ class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
 }
 
 class JSONFormatter implements LogFormatter {
-    constructor(private runtime: Runtime) {}
     format<T>(data: LogData<T>): string {
         return JSON.stringify(data);
     }
 }
 
 class ConsoleTransport implements LogTransport {
-    constructor(private runtime: Runtime) {}
     send(level: LogLevel, line: string) {
         console[level](line);
     }
@@ -166,18 +157,15 @@ export class LoggerUtil implements Logger {
     }
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
-        const runtime: Runtime = 'browser';
-        return new LoggerUtil(levelSettings, new SimpleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new SimpleFormatter(), new ConsoleTransport(), 'browser');
     }
 
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil {
-        const runtime: Runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(), new ConsoleTransport(), 'nodejs');
     }
 
     static EmitJSON(levelSettings: LevelSettings): LoggerUtil {
-        const runtime: Runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new JSONFormatter(), new ConsoleTransport(), 'nodejs');
     }
 }
 

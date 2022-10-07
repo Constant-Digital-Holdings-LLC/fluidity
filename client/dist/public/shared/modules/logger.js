@@ -1,8 +1,6 @@
 const levelsArr = ['debug', 'info', 'warn', 'error'];
 class SimpleFormatter {
-    constructor(runtime) {
-        this.runtime = runtime;
-    }
+    constructor() { }
     format(data) {
         var _a, _b;
         const { message, timestamp, level } = data;
@@ -29,17 +27,11 @@ class NodeConsoleFormatter extends SimpleFormatter {
     }
 }
 class JSONFormatter {
-    constructor(runtime) {
-        this.runtime = runtime;
-    }
     format(data) {
         return JSON.stringify(data);
     }
 }
 class ConsoleTransport {
-    constructor(runtime) {
-        this.runtime = runtime;
-    }
     send(level, line) {
         console[level](line);
     }
@@ -116,16 +108,13 @@ export class LoggerUtil {
         this.log('error', data);
     }
     static browserConsole(levelSettings) {
-        const runtime = 'browser';
-        return new LoggerUtil(levelSettings, new SimpleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new SimpleFormatter(), new ConsoleTransport(), 'browser');
     }
     static nodeConsole(levelSettings) {
-        const runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new NodeConsoleFormatter(), new ConsoleTransport(), 'nodejs');
     }
     static EmitJSON(levelSettings) {
-        const runtime = 'nodejs';
-        return new LoggerUtil(levelSettings, new JSONFormatter(runtime), new ConsoleTransport(runtime), runtime);
+        return new LoggerUtil(levelSettings, new JSONFormatter(), new ConsoleTransport(), 'nodejs');
     }
 }
 export let logger;
