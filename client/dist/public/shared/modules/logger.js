@@ -6,7 +6,12 @@ class SimpleFormatter {
         const { message, timestamp, level } = data;
         let formattedMesg;
         if (typeof message !== 'string') {
-            formattedMesg = JSON.stringify(message);
+            if (level === 'debug') {
+                formattedMesg = JSON.stringify(message, undefined, '\t');
+            }
+            else {
+                formattedMesg = JSON.stringify(message);
+            }
         }
         else {
             formattedMesg = message;
@@ -22,8 +27,12 @@ class SimpleFormatter {
 }
 class NodeConsoleFormatter extends SimpleFormatter {
     format(data) {
-        const map = [94, 97, 33, 91];
-        return `\x1b[${map[levelsArr.indexOf(data.level)]}m${super.format(data)}\x1b[0m`;
+        const colorLevels = [94, 97, 33, 91];
+        return super
+            .format(data)
+            .split(/\r?\n/)
+            .map(l => `\x1b[${colorLevels[levelsArr.indexOf(data.level)]}m${l}\x1b[0m`)
+            .join('\n');
     }
 }
 class JSONFormatter {

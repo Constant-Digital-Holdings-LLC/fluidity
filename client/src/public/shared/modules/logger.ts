@@ -44,7 +44,11 @@ class SimpleFormatter implements LogFormatter {
         let formattedMesg: string;
 
         if (typeof message !== 'string') {
-            formattedMesg = JSON.stringify(message);
+            if (level === 'debug') {
+                formattedMesg = JSON.stringify(message, undefined, '\t');
+            } else {
+                formattedMesg = JSON.stringify(message);
+            }
         } else {
             formattedMesg = message;
         }
@@ -63,9 +67,13 @@ class SimpleFormatter implements LogFormatter {
 
 class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
     override format<T>(data: LogData<T>): string {
-        const map = [94, 97, 33, 91];
+        const colorLevels = [94, 97, 33, 91];
 
-        return `\x1b[${map[levelsArr.indexOf(data.level)]}m${super.format(data)}\x1b[0m`;
+        return super
+            .format(data)
+            .split(/\r?\n/)
+            .map(l => `\x1b[${colorLevels[levelsArr.indexOf(data.level)]}m${l}\x1b[0m`)
+            .join('\n');
     }
 }
 
