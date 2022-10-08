@@ -1,7 +1,4 @@
 //
-// in SimpleFormatter class, the timestamp format should display
-// date (in addition to time) if loglevel *setting is higher than debug
-//
 // expose config module to logger module
 //
 
@@ -30,15 +27,17 @@ interface LevelSettings {
 }
 
 interface LogFormatter {
-    format<T>(data: LogData<T>, options?: { style?: 'pretty' }): string;
+    format<T>(data: LogData<T>): string;
 }
 
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
 
-class SimpleFormatter implements LogFormatter {
-    constructor(private levelSettings: LevelSettings) {}
+abstract class FormatterBase implements LogFormatter {
+    constructor(protected levelSettings: LevelSettings) {}
+
+    abstract dateString(date: Date): string;
 
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
@@ -54,23 +53,31 @@ class SimpleFormatter implements LogFormatter {
             formattedMesg = message;
         }
 
-        let timeString: string;
-
-        if (this.levelSettings.logLevel === 'debug') {
-            timeString = timestamp.toISOString().slice(11, -1);
-        } else {
-            timeString = timestamp.toISOString();
-        }
-
         if (data.location?.file && data.location?.line) {
             const {
                 location: { file, line }
             } = data;
 
-            return `[${timeString}]: ${formattedMesg} (${file}:${line})`;
+            return `[${this.dateString(timestamp)}]: ${formattedMesg} (${file}:${line})`;
         } else {
-            return `[${timeString}]: ${formattedMesg}`;
+            return `[${this.dateString(timestamp)}]: ${formattedMesg}`;
         }
+    }
+}
+
+class SimpleFormatter extends FormatterBase implements LogFormatter {
+    dateString(date: Date): string {
+        if (this.levelSettings.logLevel === 'debug') {
+            return date.toISOString().slice(11, -1);
+        } else {
+            return date.toISOString();
+        }
+    }
+}
+
+class BrowserConsoleFormatter extends FormatterBase implements LogFormatter {
+    dateString(date: Date): string {
+        return date.toISOString().slice(11, -1);
     }
 }
 
@@ -87,7 +94,7 @@ class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
 }
 
 class JSONFormatter implements LogFormatter {
-    constructor(private levelSettings: LevelSettings) {}
+    constructor(protected levelSettings: LevelSettings) {}
     format<T>(data: LogData<T>): string {
         return JSON.stringify(data);
     }
@@ -122,7 +129,7 @@ export class LoggerUtil implements Logger {
                     });
             } else {
                 try {
-                    throw new Error('get logger.ts telemetry');
+                    throw new Error('generate stack');
                 } catch (err) {
                     import('stack-trace').then(v8Strace => {
                         if (err instanceof Error) {
@@ -178,14 +185,19 @@ export class LoggerUtil implements Logger {
     }
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
-        return new LoggerUtil(levelSettings, new SimpleFormatter(levelSettings), new ConsoleTransport(), 'browser');
+        return new LoggerUtil(
+            levelSettings,
+            new BrowserConsoleFormatter(levelSettings),
+            new ConsoleTransport(),
+            'browser'
+        );
     }
 
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(levelSettings, new NodeConsoleFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 
-    static EmitJSON(levelSettings: LevelSettings): LoggerUtil {
+    static JSONEmitter(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }

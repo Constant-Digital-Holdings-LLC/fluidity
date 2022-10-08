@@ -19,9 +19,7 @@ interface LevelSettings {
     logLevel: LogLevel;
 }
 interface LogFormatter {
-    format<T>(data: LogData<T>, options?: {
-        style?: 'pretty';
-    }): string;
+    format<T>(data: LogData<T>): string;
 }
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
@@ -40,7 +38,7 @@ export declare class LoggerUtil implements Logger {
     error<T>(data: T): void;
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
-    static EmitJSON(levelSettings: LevelSettings): LoggerUtil;
+    static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
 export declare let logger: Logger;
 export {};

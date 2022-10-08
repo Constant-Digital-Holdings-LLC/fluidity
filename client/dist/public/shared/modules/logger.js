@@ -1,5 +1,5 @@
 const levelsArr = ['debug', 'info', 'warn', 'error'];
-class SimpleFormatter {
+class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
     }
@@ -18,20 +18,28 @@ class SimpleFormatter {
         else {
             formattedMesg = message;
         }
-        let timeString;
-        if (this.levelSettings.logLevel === 'debug') {
-            timeString = timestamp.toISOString().slice(11, -1);
-        }
-        else {
-            timeString = timestamp.toISOString();
-        }
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;
-            return `[${timeString}]: ${formattedMesg} (${file}:${line})`;
+            return `[${this.dateString(timestamp)}]: ${formattedMesg} (${file}:${line})`;
         }
         else {
-            return `[${timeString}]: ${formattedMesg}`;
+            return `[${this.dateString(timestamp)}]: ${formattedMesg}`;
         }
+    }
+}
+class SimpleFormatter extends FormatterBase {
+    dateString(date) {
+        if (this.levelSettings.logLevel === 'debug') {
+            return date.toISOString().slice(11, -1);
+        }
+        else {
+            return date.toISOString();
+        }
+    }
+}
+class BrowserConsoleFormatter extends FormatterBase {
+    dateString(date) {
+        return date.toISOString().slice(11, -1);
     }
 }
 class NodeConsoleFormatter extends SimpleFormatter {
@@ -81,7 +89,7 @@ export class LoggerUtil {
             }
             else {
                 try {
-                    throw new Error('get logger.ts telemetry');
+                    throw new Error('generate stack');
                 }
                 catch (err) {
                     import('stack-trace').then(v8Strace => {
@@ -129,12 +137,12 @@ export class LoggerUtil {
         this.log('error', data);
     }
     static browserConsole(levelSettings) {
-        return new LoggerUtil(levelSettings, new SimpleFormatter(levelSettings), new ConsoleTransport(), 'browser');
+        return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
     static nodeConsole(levelSettings) {
         return new LoggerUtil(levelSettings, new NodeConsoleFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
-    static EmitJSON(levelSettings) {
+    static JSONEmitter(levelSettings) {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
