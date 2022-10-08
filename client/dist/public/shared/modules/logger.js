@@ -27,7 +27,7 @@ class FormatterBase {
         }
     }
 }
-class SimpleFormatter extends FormatterBase {
+class SimpleConsoleFormatter extends FormatterBase {
     dateString(date) {
         if (this.levelSettings.logLevel === 'debug') {
             return date.toISOString().slice(11, -1);
@@ -42,7 +42,7 @@ class BrowserConsoleFormatter extends FormatterBase {
         return date.toISOString().slice(11, -1);
     }
 }
-class NodeConsoleFormatter extends SimpleFormatter {
+class NodeConsoleFormatter extends SimpleConsoleFormatter {
     format(data) {
         const colorLevels = [94, 97, 33, 91];
         return super

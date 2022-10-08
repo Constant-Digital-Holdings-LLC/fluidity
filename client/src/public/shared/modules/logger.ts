@@ -65,7 +65,7 @@ abstract class FormatterBase implements LogFormatter {
     }
 }
 
-class SimpleFormatter extends FormatterBase implements LogFormatter {
+class SimpleConsoleFormatter extends FormatterBase implements LogFormatter {
     dateString(date: Date): string {
         if (this.levelSettings.logLevel === 'debug') {
             return date.toISOString().slice(11, -1);
@@ -81,7 +81,7 @@ class BrowserConsoleFormatter extends FormatterBase implements LogFormatter {
     }
 }
 
-class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
+class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatter {
     override format<T>(data: LogData<T>): string {
         const colorLevels: [number, number, number, number] = [94, 97, 33, 91];
 
