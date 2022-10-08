@@ -76,7 +76,7 @@ class SimpleFormatter implements LogFormatter {
 
 class NodeConsoleFormatter extends SimpleFormatter implements LogFormatter {
     override format<T>(data: LogData<T>): string {
-        const colorLevels = [94, 97, 33, 91];
+        const colorLevels: [number, number, number, number] = [94, 97, 33, 91];
 
         return super
             .format(data)
