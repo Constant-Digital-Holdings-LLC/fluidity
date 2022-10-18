@@ -40,6 +40,6 @@ export declare class LoggerUtil implements Logger {
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
-export declare let logger: Logger;
+export declare let loggerUtility: Promise<LoggerUtil>;
 export {};
 //# sourceMappingURL=logger.d.ts.map

@@ -204,9 +204,13 @@ export class LoggerUtil implements Logger {
     }
 }
 
-export let logger: Logger;
-const { log_level: logLevel, loc_level: locLevel } = config;
-
-logger = inBrowser()
-    ? LoggerUtil.browserConsole({ logLevel, locLevel })
-    : LoggerUtil.nodeConsole({ logLevel, locLevel });
+export let loggerUtility: Promise<LoggerUtil> = new Promise((resolve, reject) => {
+    config.then(c => {
+        const { log_level: logLevel, loc_level: locLevel } = c;
+        if (inBrowser()) {
+            resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+        } else {
+            resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
+        }
+    });
+});

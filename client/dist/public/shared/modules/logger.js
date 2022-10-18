@@ -148,9 +148,15 @@ export class LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
-export let logger;
-const { log_level: logLevel, loc_level: locLevel } = config;
-logger = inBrowser()
-    ? LoggerUtil.browserConsole({ logLevel, locLevel })
-    : LoggerUtil.nodeConsole({ logLevel, locLevel });
+export let loggerUtility = new Promise((resolve, reject) => {
+    config.then(c => {
+        const { log_level: logLevel, loc_level: locLevel } = c;
+        if (inBrowser()) {
+            resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+        }
+        else {
+            resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
+        }
+    });
+});
 //# sourceMappingURL=logger.js.map

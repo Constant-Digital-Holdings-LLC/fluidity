@@ -14,11 +14,17 @@ import express, { Application, Request, Response } from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { logger } from '#@shared/modules/logger.js';
+import { loggerUtility } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
-logger.error(config);
-logger.debug('this is debug data');
+const log = await loggerUtility;
+
+log.debug('this is debug data');
+log.info('this is info data');
+log.warn('this is warn data');
+log.error('this is error data');
+
+log.error(await config);
 
 const app: Application = express();
 const port = 3000;
@@ -30,7 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 
 app.get('/', (_, res) => {
-    logger.info('req made...');
+    // logger.info('req made...');
     res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
 
@@ -49,4 +55,4 @@ ringBuffer.add(1);
 ringBuffer.add(2, 3);
 ringBuffer.add(4, 5, 6);
 
-logger.info(ringBuffer.toArray());
+// logger.info(ringBuffer.toArray());

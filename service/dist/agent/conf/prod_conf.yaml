@@ -1,0 +1,7 @@
+---
+public:
+    name: 'fluidity'
+    version: 1.0.0
+    log_level: 'info'
+private:
+    foo: 'bar'

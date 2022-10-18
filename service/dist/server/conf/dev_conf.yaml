@@ -1,0 +1,5 @@
+---
+public:
+    log_level: 'debug'
+private:
+    foo: 'bar'

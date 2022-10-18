@@ -1,0 +1,6 @@
+---
+public:
+    name: 'fluidity'
+    version: 1.0.0
+private:
+    foo: 'common did this'
