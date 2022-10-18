@@ -1,5 +1,4 @@
 import { inBrowser } from '#@shared/modules/utils.js';
-export let config;
 const getMergedConf = () => {
     return new Promise((resolve, reject) => {
         if (!inBrowser()) {
@@ -38,7 +37,7 @@ const getMergedConf = () => {
         }
     });
 };
-config = new Promise((resolve, reject) => {
+export const config = new Promise((resolve, reject) => {
     if (inBrowser()) {
         resolve({ log_level: 'debug' });
     }

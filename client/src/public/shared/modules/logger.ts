@@ -1,7 +1,3 @@
-//
-// expose config module to logger module
-//
-
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 import { config } from '#@shared/modules/config.js';

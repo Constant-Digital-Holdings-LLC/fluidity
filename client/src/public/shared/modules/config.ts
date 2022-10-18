@@ -13,7 +13,7 @@ interface RootConfig {
     private?: Config;
 }
 
-export let config: Promise<Config>;
+// export let config: Promise<Config>;
 
 const getMergedConf = (): Promise<RootConfig> => {
     return new Promise((resolve, reject) => {
@@ -53,7 +53,7 @@ const getMergedConf = (): Promise<RootConfig> => {
     });
 };
 
-config = new Promise((resolve, reject) => {
+export const config: Promise<Config> = new Promise((resolve, reject) => {
     if (inBrowser()) {
         //get conf from DOM
         resolve({ log_level: 'debug' });
