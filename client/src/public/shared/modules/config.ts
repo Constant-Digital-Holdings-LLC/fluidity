@@ -1,6 +1,8 @@
 import { LogLevel, levelsArr, loggerUtility } from '#@shared/modules/logger.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 
+//write middleware function which does the EJS to place the public conf items in data-* elems
+
 interface Config {
     log_level?: LogLevel;
     loc_level?: LogLevel;

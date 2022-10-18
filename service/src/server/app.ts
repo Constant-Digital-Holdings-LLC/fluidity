@@ -1,14 +1,3 @@
-/*
-
-Plan for tomorrow:
-
-//look in Ham.Live a featureServerData.ejs
-//mimic something like that to expose conf items to client
-//move config.ts to client/shared...
-//make config.ts able to determine where it's running and source the <meta data-conf-* attribs>
-
-*/
-
 import express, { Application, Request, Response } from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
