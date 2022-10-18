@@ -4,12 +4,17 @@ const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { loggerUtility } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
-const log = await loggerUtility;
-log.debug('this is debug data');
-log.info('this is info data');
-log.warn('this is warn data');
-log.error('this is error data');
-log.error(await config);
+try {
+    const log = await loggerUtility;
+    log.debug('this is debug data');
+    log.info('this is info data');
+    log.warn('this is warn data');
+    log.error('this is error data');
+    log.error(await config);
+}
+catch (err) {
+    console.error(err);
+}
 const app = express();
 const port = 3000;
 app.use(express.json());

@@ -21,20 +21,24 @@ const getMergedConf = (): Promise<RootConfig> => {
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
 
-                    const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                    const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                    const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                    try {
+                        const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
+                        const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
+                        const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
 
-                    if (process.env['NODE_ENV'] === 'development') {
-                        resolve({
-                            public: { ...devConf.public, ...commonConf.public },
-                            private: { ...devConf.private, ...commonConf.private }
-                        });
-                    } else {
-                        resolve({
-                            public: { ...prodConf.public, ...commonConf.public },
-                            private: { ...prodConf.private, ...commonConf.private }
-                        });
+                        if (process.env['NODE_ENV'] === 'development') {
+                            resolve({
+                                public: { ...devConf.public, ...commonConf.public },
+                                private: { ...devConf.private, ...commonConf.private }
+                            });
+                        } else {
+                            resolve({
+                                public: { ...prodConf.public, ...commonConf.public },
+                                private: { ...prodConf.private, ...commonConf.private }
+                            });
+                        }
+                    } catch (err) {
+                        reject(err);
                     }
                 });
             });
@@ -50,10 +54,14 @@ const getMergedConf = (): Promise<RootConfig> => {
 config = new Promise((resolve, reject) => {
     if (inBrowser()) {
         //get conf from DOM
-        resolve({ log_level: 'info' });
+        resolve({ log_level: 'debug' });
     } else {
-        getMergedConf().then(c => {
-            resolve({ ...c.public, ...c.private });
-        });
+        getMergedConf()
+            .then(c => {
+                resolve({ ...c.public, ...c.private });
+            })
+            .catch(err => {
+                reject(err);
+            });
     }
 });

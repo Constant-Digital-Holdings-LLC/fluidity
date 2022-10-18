@@ -7,20 +7,25 @@ const getMergedConf = () => {
                 const { readFileSync: read } = fs;
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
-                    const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                    const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                    const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
-                    if (process.env['NODE_ENV'] === 'development') {
-                        resolve({
-                            public: Object.assign(Object.assign({}, devConf.public), commonConf.public),
-                            private: Object.assign(Object.assign({}, devConf.private), commonConf.private)
-                        });
+                    try {
+                        const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
+                        const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
+                        const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                        if (process.env['NODE_ENV'] === 'development') {
+                            resolve({
+                                public: Object.assign(Object.assign({}, devConf.public), commonConf.public),
+                                private: Object.assign(Object.assign({}, devConf.private), commonConf.private)
+                            });
+                        }
+                        else {
+                            resolve({
+                                public: Object.assign(Object.assign({}, prodConf.public), commonConf.public),
+                                private: Object.assign(Object.assign({}, prodConf.private), commonConf.private)
+                            });
+                        }
                     }
-                    else {
-                        resolve({
-                            public: Object.assign(Object.assign({}, prodConf.public), commonConf.public),
-                            private: Object.assign(Object.assign({}, prodConf.private), commonConf.private)
-                        });
+                    catch (err) {
+                        reject(err);
                     }
                 });
             });
@@ -35,11 +40,15 @@ const getMergedConf = () => {
 };
 config = new Promise((resolve, reject) => {
     if (inBrowser()) {
-        resolve({ log_level: 'info' });
+        resolve({ log_level: 'debug' });
     }
     else {
-        getMergedConf().then(c => {
+        getMergedConf()
+            .then(c => {
             resolve(Object.assign(Object.assign({}, c.public), c.private));
+        })
+            .catch(err => {
+            reject(err);
         });
     }
 });

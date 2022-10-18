@@ -8,11 +8,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { loggerUtility } from '#@shared/modules/logger.js';
+import { config } from '#@shared/modules/config.js';
 (() => __awaiter(void 0, void 0, void 0, function* () {
-    const log = yield loggerUtility;
-    log.debug('this is debug data');
-    log.info('this is info data');
-    log.warn('this is warn data');
-    log.error('this is error data');
+    try {
+        const log = yield loggerUtility;
+        log.debug('this is debug data');
+        log.info('this is info data');
+        log.warn('this is warn data');
+        log.error('this is error data');
+        log.debug(yield config);
+    }
+    catch (err) {
+        console.error(err);
+    }
 }))();
 //# sourceMappingURL=index.js.map

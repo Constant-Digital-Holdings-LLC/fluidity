@@ -14,17 +14,20 @@ import express, { Application, Request, Response } from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { loggerUtility } from '#@shared/modules/logger.js';
+import { LoggerUtil, loggerUtility } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
-const log = await loggerUtility;
+try {
+    const log = await loggerUtility;
+    log.debug('this is debug data');
+    log.info('this is info data');
+    log.warn('this is warn data');
+    log.error('this is error data');
 
-log.debug('this is debug data');
-log.info('this is info data');
-log.warn('this is warn data');
-log.error('this is error data');
-
-log.error(await config);
+    log.error(await config);
+} catch (err) {
+    console.error(err);
+}
 
 const app: Application = express();
 const port = 3000;
