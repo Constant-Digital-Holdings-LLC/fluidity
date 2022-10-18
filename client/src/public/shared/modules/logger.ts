@@ -4,9 +4,11 @@
 
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
+import { config } from '#@shared/modules/config.js';
+import { inBrowser } from '#@shared/modules/utils.js';
 
-const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
-type LogLevel = typeof levelsArr[number] & keyof typeof console;
+export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
+export type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
 interface StackLocation {
@@ -22,8 +24,8 @@ interface LogData<T> {
 }
 
 interface LevelSettings {
-    locLevel: LogLevel;
-    logLevel: LogLevel;
+    locLevel: LogLevel | undefined;
+    logLevel: LogLevel | undefined;
 }
 
 interface LogFormatter {
@@ -147,7 +149,7 @@ export class LoggerUtil implements Logger {
     }
 
     private log<T>(level: LogLevel, message: T): void {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel || 'debug')) {
             const snd = (location?: StackLocation) => {
                 this.transport.send(
                     level,
@@ -160,7 +162,7 @@ export class LoggerUtil implements Logger {
                 );
             };
 
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'debug')) {
                 this.getStackLocation().then(snd);
             } else {
                 snd();
@@ -203,9 +205,8 @@ export class LoggerUtil implements Logger {
 }
 
 export let logger: Logger;
+const { log_level: logLevel, loc_level: locLevel } = config;
 
-if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'warn' });
-} else {
-    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'warn' });
-}
+logger = inBrowser()
+    ? LoggerUtil.browserConsole({ logLevel, locLevel })
+    : LoggerUtil.nodeConsole({ logLevel, locLevel });

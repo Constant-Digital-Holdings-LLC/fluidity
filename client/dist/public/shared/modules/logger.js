@@ -1,4 +1,6 @@
-const levelsArr = ['debug', 'info', 'warn', 'error'];
+import { config } from '#@shared/modules/config.js';
+import { inBrowser } from '#@shared/modules/utils.js';
+export const levelsArr = ['debug', 'info', 'warn', 'error'];
 class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
@@ -107,7 +109,7 @@ export class LoggerUtil {
         });
     }
     log(level, message) {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel)) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel || 'debug')) {
             const snd = (location) => {
                 this.transport.send(level, this.formatter.format({
                     level,
@@ -116,7 +118,7 @@ export class LoggerUtil {
                     location
                 }));
             };
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel)) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'debug')) {
                 this.getStackLocation().then(snd);
             }
             else {
@@ -147,10 +149,8 @@ export class LoggerUtil {
     }
 }
 export let logger;
-if (typeof window === 'undefined' && typeof process === 'object') {
-    logger = LoggerUtil.nodeConsole({ logLevel: 'debug', locLevel: 'warn' });
-}
-else {
-    logger = LoggerUtil.browserConsole({ logLevel: 'debug', locLevel: 'warn' });
-}
+const { log_level: logLevel, loc_level: locLevel } = config;
+logger = inBrowser()
+    ? LoggerUtil.browserConsole({ logLevel, locLevel })
+    : LoggerUtil.nodeConsole({ logLevel, locLevel });
 //# sourceMappingURL=logger.js.map

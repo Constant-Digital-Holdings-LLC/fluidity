@@ -15,23 +15,10 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { logger } from '#@shared/modules/logger.js';
+import { config } from '#@shared/modules/config.js';
 
-logger.debug('debug 1 - nodejs');
-logger.debug('debug 2 - nodejs');
-
-logger.info('info 1 - nodejs');
-logger.info('info 2 - nodejs');
-
-logger.warn('warn 1 - nodejs');
-logger.warn('warn 2 - nodejs');
-
-logger.error('error 1 - nodejs');
-logger.error('error 2 - nodejs');
-
-const testObj = { foo1: { bar: 'baz', word: 'blah' }, foo2: 'hi' };
-
-logger.debug(testObj);
-logger.error(testObj);
+logger.error(config);
+logger.debug('this is debug data');
 
 const app: Application = express();
 const port = 3000;

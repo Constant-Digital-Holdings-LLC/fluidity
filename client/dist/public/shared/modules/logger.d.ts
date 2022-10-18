@@ -1,6 +1,6 @@
 import { Runtime } from '#@shared/types.js';
-declare const levelsArr: readonly ["debug", "info", "warn", "error"];
-declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
+export declare const levelsArr: readonly ["debug", "info", "warn", "error"];
+export declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 declare type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
@@ -15,8 +15,8 @@ interface LogData<T> {
     location?: StackLocation | undefined;
 }
 interface LevelSettings {
-    locLevel: LogLevel;
-    logLevel: LogLevel;
+    locLevel: LogLevel | undefined;
+    logLevel: LogLevel | undefined;
 }
 interface LogFormatter {
     format<T>(data: LogData<T>): string;

@@ -3,3 +3,4 @@
 #Unpublished Copyright (c) 2021-2022 Constant Digital Holdings, LLC, All Rights Reserved.
 foo: 'common'
 common: 'baz'
+log_level: 'debug'
