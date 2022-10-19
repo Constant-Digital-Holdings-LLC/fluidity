@@ -3,20 +3,17 @@ import express, { Application, Request, Response } from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { LoggerUtil, loggerUtility } from '#@shared/modules/logger.js';
+import { loggerUtility } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
-try {
-    const log = await loggerUtility;
-    log.debug('this is debug data');
-    log.info('this is info data');
-    log.warn('this is warn data');
-    log.error('this is error data');
+const log = await loggerUtility;
 
-    log.error(await config);
-} catch (err) {
-    console.error(err);
-}
+log.debug('this is debug data');
+log.info('this is info data');
+log.warn('this is warn data');
+log.error('this is error data');
+
+log.debug(await config);
 
 const app: Application = express();
 const port = 3000;
@@ -28,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 
 app.get('/', (_, res) => {
-    // logger.info('req made...');
+    log.info('req made...');
     res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
 });
 

@@ -160,7 +160,11 @@ export let loggerUtility = new Promise((resolve, reject) => {
         }
     })
         .catch(err => {
-        reject(err);
+        console.error(err);
+        if (!inBrowser) {
+            console.error(`Exiting, could not establish a logging facility`);
+            process.exit(1);
+        }
     });
 });
 //# sourceMappingURL=logger.js.map

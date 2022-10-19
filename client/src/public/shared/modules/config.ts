@@ -23,32 +23,38 @@ const getMergedConf = (): Promise<RootConfig> => {
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
 
-                    try {
-                        const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                        const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                        const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                    let commonConf: RootConfig | undefined;
+                    let devConf: RootConfig | undefined;
+                    let prodConf: RootConfig | undefined;
 
+                    try {
+                        commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
+                        devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
+                        prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                    } catch (err) {
+                        console.error(`could not read and parse config file(s)`);
+                        return reject(err);
+                    }
+
+                    if (commonConf && devConf && prodConf) {
                         if (process.env['NODE_ENV'] === 'development') {
                             resolve({
-                                public: { ...devConf.public, ...commonConf.public },
-                                private: { ...devConf.private, ...commonConf.private }
+                                public: { ...devConf?.public, ...commonConf?.public },
+                                private: { ...devConf?.private, ...commonConf?.private }
                             });
                         } else {
                             resolve({
-                                public: { ...prodConf.public, ...commonConf.public },
-                                private: { ...prodConf.private, ...commonConf.private }
+                                public: { ...prodConf?.public, ...commonConf?.public },
+                                private: { ...prodConf?.private, ...commonConf?.private }
                             });
                         }
-                    } catch (err) {
-                        reject(err);
+                    } else {
+                        return reject('could not parse one or more config files');
                     }
                 });
             });
         } else {
-            resolve({
-                public: {},
-                private: {}
-            });
+            return reject('getMergedConf() called in the browser, codepath requires fs!');
         }
     });
 };
@@ -63,7 +69,7 @@ export const config: Promise<Config> = new Promise((resolve, reject) => {
                 resolve({ ...c.public, ...c.private });
             })
             .catch(err => {
-                reject(err);
+                return reject(err);
             });
     }
 });

@@ -6,34 +6,40 @@ const getMergedConf = () => {
                 const { readFileSync: read } = fs;
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
+                    let commonConf;
+                    let devConf;
+                    let prodConf;
                     try {
-                        const commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                        const devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                        const prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                        commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
+                        devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
+                        prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                    }
+                    catch (err) {
+                        console.error(`could not read and parse config file(s)`);
+                        return reject(err);
+                    }
+                    if (commonConf && devConf && prodConf) {
                         if (process.env['NODE_ENV'] === 'development') {
                             resolve({
-                                public: Object.assign(Object.assign({}, devConf.public), commonConf.public),
-                                private: Object.assign(Object.assign({}, devConf.private), commonConf.private)
+                                public: Object.assign(Object.assign({}, devConf === null || devConf === void 0 ? void 0 : devConf.public), commonConf === null || commonConf === void 0 ? void 0 : commonConf.public),
+                                private: Object.assign(Object.assign({}, devConf === null || devConf === void 0 ? void 0 : devConf.private), commonConf === null || commonConf === void 0 ? void 0 : commonConf.private)
                             });
                         }
                         else {
                             resolve({
-                                public: Object.assign(Object.assign({}, prodConf.public), commonConf.public),
-                                private: Object.assign(Object.assign({}, prodConf.private), commonConf.private)
+                                public: Object.assign(Object.assign({}, prodConf === null || prodConf === void 0 ? void 0 : prodConf.public), commonConf === null || commonConf === void 0 ? void 0 : commonConf.public),
+                                private: Object.assign(Object.assign({}, prodConf === null || prodConf === void 0 ? void 0 : prodConf.private), commonConf === null || commonConf === void 0 ? void 0 : commonConf.private)
                             });
                         }
                     }
-                    catch (err) {
-                        reject(err);
+                    else {
+                        return reject('could not parse one or more config files');
                     }
                 });
             });
         }
         else {
-            resolve({
-                public: {},
-                private: {}
-            });
+            return reject('getMergedConf() called in the browser, codepath requires fs!');
         }
     });
 };
@@ -47,7 +53,7 @@ export const config = new Promise((resolve, reject) => {
             resolve(Object.assign(Object.assign({}, c.public), c.private));
         })
             .catch(err => {
-            reject(err);
+            return reject(err);
         });
     }
 });
