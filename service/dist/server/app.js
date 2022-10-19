@@ -9,7 +9,9 @@ log.debug('this is debug data');
 log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
-log.debug(await config);
+setInterval(async () => {
+    log.debug(await config);
+}, 5000);
 const app = express();
 const port = 3000;
 app.use(express.json());

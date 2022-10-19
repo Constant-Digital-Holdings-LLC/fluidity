@@ -13,7 +13,9 @@ interface RootConfig {
     private?: Config;
 }
 
-// export let config: Promise<Config>;
+let commonConf: RootConfig | undefined;
+let devConf: RootConfig | undefined;
+let prodConf: RootConfig | undefined;
 
 const getMergedConf = (): Promise<RootConfig> => {
     return new Promise((resolve, reject) => {
@@ -23,14 +25,10 @@ const getMergedConf = (): Promise<RootConfig> => {
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
 
-                    let commonConf: RootConfig | undefined;
-                    let devConf: RootConfig | undefined;
-                    let prodConf: RootConfig | undefined;
-
                     try {
-                        commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                        devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                        prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                        commonConf ??= parse(read('./conf/common_conf.yaml', 'utf8'));
+                        devConf ??= parse(read('./conf/dev_conf.yaml', 'utf8'));
+                        prodConf ??= parse(read('./conf/prod_conf.yaml', 'utf8'));
                     } catch (err) {
                         console.error(`could not read and parse config file(s)`);
                         return reject(err);

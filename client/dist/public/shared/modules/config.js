@@ -1,4 +1,7 @@
 import { inBrowser } from '#@shared/modules/utils.js';
+let commonConf;
+let devConf;
+let prodConf;
 const getMergedConf = () => {
     return new Promise((resolve, reject) => {
         if (!inBrowser()) {
@@ -6,13 +9,10 @@ const getMergedConf = () => {
                 const { readFileSync: read } = fs;
                 import('yaml').then(YAML => {
                     const { parse } = YAML;
-                    let commonConf;
-                    let devConf;
-                    let prodConf;
                     try {
-                        commonConf = parse(read('./conf/common_conf.yaml', 'utf8'));
-                        devConf = parse(read('./conf/dev_conf.yaml', 'utf8'));
-                        prodConf = parse(read('./conf/prod_conf.yaml', 'utf8'));
+                        commonConf !== null && commonConf !== void 0 ? commonConf : (commonConf = parse(read('./conf/common_conf.yaml', 'utf8')));
+                        devConf !== null && devConf !== void 0 ? devConf : (devConf = parse(read('./conf/dev_conf.yaml', 'utf8')));
+                        prodConf !== null && prodConf !== void 0 ? prodConf : (prodConf = parse(read('./conf/prod_conf.yaml', 'utf8')));
                     }
                     catch (err) {
                         console.error(`could not read and parse config file(s)`);

@@ -13,7 +13,9 @@ log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 
-log.debug(await config);
+setInterval(async () => {
+    log.debug(await config);
+}, 5000);
 
 const app: Application = express();
 const port = 3000;
