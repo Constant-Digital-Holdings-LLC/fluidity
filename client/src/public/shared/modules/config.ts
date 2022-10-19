@@ -1,7 +1,33 @@
 import { LogLevel, levelsArr, loggerUtility } from '#@shared/modules/logger.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 
-//write middleware function which does the EJS to place the public conf items in data-* elems
+//write a config class that's more like the LoggerUtil class. It will have the following methods/properties:
+// all() return all config params
+// public() return public config params
+// private() return private config params
+// DOMInjectConf(req, res, next) express middleware --puts pub config into dom
+// DOMExtractConf() private method to parse HTML for config, used internally
+// publicConfigProps: string[] - will contain strings like 'log_level', 'loc_level', 'app_name', 'app_version'
+//
+// class will have two contructors - the normal syncronous one used by the browser AND an async one used by node
+// the async contructor will take an optional (not needed for browser) node_env ('production' or 'development') param and an optional ConfFiles object param (browser will get config from DOM)
+// the sync constructor will take the same function signature
+// see factor method example here - https://medium.com/@guillaume.viguierjust/dealing-with-asynchronous-constructors-in-typescript-c13c14c80954
+//
+// files object will look like:
+//
+// ConfFiles: {
+//     common?: [string, ConfigParser];
+//     development?: [string, ConfigParser];
+//     production?: [string, ConfigParser];
+// }
+// the string part of the tuple is a path to the file
+// The ConfFiles keys will have to be a union between the NODE_ENV type and 'common'
+//
+// The parser looks simply like:
+// interface ConfigParser {
+//     parse(): Config
+// }
 
 interface Config {
     log_level?: LogLevel;
