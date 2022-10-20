@@ -7,7 +7,7 @@ import type { Request, Response, NextFunction } from 'express';
 // public() return public config params
 // private() return private config params
 // DOMInjectConf(req, res, next) express middleware --puts pub config into dom
-// DOMExtractConf() private method to parse HTML for config, used internally
+// DOMExtractConf() private method to parse HTML for config, used internally to get config data to browser clients
 // publicConfigProps: string[] - will contain strings like 'log_level', 'loc_level', 'app_name', 'app_version'
 //
 // class will have two contructors - the normal syncronous one used by the browser AND an async one used by node
@@ -47,18 +47,13 @@ interface ConfigData {
 }
 
 interface ConfigParser {
-    parse(): ConfigData;
+    parse(src: string): ConfigData;
 }
 
 interface ConfigFiles {
-    common?: [string, ConfigParser];
-    development?: [string, ConfigParser];
-    production?: [string, ConfigParser];
-}
-
-interface Constructors {
-    nodeEnv?: NodeEnv;
-    cFiles?: ConfigFiles;
+    common: [string, ConfigParser] | null;
+    development: [string, ConfigParser] | null;
+    production: [string, ConfigParser] | null;
 }
 
 class ConfigUtil {
@@ -71,11 +66,27 @@ class ConfigUtil {
         node_env: null
     };
 
-    //sync constructor used by either node or the browser
-    constructor({ nodeEnv, cFiles }: Constructors = {}) {}
+    //sync constructor
+    constructor() {
+        Object.freeze(this.permitPublic);
+        Object.freeze(this.defaults);
+    }
 
-    //async contructor used by node
-    public static async new({ nodeEnv, cFiles }: Required<Constructors>): Promise<ConfigUtil> {
+    //async contructor
+    public static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
+        if (inBrowser()) return new ConfigUtil();
+
+        //node logic:
+        const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
+        const commonConfPath = cFiles['common']?.[0];
+
+        if (nodeEnvConfPath) {
+            const { existsSync } = await import('fs');
+
+            if (existsSync(nodeEnvConfPath)) {
+            }
+        }
+
         return new ConfigUtil();
     }
 
@@ -86,6 +97,7 @@ class ConfigUtil {
     // public get privConf(): ConfigData {}
 
     // public DOMinjectConf(req: Request, res: Response, next: NextFunction): void {}
+    // use this: https://github.com/richardschneider/express-mung
 }
 
 //
