@@ -14,6 +14,10 @@ import { inBrowser } from '#@shared/modules/utils.js';
 // the sync constructor will take the same function signature
 // see factor method example here - https://medium.com/@guillaume.viguierjust/dealing-with-asynchronous-constructors-in-typescript-c13c14c80954
 //
+// Note- There should be config object called 'defaults' everything else will get 'spread' ontop of. The defaults object witll have log_level, loc_level, etc already set. The interface should
+// idicate that these values are strings|null that way we're forced to do some type narrowing in code (because we can't guaruntee that their not being overwritten to ). We also need to make each
+// config property optional in the interface
+//
 // files object will look like:
 //
 // ConfFiles: {
