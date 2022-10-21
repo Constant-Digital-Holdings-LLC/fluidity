@@ -11,7 +11,7 @@ log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 setInterval(() => {
-    log.debug(c.allConf);
+    log.error(c.allConf);
 }, 5000);
 const app = express();
 const port = 3000;

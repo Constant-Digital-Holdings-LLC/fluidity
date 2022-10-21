@@ -149,23 +149,22 @@ export class LoggerUtil {
     }
 }
 export const loggerUtility = new Promise((resolve, reject) => {
-    ConfigUtil.load()
-        .then(c => {
-        const { log_level: logLevel, loc_level: locLevel } = c.allConf;
-        if (inBrowser()) {
-            resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
-        }
-        else {
+    if (inBrowser()) {
+        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+        resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+    }
+    else {
+        ConfigUtil.load()
+            .then(c => {
+            const { log_level: logLevel, loc_level: locLevel } = c.allConf;
             resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
-        }
-    })
-        .catch(err => {
-        console.error(err);
-        if (!inBrowser) {
+        })
+            .catch(err => {
+            console.error(err);
             reject('could not establish a logging facility');
             console.error('exitting...');
             process.exit(1);
-        }
-    });
+        });
+    }
 });
 //# sourceMappingURL=logger.js.map

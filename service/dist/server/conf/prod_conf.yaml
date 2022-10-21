@@ -1,3 +1,4 @@
 ---
+app_name: 'fluidity server - prod'
 log_level: 'info'
 foo: 'bar'

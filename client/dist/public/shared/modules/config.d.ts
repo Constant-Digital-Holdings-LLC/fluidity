@@ -12,7 +12,7 @@ export declare class ConfigUtil {
     allConf: ConfigData;
     static readonly permitPublic: string[];
     private readonly defaults;
-    constructor(baseConfig?: {});
+    constructor(baseConfig?: ConfigData);
     private static new;
     private static yaml;
     static load(): Promise<ConfigUtil>;

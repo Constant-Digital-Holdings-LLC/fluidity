@@ -68,8 +68,9 @@ export class ConfigUtil {
     };
 
     //sync constructor
-    constructor(private baseConfig = {}) {
+    constructor(private baseConfig: ConfigData = {}) {
         if (inBrowser()) {
+            this.baseConfig.app_name = 'fluidity web app';
             //prase DOM
             //populate this.baseConfig
         }
@@ -78,43 +79,41 @@ export class ConfigUtil {
     }
 
     //async contructor
-    private static async new(nodeEnv: NodeEnv | string | undefined, cFiles: ConfigFiles): Promise<ConfigUtil> {
+    private static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
         if (inBrowser()) return new ConfigUtil();
 
         //node logic:
+        const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
+        const commonConfPath = cFiles['common']?.[0];
 
-        if (nodeEnv === 'development' || nodeEnv === 'production') {
-            const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
-            const commonConfPath = cFiles['common']?.[0];
+        const { existsSync: exists, readFileSync: read } = await import('fs');
 
-            const { existsSync: exists, readFileSync: read } = await import('fs');
+        if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+            const eObj = cFiles[nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
 
-            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-                const eObj = cFiles[nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+            if (eObj) {
+                if (commonConfPath && exists(commonConfPath)) {
+                    const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
 
-                if (eObj) {
-                    if (commonConfPath && exists(commonConfPath)) {
-                        const cObj = cFiles['common']?.[1].parse(read(nodeEnvConfPath, 'utf8'));
-
-                        if (cObj) {
-                            return new ConfigUtil({ ...eObj, ...cObj });
-                        }
-                    } else {
-                        return new ConfigUtil(eObj);
+                    if (cObj) {
+                        return new ConfigUtil({ ...eObj, ...cObj });
                     }
+                } else {
+                    return new ConfigUtil(eObj);
                 }
             }
         }
+
         return new ConfigUtil();
     }
 
     private static async yaml(): Promise<ConfigUtil> {
         const YAML = await import('yaml');
 
-        return ConfigUtil.new(process.env['NODE_ENV'], {
-            development: ['./conf/common_conf.yaml', YAML],
+        return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
+            development: ['./conf/dev_conf.yaml', YAML],
             production: ['./conf/prod_conf.yaml', YAML],
-            common: ['./conf/dev_conf.yaml', YAML]
+            common: ['./conf/common_conf.yaml', YAML]
         });
     }
 

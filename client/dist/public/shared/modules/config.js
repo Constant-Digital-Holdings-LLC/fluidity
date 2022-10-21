@@ -20,6 +20,7 @@ export class ConfigUtil {
             node_env: null
         };
         if (inBrowser()) {
+            this.baseConfig.app_name = 'fluidity web app';
         }
         this.allConf = Object.freeze(Object.assign(Object.assign({}, this.defaults), this.baseConfig));
     }
@@ -28,22 +29,20 @@ export class ConfigUtil {
         return __awaiter(this, void 0, void 0, function* () {
             if (inBrowser())
                 return new ConfigUtil();
-            if (nodeEnv === 'development' || nodeEnv === 'production') {
-                const nodeEnvConfPath = (_a = cFiles[nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
-                const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
-                const { existsSync: exists, readFileSync: read } = yield import('fs');
-                if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-                    const eObj = (_c = cFiles[nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
-                    if (eObj) {
-                        if (commonConfPath && exists(commonConfPath)) {
-                            const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(nodeEnvConfPath, 'utf8'));
-                            if (cObj) {
-                                return new ConfigUtil(Object.assign(Object.assign({}, eObj), cObj));
-                            }
+            const nodeEnvConfPath = (_a = cFiles[nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
+            const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
+            const { existsSync: exists, readFileSync: read } = yield import('fs');
+            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                const eObj = (_c = cFiles[nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
+                if (eObj) {
+                    if (commonConfPath && exists(commonConfPath)) {
+                        const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
+                        if (cObj) {
+                            return new ConfigUtil(Object.assign(Object.assign({}, eObj), cObj));
                         }
-                        else {
-                            return new ConfigUtil(eObj);
-                        }
+                    }
+                    else {
+                        return new ConfigUtil(eObj);
                     }
                 }
             }
@@ -53,10 +52,10 @@ export class ConfigUtil {
     static yaml() {
         return __awaiter(this, void 0, void 0, function* () {
             const YAML = yield import('yaml');
-            return ConfigUtil.new(process.env['NODE_ENV'], {
-                development: ['./conf/common_conf.yaml', YAML],
+            return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
+                development: ['./conf/dev_conf.yaml', YAML],
                 production: ['./conf/prod_conf.yaml', YAML],
-                common: ['./conf/dev_conf.yaml', YAML]
+                common: ['./conf/common_conf.yaml', YAML]
             });
         });
     }

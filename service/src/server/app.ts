@@ -16,7 +16,7 @@ log.warn('this is warn data');
 log.error('this is error data');
 
 setInterval(() => {
-    log.debug(c.allConf);
+    log.error(c.allConf);
 }, 5000);
 
 const app: Application = express();

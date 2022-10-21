@@ -1,4 +1,3 @@
 ---
-app_name: 'fluidity server'
-app_version: 1.0.0
 foo: 'common did this'
+app_version: '1.0.0'
