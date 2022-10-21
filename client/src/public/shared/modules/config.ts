@@ -108,6 +108,7 @@ export class ConfigUtil {
     }
 
     private static async yaml(): Promise<ConfigUtil> {
+        //check if we're in the browser, exit if not
         const YAML = await import('yaml');
 
         return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
@@ -118,7 +119,6 @@ export class ConfigUtil {
     }
 
     public static load(): Promise<ConfigUtil> {
-        //check if we're in the browser, exit if not
         return ConfigUtil.yaml();
     }
 
