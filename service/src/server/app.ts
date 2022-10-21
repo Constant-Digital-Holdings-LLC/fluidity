@@ -3,12 +3,12 @@ import express, { Application, Request, Response } from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
-import { loggerUtility } from '#@shared/modules/logger.js';
+import { asyncLogger } from '#@shared/modules/logger.js';
 import { ConfigUtil } from '#@shared/modules/config.js';
 
 const c = await ConfigUtil.load();
 
-const log = await loggerUtility;
+const log = await asyncLogger();
 
 log.debug('this is debug data');
 log.info('this is info data');

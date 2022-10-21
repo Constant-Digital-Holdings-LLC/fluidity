@@ -67,7 +67,7 @@ class ConsoleTransport {
         console[level](line);
     }
 }
-export class LoggerUtil {
+class LoggerUtil {
     constructor(levelSettings, formatter, transport, runtime) {
         this.levelSettings = levelSettings;
         this.formatter = formatter;
@@ -148,23 +148,34 @@ export class LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
-export const loggerUtility = new Promise((resolve, reject) => {
-    if (inBrowser()) {
-        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
-        resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+export const syncLogger = () => {
+    if (!inBrowser()) {
+        throw new Error('syncLogger only available to browser');
     }
     else {
-        ConfigUtil.load()
-            .then(c => {
-            const { log_level: logLevel, loc_level: locLevel } = c.allConf;
-            resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
-        })
-            .catch(err => {
-            console.error(err);
-            reject('could not establish a logging facility');
-            console.error('exitting...');
-            process.exit(1);
-        });
+        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+        return LoggerUtil.browserConsole({ logLevel, locLevel });
     }
-});
+};
+export const asyncLogger = () => {
+    return new Promise((resolve, reject) => {
+        if (inBrowser()) {
+            const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+            return resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+        }
+        else {
+            ConfigUtil.load()
+                .then(c => {
+                const { log_level: logLevel, loc_level: locLevel } = c.allConf;
+                return resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
+            })
+                .catch(err => {
+                console.error(err);
+                reject('could not establish a logging facility');
+                console.error('exitting...');
+                process.exit(1);
+            });
+        }
+    });
+};
 //# sourceMappingURL=logger.js.map

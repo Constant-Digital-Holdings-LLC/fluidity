@@ -1,4 +1,4 @@
-import { LogLevel, levelsArr, loggerUtility } from '#@shared/modules/logger.js';
+import { LogLevel, levelsArr } from '#@shared/modules/logger.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -118,6 +118,7 @@ export class ConfigUtil {
     }
 
     public static load(): Promise<ConfigUtil> {
+        //check if we're in the browser, exit if not
         return ConfigUtil.yaml();
     }
 

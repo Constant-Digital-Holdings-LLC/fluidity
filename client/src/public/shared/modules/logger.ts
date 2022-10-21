@@ -2,6 +2,8 @@ import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 import { ConfigUtil } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
+import { resolve } from 'path';
+import { rejects } from 'assert';
 
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
@@ -104,7 +106,7 @@ class ConsoleTransport implements LogTransport {
     }
 }
 
-export class LoggerUtil implements Logger {
+class LoggerUtil implements Logger {
     constructor(
         private levelSettings: LevelSettings,
         private formatter: LogFormatter,
@@ -200,21 +202,32 @@ export class LoggerUtil implements Logger {
     }
 }
 
-export const loggerUtility: Promise<LoggerUtil> = new Promise((resolve, reject) => {
-    if (inBrowser()) {
-        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
-        resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+export const syncLogger = (): LoggerUtil => {
+    if (!inBrowser()) {
+        throw new Error('syncLogger only available to browser');
     } else {
-        ConfigUtil.load()
-            .then(c => {
-                const { log_level: logLevel, loc_level: locLevel } = c.allConf;
-                resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
-            })
-            .catch(err => {
-                console.error(err);
-                reject('could not establish a logging facility');
-                console.error('exitting...');
-                process.exit(1);
-            });
+        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+        return LoggerUtil.browserConsole({ logLevel, locLevel });
     }
-});
+};
+
+export const asyncLogger = (): Promise<LoggerUtil> => {
+    return new Promise((resolve, reject) => {
+        if (inBrowser()) {
+            const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+            return resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+        } else {
+            ConfigUtil.load()
+                .then(c => {
+                    const { log_level: logLevel, loc_level: locLevel } = c.allConf;
+                    return resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
+                })
+                .catch(err => {
+                    console.error(err);
+                    reject('could not establish a logging facility');
+                    console.error('exitting...');
+                    process.exit(1);
+                });
+        }
+    });
+};

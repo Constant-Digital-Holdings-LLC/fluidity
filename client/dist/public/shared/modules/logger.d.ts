@@ -24,7 +24,7 @@ interface LogFormatter {
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
-export declare class LoggerUtil implements Logger {
+declare class LoggerUtil implements Logger {
     private levelSettings;
     private formatter;
     private transport;
@@ -40,6 +40,7 @@ export declare class LoggerUtil implements Logger {
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
-export declare const loggerUtility: Promise<LoggerUtil>;
+export declare const syncLogger: () => LoggerUtil;
+export declare const asyncLogger: () => Promise<LoggerUtil>;
 export {};
 //# sourceMappingURL=logger.d.ts.map
