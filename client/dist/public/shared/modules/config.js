@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { inBrowser } from '#@shared/modules/utils.js';
-export class ConfigUtil {
+class ConfigUtil {
     constructor(baseConfig = {}) {
         this.baseConfig = baseConfig;
         this.allConf = {};
@@ -49,7 +49,7 @@ export class ConfigUtil {
             return new ConfigUtil();
         });
     }
-    static yaml() {
+    static load() {
         return __awaiter(this, void 0, void 0, function* () {
             const YAML = yield import('yaml');
             return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
@@ -58,9 +58,6 @@ export class ConfigUtil {
                 common: ['./conf/common_conf.yaml', YAML]
             });
         });
-    }
-    static load() {
-        return ConfigUtil.yaml();
     }
     get pubConf() {
         const handler = {
@@ -78,4 +75,28 @@ export class ConfigUtil {
     }
 }
 ConfigUtil.permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+export const asyncConfig = () => {
+    return new Promise((resolve, reject) => {
+        if (inBrowser()) {
+            return resolve(new ConfigUtil().allConf);
+        }
+        else {
+            ConfigUtil.load()
+                .then(c => {
+                return resolve(c.allConf);
+            })
+                .catch(err => {
+                reject(err);
+            });
+        }
+    });
+};
+export const syncConfig = () => {
+    if (inBrowser()) {
+        return new ConfigUtil().allConf;
+    }
+    else {
+        throw new Error('syncConfig only available to browser');
+    }
+};
 //# sourceMappingURL=config.js.map

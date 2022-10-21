@@ -1,6 +1,6 @@
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
-import { ConfigUtil } from '#@shared/modules/config.js';
+import { syncConfig, asyncConfig } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { resolve } from 'path';
 import { rejects } from 'assert';
@@ -206,7 +206,7 @@ export const syncLogger = (): LoggerUtil => {
     if (!inBrowser()) {
         throw new Error('syncLogger only available to browser');
     } else {
-        const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+        const { log_level: logLevel, loc_level: locLevel } = syncConfig();
         return LoggerUtil.browserConsole({ logLevel, locLevel });
     }
 };
@@ -214,12 +214,12 @@ export const syncLogger = (): LoggerUtil => {
 export const asyncLogger = (): Promise<LoggerUtil> => {
     return new Promise((resolve, reject) => {
         if (inBrowser()) {
-            const { log_level: logLevel, loc_level: locLevel } = new ConfigUtil().allConf;
+            const { log_level: logLevel, loc_level: locLevel } = syncConfig();
             return resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
         } else {
-            ConfigUtil.load()
-                .then(c => {
-                    const { log_level: logLevel, loc_level: locLevel } = c.allConf;
+            asyncConfig()
+                .then(config => {
+                    const { log_level: logLevel, loc_level: locLevel } = config;
                     return resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
                 })
                 .catch(err => {

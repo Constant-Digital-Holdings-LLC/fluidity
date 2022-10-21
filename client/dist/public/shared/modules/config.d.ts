@@ -7,16 +7,7 @@ interface ConfigData {
     loc_level?: LogLevel | null;
     node_env?: NodeEnv | null;
 }
-export declare class ConfigUtil {
-    private baseConfig;
-    allConf: ConfigData;
-    static readonly permitPublic: string[];
-    private readonly defaults;
-    constructor(baseConfig?: ConfigData);
-    private static new;
-    private static yaml;
-    static load(): Promise<ConfigUtil>;
-    private get pubConf();
-}
+export declare const asyncConfig: () => Promise<ConfigData>;
+export declare const syncConfig: () => ConfigData;
 export {};
 //# sourceMappingURL=config.d.ts.map

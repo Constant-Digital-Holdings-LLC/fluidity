@@ -56,7 +56,7 @@ interface ConfigFiles {
     production: [string, ConfigParser] | null;
 }
 
-export class ConfigUtil {
+class ConfigUtil {
     public allConf: ConfigData = {};
     static readonly permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
     private readonly defaults: Required<ConfigData> = {
@@ -80,6 +80,7 @@ export class ConfigUtil {
 
     //async contructor
     private static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
+        //this *should never happen:
         if (inBrowser()) return new ConfigUtil();
 
         //node logic:
@@ -107,8 +108,7 @@ export class ConfigUtil {
         return new ConfigUtil();
     }
 
-    private static async yaml(): Promise<ConfigUtil> {
-        //check if we're in the browser, exit if not
+    public static async load(): Promise<ConfigUtil> {
         const YAML = await import('yaml');
 
         return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
@@ -116,10 +116,6 @@ export class ConfigUtil {
             production: ['./conf/prod_conf.yaml', YAML],
             common: ['./conf/common_conf.yaml', YAML]
         });
-    }
-
-    public static load(): Promise<ConfigUtil> {
-        return ConfigUtil.yaml();
     }
 
     private get pubConf(): ConfigData {
@@ -140,75 +136,26 @@ export class ConfigUtil {
     // use this: https://github.com/richardschneider/express-mung
 }
 
-//
-//  OLD/PRIOR CODE BELOW:
-//
-//
-// interface Config {
-//     log_level?: LogLevel;
-//     loc_level?: LogLevel;
-// }
+export const asyncConfig = (): Promise<ConfigData> => {
+    return new Promise((resolve, reject) => {
+        if (inBrowser()) {
+            return resolve(new ConfigUtil().allConf);
+        } else {
+            ConfigUtil.load()
+                .then(c => {
+                    return resolve(c.allConf);
+                })
+                .catch(err => {
+                    reject(err);
+                });
+        }
+    });
+};
 
-// interface RootConfig {
-//     public?: Config;
-//     private?: Config;
-// }
-
-// let commonConf: RootConfig | undefined;
-// let devConf: RootConfig | undefined;
-// let prodConf: RootConfig | undefined;
-
-// const getMergedConf = (): Promise<RootConfig> => {
-//     return new Promise((resolve, reject) => {
-//         if (!inBrowser()) {
-//             import('fs').then(fs => {
-//                 const { readFileSync: read } = fs;
-//                 import('yaml').then(YAML => {
-//                     const { parse } = YAML;
-
-//                     try {
-//                         commonConf ??= parse(read('./conf/common_conf.yaml', 'utf8'));
-//                         devConf ??= parse(read('./conf/dev_conf.yaml', 'utf8'));
-//                         prodConf ??= parse(read('./conf/prod_conf.yaml', 'utf8'));
-//                     } catch (err) {
-//                         console.error(`could not read and parse config file(s)`);
-//                         return reject(err);
-//                     }
-
-//                     if (commonConf && devConf && prodConf) {
-//                         if (process.env['NODE_ENV'] === 'development') {
-//                             resolve({
-//                                 public: { ...devConf?.public, ...commonConf?.public },
-//                                 private: { ...devConf?.private, ...commonConf?.private }
-//                             });
-//                         } else {
-//                             resolve({
-//                                 public: { ...prodConf?.public, ...commonConf?.public },
-//                                 private: { ...prodConf?.private, ...commonConf?.private }
-//                             });
-//                         }
-//                     } else {
-//                         return reject('could not parse one or more config files');
-//                     }
-//                 });
-//             });
-//         } else {
-//             return reject('getMergedConf() called in the browser, codepath requires fs!');
-//         }
-//     });
-// };
-
-// export const config: Promise<Config> = new Promise((resolve, reject) => {
-//     if (inBrowser()) {
-//         //get conf from DOM
-//         resolve({ log_level: 'debug' });
-//     } else {
-//         getMergedConf()
-//             .then(c => {
-//                 resolve({ ...c.public, ...c.private });
-//             })
-//             .catch(err => {
-//                 return reject(err);
-//             });
-//     }
-// });
+export const syncConfig = (): ConfigData => {
+    if (inBrowser()) {
+        return new ConfigUtil().allConf;
+    } else {
+        throw new Error('syncConfig only available to browser');
+    }
+};
