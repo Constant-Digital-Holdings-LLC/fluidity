@@ -1,7 +1,7 @@
 import { syncLogger } from '#@shared/modules/logger.js';
-import { TestType } from '#@shared/types.js';
 import { syncConfig } from '#@shared/modules/config.js';
 
+// import { TestType } from '#@shared/types.js';
 const config = syncConfig();
 const log = syncLogger();
 
