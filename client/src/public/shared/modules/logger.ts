@@ -1,6 +1,6 @@
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
-import { config } from '#@shared/modules/config.js';
+import { ConfigUtil } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
@@ -20,8 +20,8 @@ interface LogData<T> {
 }
 
 interface LevelSettings {
-    locLevel: LogLevel | undefined;
-    logLevel: LogLevel | undefined;
+    locLevel: LogLevel | undefined | null;
+    logLevel: LogLevel | undefined | null;
 }
 
 interface LogFormatter {
@@ -200,10 +200,10 @@ export class LoggerUtil implements Logger {
     }
 }
 
-export let loggerUtility: Promise<LoggerUtil> = new Promise((resolve, reject) => {
-    config
+export const loggerUtility: Promise<LoggerUtil> = new Promise((resolve, reject) => {
+    ConfigUtil.load()
         .then(c => {
-            const { log_level: logLevel, loc_level: locLevel } = c;
+            const { log_level: logLevel, loc_level: locLevel } = c.allConf;
             if (inBrowser()) {
                 resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
             } else {
@@ -213,7 +213,8 @@ export let loggerUtility: Promise<LoggerUtil> = new Promise((resolve, reject) =>
         .catch(err => {
             console.error(err);
             if (!inBrowser) {
-                console.error(`Exiting, could not establish a logging facility`);
+                reject('could not establish a logging facility');
+                console.error('exitting...');
                 process.exit(1);
             }
         });

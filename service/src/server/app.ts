@@ -4,7 +4,9 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { loggerUtility } from '#@shared/modules/logger.js';
-import { config } from '#@shared/modules/config.js';
+import { ConfigUtil } from '#@shared/modules/config.js';
+
+const c = await ConfigUtil.load();
 
 const log = await loggerUtility;
 
@@ -13,8 +15,8 @@ log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 
-setInterval(async () => {
-    log.debug(await config);
+setInterval(() => {
+    log.debug(c.allConf);
 }, 5000);
 
 const app: Application = express();

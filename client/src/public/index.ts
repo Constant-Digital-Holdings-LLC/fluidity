@@ -1,7 +1,9 @@
 import { loggerUtility } from '#@shared/modules/logger.js';
 import { TestType } from '#@shared/types.js';
 
-import { config } from '#@shared/modules/config.js';
+import { ConfigUtil } from '#@shared/modules/config.js';
+
+const c = new ConfigUtil();
 
 (async () => {
     try {
@@ -12,7 +14,7 @@ import { config } from '#@shared/modules/config.js';
         log.warn('this is warn data');
         log.error('this is error data');
 
-        log.debug(await config);
+        log.debug(c.allConf);
     } catch (err) {
         console.error(err);
     }

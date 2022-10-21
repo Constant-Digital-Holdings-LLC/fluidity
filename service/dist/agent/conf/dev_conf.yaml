@@ -1,5 +1,3 @@
 ---
-public:
-    log_level: 'debug'
-private:
-    foo: 'bar'
+log_level: 'debug'
+foo: 'bar dev'

@@ -1,4 +1,4 @@
-import { config } from '#@shared/modules/config.js';
+import { ConfigUtil } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error'];
 class FormatterBase {
@@ -148,10 +148,10 @@ export class LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
-export let loggerUtility = new Promise((resolve, reject) => {
-    config
+export const loggerUtility = new Promise((resolve, reject) => {
+    ConfigUtil.load()
         .then(c => {
-        const { log_level: logLevel, loc_level: locLevel } = c;
+        const { log_level: logLevel, loc_level: locLevel } = c.allConf;
         if (inBrowser()) {
             resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
         }
@@ -162,7 +162,8 @@ export let loggerUtility = new Promise((resolve, reject) => {
         .catch(err => {
         console.error(err);
         if (!inBrowser) {
-            console.error(`Exiting, could not establish a logging facility`);
+            reject('could not establish a logging facility');
+            console.error('exitting...');
             process.exit(1);
         }
     });

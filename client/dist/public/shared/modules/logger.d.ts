@@ -15,8 +15,8 @@ interface LogData<T> {
     location?: StackLocation | undefined;
 }
 interface LevelSettings {
-    locLevel: LogLevel | undefined;
-    logLevel: LogLevel | undefined;
+    locLevel: LogLevel | undefined | null;
+    logLevel: LogLevel | undefined | null;
 }
 interface LogFormatter {
     format<T>(data: LogData<T>): string;
@@ -40,6 +40,6 @@ export declare class LoggerUtil implements Logger {
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
-export declare let loggerUtility: Promise<LoggerUtil>;
+export declare const loggerUtility: Promise<LoggerUtil>;
 export {};
 //# sourceMappingURL=logger.d.ts.map

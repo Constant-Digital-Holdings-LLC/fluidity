@@ -47,7 +47,7 @@ interface ConfigData {
 }
 
 interface ConfigParser {
-    parse(src: string): ConfigData;
+    parse(src: string): unknown;
 }
 
 interface ConfigFiles {
@@ -56,8 +56,9 @@ interface ConfigFiles {
     production: [string, ConfigParser] | null;
 }
 
-class ConfigUtil {
-    private readonly permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+export class ConfigUtil {
+    public allConf: ConfigData = {};
+    static readonly permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
     private readonly defaults: Required<ConfigData> = {
         app_name: null,
         app_version: null,
@@ -67,34 +68,73 @@ class ConfigUtil {
     };
 
     //sync constructor
-    constructor() {
-        Object.freeze(this.permitPublic);
-        Object.freeze(this.defaults);
+    constructor(private baseConfig = {}) {
+        if (inBrowser()) {
+            //prase DOM
+            //populate this.baseConfig
+        }
+
+        this.allConf = Object.freeze({ ...this.defaults, ...this.baseConfig });
     }
 
     //async contructor
-    public static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
+    private static async new(nodeEnv: NodeEnv | string | undefined, cFiles: ConfigFiles): Promise<ConfigUtil> {
         if (inBrowser()) return new ConfigUtil();
 
         //node logic:
-        const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
-        const commonConfPath = cFiles['common']?.[0];
 
-        if (nodeEnvConfPath) {
-            const { existsSync } = await import('fs');
+        if (nodeEnv === 'development' || nodeEnv === 'production') {
+            const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
+            const commonConfPath = cFiles['common']?.[0];
 
-            if (existsSync(nodeEnvConfPath)) {
+            const { existsSync: exists, readFileSync: read } = await import('fs');
+
+            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                const eObj = cFiles[nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+
+                if (eObj) {
+                    if (commonConfPath && exists(commonConfPath)) {
+                        const cObj = cFiles['common']?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+
+                        if (cObj) {
+                            return new ConfigUtil({ ...eObj, ...cObj });
+                        }
+                    } else {
+                        return new ConfigUtil(eObj);
+                    }
+                }
             }
         }
-
         return new ConfigUtil();
     }
 
-    // public get allConf(): ConfigData {}
+    private static async yaml(): Promise<ConfigUtil> {
+        const YAML = await import('yaml');
 
-    // public get pubConf(): ConfigData {}
+        return ConfigUtil.new(process.env['NODE_ENV'], {
+            development: ['./conf/common_conf.yaml', YAML],
+            production: ['./conf/prod_conf.yaml', YAML],
+            common: ['./conf/dev_conf.yaml', YAML]
+        });
+    }
 
-    // public get privConf(): ConfigData {}
+    public static load(): Promise<ConfigUtil> {
+        return ConfigUtil.yaml();
+    }
+
+    private get pubConf(): ConfigData {
+        const handler = {
+            get(target: object, prop: PropertyKey, receiver: any) {
+                if (typeof prop === 'string')
+                    if (ConfigUtil.permitPublic.includes(prop)) {
+                        return Reflect.get(target, prop, receiver);
+                    } else {
+                        return undefined;
+                    }
+            }
+        };
+        return new Proxy(this.allConf, handler);
+    }
 
     // public DOMinjectConf(req: Request, res: Response, next: NextFunction): void {}
     // use this: https://github.com/richardschneider/express-mung
