@@ -14,7 +14,7 @@ interface ConfigData {
 }
 
 interface ConfigParser {
-    parse(src: string): unknown;
+    parse(src: string): ConfigData | undefined;
 }
 
 interface ConfigFiles {
@@ -56,17 +56,20 @@ class FSConfigUtil extends ConfigBase {
 
     async load(): Promise<ConfigData> {
         const YAML = await import('yaml');
+
         const cFiles: ConfigFiles = {
             development: ['./conf/dev_conf.yaml', YAML],
             production: ['./conf/prod_conf.yaml', YAML],
             common: ['./conf/common_conf.yaml', YAML]
         };
 
+        YAML.parse();
+
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
         const { existsSync: exists, readFileSync: read } = await import('fs');
         if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-            const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8')) as ConfigData;
+            const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
             if (eObj) {
                 if (commonConfPath && exists(commonConfPath)) {
                     const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
