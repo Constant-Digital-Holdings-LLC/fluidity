@@ -63,8 +63,6 @@ class FSConfigUtil extends ConfigBase {
             common: ['./conf/common_conf.yaml', YAML]
         };
 
-        YAML.parse();
-
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
         const { existsSync: exists, readFileSync: read } = await import('fs');
