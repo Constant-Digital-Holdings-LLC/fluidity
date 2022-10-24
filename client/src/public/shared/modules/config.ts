@@ -4,6 +4,10 @@ import { inBrowser } from '#@shared/modules/utils.js';
 
 type NodeEnv = 'development' | 'production';
 
+function isConfigData(obj: any): obj is ConfigData {
+    return obj && obj instanceof Object;
+}
+
 interface ConfigData {
     app_name?: string | null;
     app_version?: string | null;
@@ -14,7 +18,7 @@ interface ConfigData {
 }
 
 interface ConfigParser {
-    parse(src: string): ConfigData | undefined;
+    parse(src: string): unknown;
 }
 
 interface ConfigFiles {
@@ -75,7 +79,7 @@ class FSConfigUtil extends ConfigBase {
                         this.cachedConfig = { ...eObj, ...cObj };
                     }
                 } else {
-                    this.cachedConfig = eObj;
+                    if (isConfigData(eObj)) this.cachedConfig = eObj;
                 }
             }
         }
