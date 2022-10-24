@@ -1,40 +1,6 @@
+import type { Request, Response, NextFunction } from 'express';
 import { LogLevel, levelsArr } from '#@shared/modules/logger.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-import type { Request, Response, NextFunction } from 'express';
-
-//write a config class that's more like the LoggerUtil class. It will have the following methods/properties:
-// all() return all config params
-// public() return public config params
-// private() return private config params
-// DOMInjectConf(req, res, next) express middleware --puts pub config into dom
-// DOMExtractConf() private method to parse HTML for config, used internally to get config data to browser clients
-// publicConfigProps: string[] - will contain strings like 'log_level', 'loc_level', 'app_name', 'app_version'
-//
-// class will have two contructors - the normal syncronous one used by the browser AND an async one used by node
-// the async contructor will take an optional (not needed for browser) node_env ('production' or 'development') param and an optional ConfFiles object param (browser will get config from DOM)
-// the sync constructor will take the same function signature
-// see factor method example here - https://medium.com/@guillaume.viguierjust/dealing-with-asynchronous-constructors-in-typescript-c13c14c80954
-//
-// Note- There should be config object called 'defaults' everything else will get 'spread' ontop of. The defaults object witll have log_level, loc_level, etc already set. The interface should
-// idicate that these values are strings|null that way we're forced to do some type narrowing in code (because we can't guaruntee that their not being overwritten to ). We also need to make each
-// config property optional in the interface
-//
-// files object will look like:
-//
-// ConfFiles: {
-//     common?: [string, ConfigParser];
-//     development?: [string, ConfigParser];
-//     production?: [string, ConfigParser];
-// }
-// the string part of the tuple is a path to the file
-// The ConfFiles keys will have to be a union between the NODE_ENV type and 'common'
-//
-// The parser looks simply like:
-// interface ConfigParser {
-//     parse(): Config
-// }
-
-// New Code:
 
 type NodeEnv = 'development' | 'production';
 
@@ -44,6 +10,7 @@ interface ConfigData {
     log_level?: LogLevel | null;
     loc_level?: LogLevel | null;
     node_env?: NodeEnv | null;
+    [index: string]: unknown;
 }
 
 interface ConfigParser {
@@ -51,111 +18,223 @@ interface ConfigParser {
 }
 
 interface ConfigFiles {
-    common: [string, ConfigParser] | null;
-    development: [string, ConfigParser] | null;
-    production: [string, ConfigParser] | null;
+    readonly common: [string, ConfigParser] | null;
+    readonly development: [string, ConfigParser] | null;
+    readonly production: [string, ConfigParser] | null;
 }
 
-class ConfigUtil {
-    public allConf: ConfigData = {};
-    static readonly permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
-    private readonly defaults: Required<ConfigData> = {
-        app_name: null,
-        app_version: null,
-        log_level: null,
-        loc_level: null,
-        node_env: null
-    };
+abstract class ConfigBase {
+    static pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+    abstract get allConf(): ConfigData;
+    protected cachedConfig: ConfigData = {};
 
-    //sync constructor
-    constructor(private baseConfig: ConfigData = {}) {
-        if (inBrowser()) {
-            this.baseConfig.app_name = 'fluidity web app';
-            //prase DOM
-            //populate this.baseConfig
-        }
-
-        this.allConf = Object.freeze({ ...this.defaults, ...this.baseConfig });
-    }
-
-    //async contructor
-    private static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
-        //this *should never happen:
-        if (inBrowser()) return new ConfigUtil();
-
-        //node logic:
-        const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
-        const commonConfPath = cFiles['common']?.[0];
-
-        const { existsSync: exists, readFileSync: read } = await import('fs');
-
-        if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-            const eObj = cFiles[nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
-
-            if (eObj) {
-                if (commonConfPath && exists(commonConfPath)) {
-                    const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
-
-                    if (cObj) {
-                        return new ConfigUtil({ ...eObj, ...cObj });
-                    }
-                } else {
-                    return new ConfigUtil(eObj);
-                }
-            }
-        }
-
-        return new ConfigUtil();
-    }
-
-    public static async load(): Promise<ConfigUtil> {
-        const YAML = await import('yaml');
-
-        return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
-            development: ['./conf/dev_conf.yaml', YAML],
-            production: ['./conf/prod_conf.yaml', YAML],
-            common: ['./conf/common_conf.yaml', YAML]
-        });
-    }
-
-    private get pubConf(): ConfigData {
+    protected get pubConf(): ConfigData {
         const handler = {
             get(target: object, prop: PropertyKey, receiver: any) {
                 if (typeof prop === 'string')
-                    if (ConfigUtil.permitPublic.includes(prop)) {
+                    if (ConfigBase.pubSafeProps.includes(prop)) {
                         return Reflect.get(target, prop, receiver);
                     } else {
                         return undefined;
                     }
             }
         };
-        return new Proxy(this.allConf, handler);
+        return new Proxy(this.cachedConfig, handler) as ConfigData;
     }
-
-    // public DOMinjectConf(req: Request, res: Response, next: NextFunction): void {}
-    // use this: https://github.com/richardschneider/express-mung
 }
 
-export const asyncConfig = (): Promise<ConfigData> => {
-    return new Promise((resolve, reject) => {
-        if (inBrowser()) {
-            return resolve(new ConfigUtil().allConf);
+class FSConfigUtil extends ConfigBase {
+    private nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+
+    get allConf(): ConfigData {
+        if (!this.cachedConfig) {
+            throw new Error('call load() method first');
         } else {
-            ConfigUtil.load()
-                .then(c => {
-                    return resolve(c.allConf);
-                })
-                .catch(err => {
-                    reject(err);
-                });
+            return this.cachedConfig;
         }
-    });
+    }
+
+    async load(): Promise<ConfigData> {
+        const YAML = await import('yaml');
+        const cFiles: ConfigFiles = {
+            development: ['./conf/dev_conf.yaml', YAML],
+            production: ['./conf/prod_conf.yaml', YAML],
+            common: ['./conf/common_conf.yaml', YAML]
+        };
+
+        const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
+        const commonConfPath = cFiles['common']?.[0];
+        const { existsSync: exists, readFileSync: read } = await import('fs');
+        if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+            const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8')) as ConfigData;
+            if (eObj) {
+                if (commonConfPath && exists(commonConfPath)) {
+                    const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
+                    if (cObj) {
+                        this.cachedConfig = { ...eObj, ...cObj };
+                    }
+                } else {
+                    this.cachedConfig = eObj;
+                }
+            }
+        }
+        return this.cachedConfig;
+    }
+}
+
+class DOMConfigUtil extends ConfigBase {
+    constructor(private _conf?: ConfigData) {
+        super();
+
+        _conf && (this.cachedConfig = _conf);
+    }
+
+    get allConf() {
+        if (!this.cachedConfig) {
+            this.cachedConfig = this.extract();
+        }
+        return this.cachedConfig;
+    }
+
+    private extract(): ConfigData {
+        //   parse DOM, populate this.allConf
+        return { log_level: 'debug' };
+    }
+
+    inject(req: Request, res: Response, next: NextFunction) {
+        // put all this.pubConf in the DOM
+        // use this: https://github.com/richardschneider/express-mung
+    }
+}
+
+export const configFromDOM = (): ConfigData => {
+    return new DOMConfigUtil().allConf;
 };
 
-export const syncConfig = (): ConfigData => {
+export const configFromFS = async (): Promise<ConfigData> => {
+    const fcu = new FSConfigUtil();
+    if (!fcu.allConf) {
+        await fcu.load();
+    }
+    return fcu.allConf;
+};
+
+export const config = async (): Promise<ConfigData> => {
     if (inBrowser()) {
-        return new ConfigUtil().allConf;
+        return configFromDOM();
     } else {
-        throw new Error('syncConfig only available to browser');
+        return configFromFS();
     }
 };
+
+export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
+    const config = await new FSConfigUtil().load();
+    const domConfigUtil = new DOMConfigUtil(config);
+    return domConfigUtil.inject;
+};
+
+//OLD CODE:
+
+// class ConfigUtil {
+//     public allConf: ConfigData = {};
+//     static readonly permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+//     private readonly defaults: Required<ConfigData> = {
+//         app_name: null,
+//         app_version: null,
+//         log_level: null,
+//         loc_level: null,
+//         node_env: null
+//     };
+
+//     //sync constructor
+//     constructor(private baseConfig: ConfigData = {}) {
+//         if (inBrowser()) {
+//             this.baseConfig.app_name = 'fluidity web app';
+//             //prase DOM
+//             //populate this.baseConfig
+//         }
+
+//         this.allConf = Object.freeze({ ...this.defaults, ...this.baseConfig });
+//     }
+
+//     //async contructor
+//     private static async new(nodeEnv: NodeEnv, cFiles: ConfigFiles): Promise<ConfigUtil> {
+//         //this *should never happen:
+//         if (inBrowser()) return new ConfigUtil();
+
+//         //node logic:
+//         const nodeEnvConfPath = cFiles[nodeEnv]?.[0];
+//         const commonConfPath = cFiles['common']?.[0];
+
+//         const { existsSync: exists, readFileSync: read } = await import('fs');
+
+//         if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+//             const eObj = cFiles[nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+
+//             if (eObj) {
+//                 if (commonConfPath && exists(commonConfPath)) {
+//                     const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
+
+//                     if (cObj) {
+//                         return new ConfigUtil({ ...eObj, ...cObj });
+//                     }
+//                 } else {
+//                     return new ConfigUtil(eObj);
+//                 }
+//             }
+//         }
+
+//         return new ConfigUtil();
+//     }
+
+//     public static async load(): Promise<ConfigUtil> {
+//         const YAML = await import('yaml');
+
+//         return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
+//             development: ['./conf/dev_conf.yaml', YAML],
+//             production: ['./conf/prod_conf.yaml', YAML],
+//             common: ['./conf/common_conf.yaml', YAML]
+//         });
+//     }
+
+//     private get pubConf(): ConfigData {
+//         const handler = {
+//             get(target: object, prop: PropertyKey, receiver: any) {
+//                 if (typeof prop === 'string')
+//                     if (ConfigUtil.permitPublic.includes(prop)) {
+//                         return Reflect.get(target, prop, receiver);
+//                     } else {
+//                         return undefined;
+//                     }
+//             }
+//         };
+//         return new Proxy(this.allConf, handler);
+//     }
+
+//     // public DOMinjectConf(req: Request, res: Response, next: NextFunction): void {}
+//     // use this: https://github.com/richardschneider/express-mung
+// }
+
+// export const asyncConfig = (): Promise<ConfigData> => {
+//     return new Promise((resolve, reject) => {
+//         if (inBrowser()) {
+//             return resolve(new ConfigUtil().allConf);
+//         } else {
+//             ConfigUtil.load()
+//                 .then(c => {
+//                     return resolve(c.allConf);
+//                 })
+//                 .catch(err => {
+//                     reject(err);
+//                 });
+//         }
+//     });
+// };
+
+// export const syncConfig = (): ConfigData => {
+//     if (inBrowser()) {
+//         return new ConfigUtil().allConf;
+//     } else {
+//         throw new Error('syncConfig only available to browser');
+//     }
+// };
