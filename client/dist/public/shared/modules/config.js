@@ -94,19 +94,23 @@ class DOMConfigUtil extends ConfigBase {
         return { log_level: 'debug', foo: 'bar' };
     }
     inject(req, res, next) {
+        if (!this.cachedConfig)
+            throw new Error('DOMConfigUtil requires a config to inject');
+        console.log(res.statusCode);
+        next();
     }
 }
 export const configFromDOM = () => {
     return new DOMConfigUtil().allConf;
 };
 export const configFromFS = () => __awaiter(void 0, void 0, void 0, function* () {
-    const fcu = new FSConfigUtil();
+    const fsConf = new FSConfigUtil();
     if (inBrowser())
         throw new Error('browser can not access filesystem, use configFromDom()');
-    if (!fcu.allConf) {
-        yield fcu.load();
+    if (!fsConf.allConf) {
+        yield fsConf.load();
     }
-    return fcu.allConf;
+    return fsConf.allConf;
 });
 export const config = () => __awaiter(void 0, void 0, void 0, function* () {
     if (inBrowser()) {
@@ -116,9 +120,9 @@ export const config = () => __awaiter(void 0, void 0, void 0, function* () {
         return configFromFS();
     }
 });
+let middleWareConfig;
 export const configMiddleware = () => __awaiter(void 0, void 0, void 0, function* () {
-    const config = yield new FSConfigUtil().load();
-    const domConfigUtil = new DOMConfigUtil(config);
-    return domConfigUtil.inject;
+    middleWareConfig = yield new FSConfigUtil().load();
+    return new DOMConfigUtil(middleWareConfig).inject;
 });
 //# sourceMappingURL=config.js.map

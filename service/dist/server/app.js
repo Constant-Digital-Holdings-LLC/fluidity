@@ -3,7 +3,7 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { fetchLogger } from '#@shared/modules/logger.js';
-import { config } from '#@shared/modules/config.js';
+import { config, configMiddleware } from '#@shared/modules/config.js';
 const log = fetchLogger(await config());
 log.debug('this is debug data');
 log.info('this is info data');
@@ -16,6 +16,7 @@ setInterval(async () => {
 }, 5000);
 const app = express();
 const port = 3000;
+app.use(await configMiddleware());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));

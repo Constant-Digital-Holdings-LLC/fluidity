@@ -112,7 +112,13 @@ class DOMConfigUtil extends ConfigBase {
         return { log_level: 'debug', foo: 'bar' };
     }
 
-    inject(req: Request, res: Response, next: NextFunction) {
+    inject(req: Request, res: Response, next: NextFunction): void {
+        if (!this.cachedConfig) throw new Error('DOMConfigUtil requires a config to inject');
+
+        console.log(res.statusCode);
+
+        next();
+
         // put all this.pubConf in the DOM
         // use this: https://github.com/richardschneider/express-mung
     }
@@ -123,15 +129,15 @@ export const configFromDOM = (): ConfigData => {
 };
 
 export const configFromFS = async (): Promise<ConfigData | undefined> => {
-    const fcu = new FSConfigUtil();
+    const fsConf = new FSConfigUtil();
 
     if (inBrowser()) throw new Error('browser can not access filesystem, use configFromDom()');
 
-    if (!fcu.allConf) {
-        await fcu.load();
+    if (!fsConf.allConf) {
+        await fsConf.load();
     }
 
-    return fcu.allConf;
+    return fsConf.allConf;
 };
 
 export const config = async (): Promise<ConfigData | undefined> => {
@@ -142,9 +148,13 @@ export const config = async (): Promise<ConfigData | undefined> => {
     }
 };
 
-//see:  https://www.npmjs.com/package/@awaitjs/express?activeTab=readme
+let middleWareConfig: ConfigData | undefined;
+
 export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
-    const config = await new FSConfigUtil().load();
-    const domConfigUtil = new DOMConfigUtil(config);
-    return domConfigUtil.inject;
+    middleWareConfig = await new FSConfigUtil().load();
+
+    // console.log('HELLO');
+    // console.warn(JSON.stringify(middleWareConfig));
+
+    return new DOMConfigUtil(middleWareConfig).inject;
 };
