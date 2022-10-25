@@ -1,4 +1,5 @@
 import { inBrowser } from '#@shared/modules/utils.js';
+import { configFromDOM } from '#@shared/modules/config.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -148,17 +149,18 @@ class LoggerUtil {
     }
 }
 export const fetchLogger = (conf) => {
-    if (conf) {
-        const { log_level: logLevel, loc_level: locLevel } = conf;
+    if (!conf) {
         if (inBrowser()) {
+            const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
             return LoggerUtil.browserConsole({ logLevel, locLevel });
         }
         else {
-            return LoggerUtil.nodeConsole({ logLevel, locLevel });
+            throw new Error('fetchLogger() cannot synchronously fetch config outside of the browser, please provide ConfigData param');
         }
     }
     else {
-        throw new Error('fetchLogger(): could not establish logging facility, config required');
+        const { log_level: logLevel, loc_level: locLevel } = conf;
+        return LoggerUtil.nodeConsole({ logLevel, locLevel });
     }
 };
 //# sourceMappingURL=logger.js.map

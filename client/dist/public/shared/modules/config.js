@@ -87,10 +87,11 @@ class DOMConfigUtil extends ConfigBase {
         if (!this.cachedConfig) {
             this.cachedConfig = this.extract();
         }
+        console.warn(`pub test: ${JSON.stringify(this.pubConf)}`);
         return this.cachedConfig;
     }
     extract() {
-        return { log_level: 'debug' };
+        return { log_level: 'debug', foo: 'bar' };
     }
     inject(req, res, next) {
     }
@@ -100,6 +101,8 @@ export const configFromDOM = () => {
 };
 export const configFromFS = () => __awaiter(void 0, void 0, void 0, function* () {
     const fcu = new FSConfigUtil();
+    if (inBrowser())
+        throw new Error('browser can not access filesystem, use configFromDom()');
     if (!fcu.allConf) {
         yield fcu.load();
     }

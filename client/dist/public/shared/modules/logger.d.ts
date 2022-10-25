@@ -41,6 +41,6 @@ declare class LoggerUtil implements Logger {
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
-export declare const fetchLogger: (conf: ConfigData | undefined) => LoggerUtil;
+export declare const fetchLogger: (conf?: ConfigData) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map

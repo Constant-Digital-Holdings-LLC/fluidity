@@ -2,7 +2,7 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { configFromDOM } from '#@shared/modules/config.js';
 import { TestType } from '#@shared/types.js';
 const config = configFromDOM();
-const log = fetchLogger(configFromDOM());
+const log = fetchLogger();
 
 log.debug('this is debug data');
 log.info('this is info data');

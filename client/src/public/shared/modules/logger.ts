@@ -2,6 +2,7 @@ import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
+import { configFromDOM } from '#@shared/modules/config.js';
 
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
@@ -200,15 +201,18 @@ class LoggerUtil implements Logger {
     }
 }
 
-export const fetchLogger = (conf: ConfigData | undefined): LoggerUtil => {
-    if (conf) {
-        const { log_level: logLevel, loc_level: locLevel } = conf;
+export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
+    if (!conf) {
         if (inBrowser()) {
+            const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
             return LoggerUtil.browserConsole({ logLevel, locLevel });
         } else {
-            return LoggerUtil.nodeConsole({ logLevel, locLevel });
+            throw new Error(
+                'fetchLogger() cannot synchronously fetch config outside of the browser, please provide ConfigData param'
+            );
         }
     } else {
-        throw new Error('fetchLogger(): could not establish logging facility, config required');
+        const { log_level: logLevel, loc_level: locLevel } = conf;
+        return LoggerUtil.nodeConsole({ logLevel, locLevel });
     }
 };
