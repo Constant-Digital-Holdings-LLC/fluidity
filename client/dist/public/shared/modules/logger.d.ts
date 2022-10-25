@@ -1,5 +1,5 @@
 import { Runtime } from '#@shared/types.js';
-import { ConfigData } from '#@shared/modules/config.js';
+import type { ConfigData } from '#@shared/modules/config.js';
 export declare const levelsArr: readonly ["debug", "info", "warn", "error"];
 export declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 declare type Logger = {

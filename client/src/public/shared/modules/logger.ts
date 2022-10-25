@@ -1,6 +1,6 @@
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
-import { configFromDOM, configFromFS, ConfigData } from '#@shared/modules/config.js';
+import type { ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;

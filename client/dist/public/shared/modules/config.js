@@ -24,7 +24,12 @@ class ConfigBase {
                     }
             }
         };
-        return new Proxy(this.cachedConfig || {}, handler);
+        if (this.cachedConfig) {
+            return new Proxy(this.cachedConfig, handler);
+        }
+        else {
+            return undefined;
+        }
     }
 }
 ConfigBase.pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
