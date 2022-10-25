@@ -106,7 +106,7 @@ class DOMConfigUtil extends ConfigBase {
     }
 
     private extract(): ConfigData {
-        //   parse DOM, populate this.allConf
+        //   parse DOM
         return { log_level: 'debug' };
     }
 
