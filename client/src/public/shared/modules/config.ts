@@ -91,7 +91,7 @@ class FSConfigUtil extends ConfigBase {
     }
 }
 
-export class DOMConfigUtil extends ConfigBase {
+class DOMConfigUtil extends ConfigBase {
     constructor(private _conf?: ConfigData) {
         super();
 
@@ -113,9 +113,11 @@ export class DOMConfigUtil extends ConfigBase {
     }
 
     inject(req: Request, res: Response, next: NextFunction): void {
+        if (!this.cachedConfig) throw new Error('inject() requires ConfigData for DOM insertion');
+
         console.log(res.statusCode);
 
-        console.log(this);
+        console.log(this.cachedConfig);
 
         next();
 
@@ -148,11 +150,10 @@ export const config = async (): Promise<ConfigData | undefined> => {
     }
 };
 
-// export const configMiddleware = async (
-//     dcu: DOMConfigUtil
-// ): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
+export const configMiddleware = async (
+    _conf: ConfigData
+): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
+    const dcu = new DOMConfigUtil(_conf);
 
-//     console.log(`here: ${JSON.stringify(dcu.allConf)}`);
-
-//     return dcu.inject;
-// };
+    return dcu.inject.bind(dcu);
+};

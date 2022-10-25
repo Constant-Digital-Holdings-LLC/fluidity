@@ -4,10 +4,9 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { fetchLogger } from '#@shared/modules/logger.js';
-import { configFromFS, DOMConfigUtil } from '#@shared/modules/config.js';
+import { config, configMiddleware } from '#@shared/modules/config.js';
 
-const conf = await configFromFS();
-
+const conf = await config();
 const log = fetchLogger(conf);
 
 log.debug('this is debug data');
@@ -25,8 +24,11 @@ const app = express();
 
 const port = 3000;
 
-const dcu = new DOMConfigUtil(conf);
-app.use(dcu.inject.bind(dcu));
+if (conf) {
+    app.use(await configMiddleware(conf));
+} else {
+    throw new Error('configMiddleware() requires ConfigData');
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
