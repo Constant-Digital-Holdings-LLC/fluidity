@@ -138,6 +138,7 @@ export const config = async (): Promise<ConfigData | undefined> => {
     }
 };
 
+//see:  https://www.npmjs.com/package/@awaitjs/express?activeTab=readme
 export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
     const config = await new FSConfigUtil().load();
     const domConfigUtil = new DOMConfigUtil(config);
