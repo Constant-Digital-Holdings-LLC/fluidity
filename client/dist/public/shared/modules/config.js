@@ -77,7 +77,7 @@ class FSConfigUtil extends ConfigBase {
         });
     }
 }
-class DOMConfigUtil extends ConfigBase {
+export class DOMConfigUtil extends ConfigBase {
     constructor(_conf) {
         super();
         this._conf = _conf;
@@ -94,9 +94,8 @@ class DOMConfigUtil extends ConfigBase {
         return { log_level: 'debug', foo: 'bar' };
     }
     inject(req, res, next) {
-        if (!this.cachedConfig)
-            throw new Error('DOMConfigUtil requires a config to inject');
         console.log(res.statusCode);
+        console.log(this);
         next();
     }
 }
@@ -119,10 +118,5 @@ export const config = () => __awaiter(void 0, void 0, void 0, function* () {
     else {
         return configFromFS();
     }
-});
-let middleWareConfig;
-export const configMiddleware = () => __awaiter(void 0, void 0, void 0, function* () {
-    middleWareConfig = yield new FSConfigUtil().load();
-    return new DOMConfigUtil(middleWareConfig).inject;
 });
 //# sourceMappingURL=config.js.map

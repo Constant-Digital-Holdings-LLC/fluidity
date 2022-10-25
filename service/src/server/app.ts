@@ -4,28 +4,29 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import path from 'path';
 import { fetchLogger } from '#@shared/modules/logger.js';
-import { config, configMiddleware } from '#@shared/modules/config.js';
+import { configFromFS, DOMConfigUtil } from '#@shared/modules/config.js';
 
-const log = fetchLogger(await config());
+const conf = await configFromFS();
+
+const log = fetchLogger(conf);
 
 log.debug('this is debug data');
 log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 
-const conf = await config();
+// log.warn(conf);
 
-log.warn(conf);
-
-setInterval(async () => {
-    log.error(await config());
-}, 5000);
+// setInterval(async () => {
+//     log.error(await config());
+// }, 5000);
 
 const app = express();
 
 const port = 3000;
 
-app.use(await configMiddleware());
+const dcu = new DOMConfigUtil(conf);
+app.use(dcu.inject.bind(dcu));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

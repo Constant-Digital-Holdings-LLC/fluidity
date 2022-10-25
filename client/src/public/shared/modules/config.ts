@@ -30,7 +30,7 @@ interface ConfigFiles {
 abstract class ConfigBase {
     static pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
     abstract get allConf(): ConfigData | undefined;
-    protected cachedConfig: ConfigData | undefined;
+    public cachedConfig: ConfigData | undefined;
 
     protected get pubConf(): ConfigData | undefined {
         const handler = {
@@ -91,7 +91,7 @@ class FSConfigUtil extends ConfigBase {
     }
 }
 
-class DOMConfigUtil extends ConfigBase {
+export class DOMConfigUtil extends ConfigBase {
     constructor(private _conf?: ConfigData) {
         super();
 
@@ -113,9 +113,9 @@ class DOMConfigUtil extends ConfigBase {
     }
 
     inject(req: Request, res: Response, next: NextFunction): void {
-        if (!this.cachedConfig) throw new Error('DOMConfigUtil requires a config to inject');
-
         console.log(res.statusCode);
+
+        console.log(this);
 
         next();
 
@@ -148,13 +148,11 @@ export const config = async (): Promise<ConfigData | undefined> => {
     }
 };
 
-let middleWareConfig: ConfigData | undefined;
+// export const configMiddleware = async (
+//     dcu: DOMConfigUtil
+// ): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
 
-export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
-    middleWareConfig = await new FSConfigUtil().load();
+//     console.log(`here: ${JSON.stringify(dcu.allConf)}`);
 
-    // console.log('HELLO');
-    // console.warn(JSON.stringify(middleWareConfig));
-
-    return new DOMConfigUtil(middleWareConfig).inject;
-};
+//     return dcu.inject;
+// };
