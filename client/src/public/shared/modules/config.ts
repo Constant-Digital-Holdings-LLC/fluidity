@@ -8,7 +8,7 @@ function isConfigData(obj: any): obj is ConfigData {
     return obj && obj instanceof Object;
 }
 
-interface ConfigData {
+export interface ConfigData {
     app_name?: string | null;
     app_version?: string | null;
     log_level?: LogLevel | null;
@@ -29,8 +29,8 @@ interface ConfigFiles {
 
 abstract class ConfigBase {
     static pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
-    abstract get allConf(): ConfigData;
-    protected cachedConfig: ConfigData = {};
+    abstract get allConf(): ConfigData | undefined;
+    protected cachedConfig: ConfigData | undefined;
 
     protected get pubConf(): ConfigData {
         const handler = {
@@ -43,22 +43,18 @@ abstract class ConfigBase {
                     }
             }
         };
-        return new Proxy(this.cachedConfig, handler) as ConfigData;
+        return new Proxy(this.cachedConfig || {}, handler) as ConfigData;
     }
 }
 
 class FSConfigUtil extends ConfigBase {
     private nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
-    get allConf(): ConfigData {
-        if (!this.cachedConfig) {
-            throw new Error('call load() method first');
-        } else {
-            return this.cachedConfig;
-        }
+    get allConf(): ConfigData | undefined {
+        return this.cachedConfig;
     }
 
-    async load(): Promise<ConfigData> {
+    async load(): Promise<ConfigData | undefined> {
         const YAML = await import('yaml');
 
         const cFiles: ConfigFiles = {
@@ -116,15 +112,17 @@ export const configFromDOM = (): ConfigData => {
     return new DOMConfigUtil().allConf;
 };
 
-export const configFromFS = async (): Promise<ConfigData> => {
+export const configFromFS = async (): Promise<ConfigData | undefined> => {
     const fcu = new FSConfigUtil();
+
     if (!fcu.allConf) {
         await fcu.load();
     }
+
     return fcu.allConf;
 };
 
-export const config = async (): Promise<ConfigData> => {
+export const config = async (): Promise<ConfigData | undefined> => {
     if (inBrowser()) {
         return configFromDOM();
     } else {

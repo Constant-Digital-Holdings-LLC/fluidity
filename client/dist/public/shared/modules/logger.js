@@ -1,4 +1,3 @@
-import { syncConfig, asyncConfig } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error'];
 class FormatterBase {
@@ -148,34 +147,18 @@ class LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 }
-export const syncLogger = () => {
-    if (!inBrowser()) {
-        throw new Error('syncLogger only available to browser');
-    }
-    else {
-        const { log_level: logLevel, loc_level: locLevel } = syncConfig();
-        return LoggerUtil.browserConsole({ logLevel, locLevel });
-    }
-};
-export const asyncLogger = () => {
-    return new Promise((resolve, reject) => {
+export const fetchLogger = (conf) => {
+    if (conf) {
+        const { log_level: logLevel, loc_level: locLevel } = conf;
         if (inBrowser()) {
-            const { log_level: logLevel, loc_level: locLevel } = syncConfig();
-            return resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+            return LoggerUtil.browserConsole({ logLevel, locLevel });
         }
         else {
-            asyncConfig()
-                .then(config => {
-                const { log_level: logLevel, loc_level: locLevel } = config;
-                return resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
-            })
-                .catch(err => {
-                console.error(err);
-                reject('could not establish a logging facility');
-                console.error('exitting...');
-                process.exit(1);
-            });
+            return LoggerUtil.nodeConsole({ logLevel, locLevel });
         }
-    });
+    }
+    else {
+        throw new Error('fetchLogger(): could not establish logging facility, config required');
+    }
 };
 //# sourceMappingURL=logger.js.map

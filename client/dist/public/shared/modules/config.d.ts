@@ -1,13 +1,17 @@
+import type { Request, Response, NextFunction } from 'express';
 import { LogLevel } from '#@shared/modules/logger.js';
 declare type NodeEnv = 'development' | 'production';
-interface ConfigData {
+export interface ConfigData {
     app_name?: string | null;
     app_version?: string | null;
     log_level?: LogLevel | null;
     loc_level?: LogLevel | null;
     node_env?: NodeEnv | null;
+    [index: string]: unknown;
 }
-export declare const asyncConfig: () => Promise<ConfigData>;
-export declare const syncConfig: () => ConfigData;
+export declare const configFromDOM: () => ConfigData;
+export declare const configFromFS: () => Promise<ConfigData | undefined>;
+export declare const config: () => Promise<ConfigData | undefined>;
+export declare const configMiddleware: () => Promise<(req: Request, res: Response, next: NextFunction) => void>;
 export {};
 //# sourceMappingURL=config.d.ts.map

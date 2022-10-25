@@ -1,13 +1,13 @@
-import { asyncLogger } from '#@shared/modules/logger.js';
-import { asyncConfig } from '#@shared/modules/config.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { config } from '#@shared/modules/config.js';
 
-const config = await asyncConfig();
+const c = await config();
 
-const log = await asyncLogger();
+const log = fetchLogger(c);
 
 log.debug('this is debug data');
 log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 
-log.debug(`conf: ${JSON.stringify(config)}`);
+log.debug(`conf: ${JSON.stringify(c)}`);

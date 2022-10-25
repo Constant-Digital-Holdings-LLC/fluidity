@@ -1,4 +1,5 @@
 import { Runtime } from '#@shared/types.js';
+import { ConfigData } from '#@shared/modules/config.js';
 export declare const levelsArr: readonly ["debug", "info", "warn", "error"];
 export declare type LogLevel = typeof levelsArr[number] & keyof typeof console;
 declare type Logger = {
@@ -40,7 +41,6 @@ declare class LoggerUtil implements Logger {
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
-export declare const syncLogger: () => LoggerUtil;
-export declare const asyncLogger: () => Promise<LoggerUtil>;
+export declare const fetchLogger: (conf: ConfigData | undefined) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map

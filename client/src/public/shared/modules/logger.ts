@@ -1,9 +1,7 @@
 import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
-import { syncConfig, asyncConfig } from '#@shared/modules/config.js';
+import { configFromDOM, configFromFS, ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-import { resolve } from 'path';
-import { rejects } from 'assert';
 
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
@@ -202,32 +200,15 @@ class LoggerUtil implements Logger {
     }
 }
 
-export const syncLogger = (): LoggerUtil => {
-    if (!inBrowser()) {
-        throw new Error('syncLogger only available to browser');
-    } else {
-        const { log_level: logLevel, loc_level: locLevel } = syncConfig();
-        return LoggerUtil.browserConsole({ logLevel, locLevel });
-    }
-};
-
-export const asyncLogger = (): Promise<LoggerUtil> => {
-    return new Promise((resolve, reject) => {
+export const fetchLogger = (conf: ConfigData | undefined): LoggerUtil => {
+    if (conf) {
+        const { log_level: logLevel, loc_level: locLevel } = conf;
         if (inBrowser()) {
-            const { log_level: logLevel, loc_level: locLevel } = syncConfig();
-            return resolve(LoggerUtil.browserConsole({ logLevel, locLevel }));
+            return LoggerUtil.browserConsole({ logLevel, locLevel });
         } else {
-            asyncConfig()
-                .then(config => {
-                    const { log_level: logLevel, loc_level: locLevel } = config;
-                    return resolve(LoggerUtil.nodeConsole({ logLevel, locLevel }));
-                })
-                .catch(err => {
-                    console.error(err);
-                    reject('could not establish a logging facility');
-                    console.error('exitting...');
-                    process.exit(1);
-                });
+            return LoggerUtil.nodeConsole({ logLevel, locLevel });
         }
-    });
+    } else {
+        throw new Error('fetchLogger(): could not establish logging facility, config required');
+    }
 };

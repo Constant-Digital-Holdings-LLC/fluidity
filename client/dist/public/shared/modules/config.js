@@ -8,62 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { inBrowser } from '#@shared/modules/utils.js';
-class ConfigUtil {
-    constructor(baseConfig = {}) {
-        this.baseConfig = baseConfig;
-        this.allConf = {};
-        this.defaults = {
-            app_name: null,
-            app_version: null,
-            log_level: null,
-            loc_level: null,
-            node_env: null
-        };
-        if (inBrowser()) {
-            this.baseConfig.app_name = 'fluidity web app';
-        }
-        this.allConf = Object.freeze(Object.assign(Object.assign({}, this.defaults), this.baseConfig));
-    }
-    static new(nodeEnv, cFiles) {
-        var _a, _b, _c, _d;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (inBrowser())
-                return new ConfigUtil();
-            const nodeEnvConfPath = (_a = cFiles[nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
-            const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
-            const { existsSync: exists, readFileSync: read } = yield import('fs');
-            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-                const eObj = (_c = cFiles[nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
-                if (eObj) {
-                    if (commonConfPath && exists(commonConfPath)) {
-                        const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
-                        if (cObj) {
-                            return new ConfigUtil(Object.assign(Object.assign({}, eObj), cObj));
-                        }
-                    }
-                    else {
-                        return new ConfigUtil(eObj);
-                    }
-                }
-            }
-            return new ConfigUtil();
-        });
-    }
-    static load() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const YAML = yield import('yaml');
-            return ConfigUtil.new(process.env['NODE_ENV'] === 'development' ? 'development' : 'production', {
-                development: ['./conf/dev_conf.yaml', YAML],
-                production: ['./conf/prod_conf.yaml', YAML],
-                common: ['./conf/common_conf.yaml', YAML]
-            });
-        });
-    }
+function isConfigData(obj) {
+    return obj && obj instanceof Object;
+}
+class ConfigBase {
     get pubConf() {
         const handler = {
             get(target, prop, receiver) {
                 if (typeof prop === 'string')
-                    if (ConfigUtil.permitPublic.includes(prop)) {
+                    if (ConfigBase.pubSafeProps.includes(prop)) {
                         return Reflect.get(target, prop, receiver);
                     }
                     else {
@@ -71,32 +24,88 @@ class ConfigUtil {
                     }
             }
         };
-        return new Proxy(this.allConf, handler);
+        return new Proxy(this.cachedConfig || {}, handler);
     }
 }
-ConfigUtil.permitPublic = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
-export const asyncConfig = () => {
-    return new Promise((resolve, reject) => {
-        if (inBrowser()) {
-            return resolve(new ConfigUtil().allConf);
+ConfigBase.pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+class FSConfigUtil extends ConfigBase {
+    constructor() {
+        super(...arguments);
+        this.nodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+    }
+    get allConf() {
+        return this.cachedConfig;
+    }
+    load() {
+        var _a, _b, _c, _d;
+        return __awaiter(this, void 0, void 0, function* () {
+            const YAML = yield import('yaml');
+            const cFiles = {
+                development: ['./conf/dev_conf.yaml', YAML],
+                production: ['./conf/prod_conf.yaml', YAML],
+                common: ['./conf/common_conf.yaml', YAML]
+            };
+            const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
+            const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
+            const { existsSync: exists, readFileSync: read } = yield import('fs');
+            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                const eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
+                if (eObj) {
+                    if (commonConfPath && exists(commonConfPath)) {
+                        const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
+                        if (cObj) {
+                            this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
+                        }
+                    }
+                    else {
+                        if (isConfigData(eObj))
+                            this.cachedConfig = eObj;
+                    }
+                }
+            }
+            return this.cachedConfig;
+        });
+    }
+}
+class DOMConfigUtil extends ConfigBase {
+    constructor(_conf) {
+        super();
+        this._conf = _conf;
+        _conf && (this.cachedConfig = _conf);
+    }
+    get allConf() {
+        if (!this.cachedConfig) {
+            this.cachedConfig = this.extract();
         }
-        else {
-            ConfigUtil.load()
-                .then(c => {
-                return resolve(c.allConf);
-            })
-                .catch(err => {
-                reject(err);
-            });
-        }
-    });
+        return this.cachedConfig;
+    }
+    extract() {
+        return { log_level: 'debug' };
+    }
+    inject(req, res, next) {
+    }
+}
+export const configFromDOM = () => {
+    return new DOMConfigUtil().allConf;
 };
-export const syncConfig = () => {
+export const configFromFS = () => __awaiter(void 0, void 0, void 0, function* () {
+    const fcu = new FSConfigUtil();
+    if (!fcu.allConf) {
+        yield fcu.load();
+    }
+    return fcu.allConf;
+});
+export const config = () => __awaiter(void 0, void 0, void 0, function* () {
     if (inBrowser()) {
-        return new ConfigUtil().allConf;
+        return configFromDOM();
     }
     else {
-        throw new Error('syncConfig only available to browser');
+        return configFromFS();
     }
-};
+});
+export const configMiddleware = () => __awaiter(void 0, void 0, void 0, function* () {
+    const config = yield new FSConfigUtil().load();
+    const domConfigUtil = new DOMConfigUtil(config);
+    return domConfigUtil.inject;
+});
 //# sourceMappingURL=config.js.map

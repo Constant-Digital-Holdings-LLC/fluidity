@@ -1,9 +1,8 @@
-import { syncLogger } from '#@shared/modules/logger.js';
-import { syncConfig } from '#@shared/modules/config.js';
-
-// import { TestType } from '#@shared/types.js';
-const config = syncConfig();
-const log = syncLogger();
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { configFromDOM } from '#@shared/modules/config.js';
+import { TestType } from '#@shared/types.js';
+const config = configFromDOM();
+const log = fetchLogger(configFromDOM());
 
 log.debug('this is debug data');
 log.info('this is info data');
