@@ -42,7 +42,6 @@ class FSConfigUtil extends ConfigBase {
         return this.cachedConfig;
     }
     load() {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             const YAML = yield import('yaml');
             const cFiles = {
@@ -50,6 +49,12 @@ class FSConfigUtil extends ConfigBase {
                 production: ['./conf/prod_conf.yaml', YAML],
                 common: ['./conf/common_conf.yaml', YAML]
             };
+            return this.loadFiles(cFiles);
+        });
+    }
+    loadFiles(cFiles) {
+        var _a, _b, _c, _d;
+        return __awaiter(this, void 0, void 0, function* () {
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { existsSync: exists, readFileSync: read } = yield import('fs');
