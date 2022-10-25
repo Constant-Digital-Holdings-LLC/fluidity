@@ -24,11 +24,7 @@ const app = express();
 
 const port = 3000;
 
-if (conf) {
-    app.use(await configMiddleware(conf));
-} else {
-    throw new Error('configMiddleware() requires ConfigData');
-}
+app.use(await configMiddleware());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

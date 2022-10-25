@@ -78,10 +78,9 @@ class FSConfigUtil extends ConfigBase {
     }
 }
 class DOMConfigUtil extends ConfigBase {
-    constructor(_conf) {
+    constructor(conf) {
         super();
-        this._conf = _conf;
-        _conf && (this.cachedConfig = _conf);
+        conf && (this.cachedConfig = conf);
     }
     get allConf() {
         if (!this.cachedConfig) {
@@ -121,8 +120,8 @@ export const config = () => __awaiter(void 0, void 0, void 0, function* () {
         return configFromFS();
     }
 });
-export const configMiddleware = (_conf) => __awaiter(void 0, void 0, void 0, function* () {
-    const dcu = new DOMConfigUtil(_conf);
+export const configMiddleware = () => __awaiter(void 0, void 0, void 0, function* () {
+    const dcu = new DOMConfigUtil(yield new FSConfigUtil().load());
     return dcu.inject.bind(dcu);
 });
 //# sourceMappingURL=config.js.map

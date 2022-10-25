@@ -92,10 +92,10 @@ class FSConfigUtil extends ConfigBase {
 }
 
 class DOMConfigUtil extends ConfigBase {
-    constructor(private _conf?: ConfigData) {
+    constructor(conf?: ConfigData) {
         super();
 
-        _conf && (this.cachedConfig = _conf);
+        conf && (this.cachedConfig = conf);
     }
 
     get allConf() {
@@ -150,10 +150,8 @@ export const config = async (): Promise<ConfigData | undefined> => {
     }
 };
 
-export const configMiddleware = async (
-    _conf: ConfigData
-): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
-    const dcu = new DOMConfigUtil(_conf);
+export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
+    const dcu = new DOMConfigUtil(await new FSConfigUtil().load());
 
     return dcu.inject.bind(dcu);
 };

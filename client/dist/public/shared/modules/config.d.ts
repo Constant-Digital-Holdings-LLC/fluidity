@@ -12,6 +12,6 @@ export interface ConfigData {
 export declare const configFromDOM: () => ConfigData;
 export declare const configFromFS: () => Promise<ConfigData | undefined>;
 export declare const config: () => Promise<ConfigData | undefined>;
-export declare const configMiddleware: (_conf: ConfigData) => Promise<(req: Request, res: Response, next: NextFunction) => void>;
+export declare const configMiddleware: () => Promise<(req: Request, res: Response, next: NextFunction) => void>;
 export {};
 //# sourceMappingURL=config.d.ts.map
