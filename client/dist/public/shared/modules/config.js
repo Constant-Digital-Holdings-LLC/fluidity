@@ -58,9 +58,13 @@ class FSConfigUtil extends ConfigBase {
     loadFiles(cFiles) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
+            if (inBrowser()) {
+                throw new Error('loadFiles(): not available to browser');
+            }
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { existsSync: exists, readFileSync: read } = yield import('fs');
+            const path = yield import('node:path');
             let eObj;
             let cObj;
             try {
@@ -68,6 +72,7 @@ class FSConfigUtil extends ConfigBase {
                     eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
                     if (!isConfigData(eObj)) {
                         this.cachedConfig = undefined;
+                        console.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`loadFiles(): impropper config file format for this node-env`);
                     }
                     if (commonConfPath && exists(commonConfPath)) {
@@ -76,7 +81,7 @@ class FSConfigUtil extends ConfigBase {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                         else {
-                            console.warn(`loadFiles(): contents of ${commonConfPath} ignored due to impropper format`);
+                            console.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
                             this.cachedConfig = eObj;
                         }
                     }
