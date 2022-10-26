@@ -5,7 +5,7 @@ import { inBrowser } from '#@shared/modules/utils.js';
 type NodeEnv = 'development' | 'production';
 
 function isConfigData(obj: any): obj is ConfigData {
-    return obj && obj instanceof Object;
+    return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
 
 export interface ConfigData {
@@ -43,7 +43,7 @@ abstract class ConfigBase {
                     }
             },
             ownKeys(target: object) {
-                // to intercept property list
+                // intercept property list
                 return Object.keys(target).filter(prop => ConfigBase.pubSafeProps.includes(prop));
             }
         };
@@ -74,35 +74,43 @@ class FSConfigUtil extends ConfigBase {
         return this.loadFiles(cFiles);
     }
 
-    foo() {
-        /^[A-Za-z0-9 _]*$/.test('words');
-    }
-
     async loadFiles(cFiles: ConfigFiles): Promise<ConfigData | undefined> {
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
         const { existsSync: exists, readFileSync: read } = await import('fs');
 
-        //work in progress:
-        const isValid = (obj: object): boolean => {
-            return Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-        };
+        let eObj: unknown;
+        let cObj: unknown;
 
-        if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-            const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
-            //make sure all object properties are lowercase and dont dashes
-            if (eObj && isValid(eObj)) {
+        try {
+            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+
+                if (!isConfigData(eObj)) {
+                    this.cachedConfig = undefined;
+                    throw new Error(`loadFiles(): impropper config file format for this node-env`);
+                }
+
                 if (commonConfPath && exists(commonConfPath)) {
-                    const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
-                    //make sure all object properties are lowercase and dont contain dashes
-                    if (cObj && isValid(cObj)) {
+                    cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
+
+                    if (isConfigData(cObj)) {
                         this.cachedConfig = { ...eObj, ...cObj };
+                    } else {
+                        console.warn(`loadFiles(): contents of ${commonConfPath} ignored due to impropper format`);
+                        this.cachedConfig = eObj;
                     }
                 } else {
-                    if (isConfigData(eObj)) this.cachedConfig = eObj;
+                    console.debug('loadFiles(): common config not provided');
                 }
+            } else {
+                throw new Error('loadFiles(): no config file for this node-env');
             }
+        } catch (err) {
+            console.error(err);
+            if (err instanceof Error) console.error(err.stack);
         }
+
         return this.cachedConfig;
     }
 }
@@ -129,7 +137,8 @@ class DOMConfigUtil extends ConfigBase {
     }
 
     addLocals(req: Request, res: Response, next: NextFunction): void {
-        if (!this.cachedConfig) throw new Error('addLocals() requires ConfigData for req flow insertion');
+        if (!this.cachedConfig) throw new Error('addLocals() middleware requires ConfigData for req.locals');
+
         res.locals['configData'] = this.pubConf;
         next();
     }

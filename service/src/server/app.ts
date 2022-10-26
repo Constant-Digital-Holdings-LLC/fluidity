@@ -2,7 +2,6 @@ import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import path from 'path';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 
@@ -22,6 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
+    log.info(conf);
     res.render('index');
 });
 

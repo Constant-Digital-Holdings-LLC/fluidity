@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { inBrowser } from '#@shared/modules/utils.js';
 function isConfigData(obj) {
-    return obj && obj instanceof Object;
+    return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
 class ConfigBase {
     get pubConf() {
@@ -55,32 +55,43 @@ class FSConfigUtil extends ConfigBase {
             return this.loadFiles(cFiles);
         });
     }
-    foo() {
-        /^[A-Za-z0-9 _]*$/.test('words');
-    }
     loadFiles(cFiles) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { existsSync: exists, readFileSync: read } = yield import('fs');
-            const isValid = (obj) => {
-                return Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-            };
-            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
-                const eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
-                if (eObj && isValid(eObj)) {
+            let eObj;
+            let cObj;
+            try {
+                if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                    eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
+                    if (!isConfigData(eObj)) {
+                        this.cachedConfig = undefined;
+                        throw new Error(`loadFiles(): impropper config file format for this node-env`);
+                    }
                     if (commonConfPath && exists(commonConfPath)) {
-                        const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
-                        if (cObj && isValid(cObj)) {
+                        cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
+                        if (isConfigData(cObj)) {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
+                        }
+                        else {
+                            console.warn(`loadFiles(): contents of ${commonConfPath} ignored due to impropper format`);
+                            this.cachedConfig = eObj;
                         }
                     }
                     else {
-                        if (isConfigData(eObj))
-                            this.cachedConfig = eObj;
+                        console.debug('loadFiles(): common config not provided');
                     }
                 }
+                else {
+                    throw new Error('loadFiles(): no config file for this node-env');
+                }
+            }
+            catch (err) {
+                console.error(err);
+                if (err instanceof Error)
+                    console.error(err.stack);
             }
             return this.cachedConfig;
         });
@@ -103,7 +114,7 @@ class DOMConfigUtil extends ConfigBase {
     }
     addLocals(req, res, next) {
         if (!this.cachedConfig)
-            throw new Error('addLocals() requires ConfigData for req flow insertion');
+            throw new Error('addLocals() middleware requires ConfigData for req.locals');
         res.locals['configData'] = this.pubConf;
         next();
     }

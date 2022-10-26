@@ -16,6 +16,7 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
+    log.info(conf);
     res.render('index');
 });
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));

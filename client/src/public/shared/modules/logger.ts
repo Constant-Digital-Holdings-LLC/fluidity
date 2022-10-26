@@ -207,9 +207,7 @@ export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
             const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
             return LoggerUtil.browserConsole({ logLevel, locLevel });
         } else {
-            throw new Error(
-                'fetchLogger() cannot synchronously fetch config outside of the browser, please provide ConfigData param'
-            );
+            throw new Error('fetchLogger() please provide ConfigData param to fetchLogger(), if in node');
         }
     } else {
         const { log_level: logLevel, loc_level: locLevel } = conf;
