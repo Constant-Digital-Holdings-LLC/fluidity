@@ -28,7 +28,7 @@ interface ConfigFiles {
 }
 
 abstract class ConfigBase {
-    static pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+    static pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'];
     abstract get allConf(): ConfigData | undefined;
     public cachedConfig: ConfigData | undefined;
 
@@ -112,17 +112,10 @@ class DOMConfigUtil extends ConfigBase {
         return { log_level: 'debug', foo: 'bar' };
     }
 
-    inject(req: Request, res: Response, next: NextFunction): void {
-        if (!this.cachedConfig) throw new Error('inject() requires ConfigData for DOM insertion');
-
-        console.log(res.statusCode);
-
-        console.log(this.cachedConfig);
-
+    addLocals(req: Request, res: Response, next: NextFunction): void {
+        if (!this.cachedConfig) throw new Error('addLocals() requires ConfigData for req flow insertion');
+        res.locals['configData'] = this.pubConf;
         next();
-
-        // put all this.pubConf in the DOM
-        // use this: https://github.com/richardschneider/express-mung
     }
 }
 
@@ -153,5 +146,5 @@ export const config = async (): Promise<ConfigData | undefined> => {
 export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
     const dcu = new DOMConfigUtil(await new FSConfigUtil().load());
 
-    return dcu.inject.bind(dcu);
+    return dcu.addLocals.bind(dcu);
 };

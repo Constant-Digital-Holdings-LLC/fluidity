@@ -32,7 +32,7 @@ class ConfigBase {
         }
     }
 }
-ConfigBase.pubSafeProps = ['app_name', 'app_version', 'log_level', 'loc_level', 'node_env'];
+ConfigBase.pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'];
 class FSConfigUtil extends ConfigBase {
     constructor() {
         super(...arguments);
@@ -92,11 +92,10 @@ class DOMConfigUtil extends ConfigBase {
     extract() {
         return { log_level: 'debug', foo: 'bar' };
     }
-    inject(req, res, next) {
+    addLocals(req, res, next) {
         if (!this.cachedConfig)
-            throw new Error('inject() requires ConfigData for DOM insertion');
-        console.log(res.statusCode);
-        console.log(this.cachedConfig);
+            throw new Error('addLocals() requires ConfigData for req flow insertion');
+        res.locals['configData'] = this.pubConf;
         next();
     }
 }
@@ -122,6 +121,6 @@ export const config = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 export const configMiddleware = () => __awaiter(void 0, void 0, void 0, function* () {
     const dcu = new DOMConfigUtil(yield new FSConfigUtil().load());
-    return dcu.inject.bind(dcu);
+    return dcu.addLocals.bind(dcu);
 });
 //# sourceMappingURL=config.js.map

@@ -14,29 +14,18 @@ log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 
-// log.warn(conf);
-
-// setInterval(async () => {
-//     log.error(await config());
-// }, 5000);
-
-const app = express();
-
 const port = 3000;
-
+const app = express();
 app.use(await configMiddleware());
-
+app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//5min cache ttl:
-// app.use(express.static('../../../client/dist/public', { maxAge: 300000 }));
-app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
-
-app.get('/', (_, res) => {
-    log.info('req made...');
-    res.sendFile(path.join(__dirname, '../../../client/dist/public', './index.html'));
+app.get('/', (req, res) => {
+    res.render('index');
 });
+
+app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 
 try {
     app.listen(port, (): void => {
