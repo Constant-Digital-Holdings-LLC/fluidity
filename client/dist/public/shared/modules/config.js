@@ -64,19 +64,15 @@ class FSConfigUtil extends ConfigBase {
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { existsSync: exists, readFileSync: read } = yield import('fs');
-            const verify = (obj) => {
-                if (!Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop))) {
-                    throw new Error('config props cannot contain special characters (other than "-") and must be lowercase, alphanumeric without leading integers');
-                }
+            const isValid = (obj) => {
+                return Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
             };
             if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
                 const eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
-                if (eObj) {
-                    verify(eObj);
+                if (eObj && isValid(eObj)) {
                     if (commonConfPath && exists(commonConfPath)) {
                         const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
-                        if (cObj) {
-                            verify(cObj);
+                        if (cObj && isValid(cObj)) {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                     }

@@ -84,22 +84,18 @@ class FSConfigUtil extends ConfigBase {
         const { existsSync: exists, readFileSync: read } = await import('fs');
 
         //work in progress:
-        const verify = (obj: object): void => {
-            if (!Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop))) {
-                throw new Error(
-                    'config props cannot contain special characters (other than "-") and must be lowercase, alphanumeric without leading integers'
-                );
-            }
+        const isValid = (obj: object): boolean => {
+            return Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
         };
 
         if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
             const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
             //make sure all object properties are lowercase and dont dashes
-            if (eObj) {
+            if (eObj && isValid(eObj)) {
                 if (commonConfPath && exists(commonConfPath)) {
                     const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
                     //make sure all object properties are lowercase and dont contain dashes
-                    if (cObj) {
+                    if (cObj && isValid(cObj)) {
                         this.cachedConfig = { ...eObj, ...cObj };
                     }
                 } else {
