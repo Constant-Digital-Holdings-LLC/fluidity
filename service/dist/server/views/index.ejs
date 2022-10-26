@@ -1,1 +1,36 @@
-<h3><%= configData.app_name %></h3>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%= pair[0]
+        %>="<%= pair[1] %>" <% }) %> />
+
+        <title>Test</title>
+
+        <!--Modules-->
+        <script async src="/external/modules/es-module-shims/dist/es-module-shims.js"></script>
+        <script type="importmap">
+            {
+                "imports": {
+                    "#@shared/": "/shared/",
+                    "#@client/": "/local/"
+                }
+            }
+        </script>
+        <script async src="/external/modules/stacktrace.js-2.0.0/dist/stacktrace.js"></script>
+
+        <script type="module" src="/index.js"></script>
+        <!--/Modules-->
+    </head>
+    <body>
+        <% Object.entries(configData).forEach(pair => { %>
+
+        <dl>
+            <dt><%= pair[0] %></dt>
+            <dd><%= pair[1] %></dd>
+        </dl>
+        <% }) %>
+    </body>
+</html>

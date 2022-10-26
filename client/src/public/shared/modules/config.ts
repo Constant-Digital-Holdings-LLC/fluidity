@@ -41,6 +41,10 @@ abstract class ConfigBase {
                     } else {
                         return undefined;
                     }
+            },
+            ownKeys(target: object) {
+                // to intercept property list
+                return Object.keys(target).filter(prop => ConfigBase.pubSafeProps.includes(prop));
             }
         };
         if (this.cachedConfig) {
@@ -70,15 +74,31 @@ class FSConfigUtil extends ConfigBase {
         return this.loadFiles(cFiles);
     }
 
+    foo() {
+        /^[A-Za-z0-9 _]*$/.test('words');
+    }
+
     async loadFiles(cFiles: ConfigFiles): Promise<ConfigData | undefined> {
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
         const { existsSync: exists, readFileSync: read } = await import('fs');
+
+        //work in progress:
+        const verify = (obj: object): void => {
+            if (!Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop))) {
+                throw new Error(
+                    'config props cannot contain special characters (other than "-") and must be lowercase, alphanumeric without leading integers'
+                );
+            }
+        };
+
         if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
             const eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+            //make sure all object properties are lowercase and dont dashes
             if (eObj) {
                 if (commonConfPath && exists(commonConfPath)) {
                     const cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
+                    //make sure all object properties are lowercase and dont contain dashes
                     if (cObj) {
                         this.cachedConfig = { ...eObj, ...cObj };
                     }

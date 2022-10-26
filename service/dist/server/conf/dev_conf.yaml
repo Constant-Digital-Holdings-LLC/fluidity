@@ -1,4 +1,4 @@
 ---
-app_name: 'fluidity server - dev'
+app_name: 'fluidity server - development'
 log_level: 'debug'
 foo: 'bar'

@@ -22,6 +22,9 @@ class ConfigBase {
                     else {
                         return undefined;
                     }
+            },
+            ownKeys(target) {
+                return Object.keys(target).filter(prop => ConfigBase.pubSafeProps.includes(prop));
             }
         };
         if (this.cachedConfig) {
@@ -52,18 +55,28 @@ class FSConfigUtil extends ConfigBase {
             return this.loadFiles(cFiles);
         });
     }
+    foo() {
+        /^[A-Za-z0-9 _]*$/.test('words');
+    }
     loadFiles(cFiles) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { existsSync: exists, readFileSync: read } = yield import('fs');
+            const verify = (obj) => {
+                if (!Object.keys(obj).some(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop))) {
+                    throw new Error('config props cannot contain special characters (other than "-") and must be lowercase, alphanumeric without leading integers');
+                }
+            };
             if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
                 const eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
                 if (eObj) {
+                    verify(eObj);
                     if (commonConfPath && exists(commonConfPath)) {
                         const cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
                         if (cObj) {
+                            verify(cObj);
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                     }
