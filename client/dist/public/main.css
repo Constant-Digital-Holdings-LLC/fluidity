@@ -5,6 +5,7 @@ body {
 }
 
 #container1 {
+    border-radius: 8px;
     margin: 15px;
     height: 90vh;
     align-items: center;
@@ -21,6 +22,8 @@ header {
 
 input,
 textarea {
+    background-color: black;
+    margin-top: 20px;
     padding: 5px;
     color: white;
     border-radius: 8px;
@@ -41,10 +44,13 @@ textarea {
 }
 
 #container2 {
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     margin-left: 20px;
-    height: 100%;
+
+    height: 80vh;
+    overflow: auto;
     background-color: black;
     justify-content: flex-start;
     align-items: center;
