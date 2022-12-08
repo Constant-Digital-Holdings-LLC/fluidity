@@ -17,12 +17,25 @@ body {
 
 header {
     grid-column: 1 / -1;
-    text-align: center;
+    display: flex;
+    gap: 20px;
+    justify-content: flex-start;
+    /* text-align: center; */
+}
+
+/* #logo {
+    margin: 10px 20px;
+} */
+
+header img {
+    height: 80px;
+    /* top, right, bottom, left: */
+    margin: 15px 1px 1px 10px;
 }
 
 input,
 textarea {
-    background-color: black;
+    background-color: rgba(128, 128, 128, 0.5);
     margin-top: 20px;
     padding: 5px;
     color: white;
@@ -49,7 +62,7 @@ textarea {
     flex-direction: column;
     margin-left: 20px;
 
-    height: 80vh;
+    height: 75vh;
     overflow: auto;
     background-color: black;
     justify-content: flex-start;
@@ -58,12 +71,14 @@ textarea {
 
 footer {
     text-align: center;
+    margin-bottom: 10px;
+
     grid-column: 1 / -1;
     /* background-color: blue; */
 
     font-weight: 900;
 }
 
-dl {
+/* dl {
     display: none;
-}
+} */
