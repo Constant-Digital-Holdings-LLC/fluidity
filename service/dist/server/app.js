@@ -15,6 +15,7 @@ app.use(await configMiddleware());
 app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.set('views', '../../../client/dist/views');
 app.get('/', (req, res) => {
     log.info(conf);
     res.render('index');
