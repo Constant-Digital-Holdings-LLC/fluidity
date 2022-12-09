@@ -3,6 +3,8 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <link rel="stylesheet" href="normalize.css" />
         <link rel="stylesheet" href="main.css" />
 
         <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%= pair[0]
@@ -29,7 +31,8 @@
         <div id="container-main" class="container">
             <div id="container-logo-and-graph" class="container bg-gradient">
                 <img src="img/logo.svg" id="logo" />
-                <img src="img/test-data.png" id="graph" />
+
+                <img src="img/spline-chart.svg" id="graph" />
             </div>
             <div id="cell-heard" class="cell bg-flat">Heard</div>
             <div id="container-mesgs" class="container">

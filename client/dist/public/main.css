@@ -1,12 +1,14 @@
+* {
+    box-sizing: border-box;
+}
+
 :root {
     --color1: #53354a;
-    --colorFoo: #704c65;
-    --color2: #846951;
-    --color3: #1d161a;
-    --color4: #84727e;
-    --color5: #513a24;
-    --light: #e0d8deff;
-    --dark: var(--color3);
+    --color2: #706c9d;
+    --color3: #54b0ed;
+    --color4: #00fdff;
+    --light: #ffe5ff;
+    --dark: #52423d;
 }
 
 .bg-flat {
@@ -14,26 +16,12 @@
 }
 
 .bg-flat-dark {
-    background-color: var(--color3);
+    background-color: var(--color2);
 }
 
 .bg-gradient {
     background: rgb(83, 53, 74);
     background: linear-gradient(90deg, rgba(83, 53, 74, 1) 75%, rgba(112, 76, 101, 1) 100%);
-
-    /* background: rgb(83, 53, 74);
-    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 50%, rgba(103, 67, 92, 1) 100%); */
-
-    /* background: rgb(83, 53, 74);
-    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 62%, rgba(134, 87, 120, 1) 100%); */
-
-    /*     
-    background: rgb(83, 53, 74);
-    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 60%, rgba(81, 58, 36, 1) 100%); */
-    /* 
-
-    background: rgb(83, 53, 74);
-    background: linear-gradient(86deg, rgba(83, 53, 74, 1) 73%, rgba(132, 114, 126, 1) 96%); */
 }
 
 body {
@@ -41,29 +29,30 @@ body {
 }
 
 #logo {
-    width: 15%;
+    height: 65px;
 }
 
 #graph {
-    width: 30%;
+    height: 100px;
 }
 
 #container-main {
+    margin: 15px;
     display: grid;
-    gap: 15px;
+    gap: 10px;
 
-    grid-template-columns: 1fr 5fr;
+    grid-template-columns: 2fr 10fr;
 }
 
 #container-mesgs {
     display: flex;
-    gap: 7px;
+    gap: 3px;
     flex-direction: column;
 }
 
 #container-logo-and-graph {
     grid-column: 1 / -1;
-    padding: 10px 50px;
+    padding: 8px 40px;
     border-radius: 8px;
 
     display: flex;
@@ -78,16 +67,12 @@ body {
 }
 
 #cell-data {
-    flex-basis: 35rem;
+    flex: 1 1 70vh;
     overflow: auto;
 }
 
-/* .container {
-    
-} */
-
 .cell {
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
 }
 
@@ -98,7 +83,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color2);
+    background: var(--color3);
     -webkit-border-radius: 1ex;
     -webkit-box-shadow: var(--color2);
 }
@@ -107,6 +92,6 @@ body {
 @media (min-width: 768px) {
 }
 
-/* dl {
+dl {
     display: none;
-} */
+}
