@@ -1,96 +1,72 @@
+:root {
+    --eggplant: #4b3b47ff;
+    --granite-gray: #6a6262ff;
+    --spanish-gray: #9c9990ff;
+    --pale-spring-bud: #cfd2b2;
+    --gainsboro: #e0d8deff;
+}
+
 body {
-    background-color: darkslateblue;
+    background-color: var(--granite-gray);
 
-    color: whitesmoke;
+    color: var(--gainsboro);
 }
 
-#container1 {
-    gap: 20px;
-    border-radius: 8px;
-    margin: 15px;
-    align-items: center;
-    justify-content: center;
-    background-color: grey;
+#container-main {
     display: grid;
-    grid-template-columns: 35fr 1fr;
+    gap: 15px;
+
+    grid-template-columns: 1fr 5fr;
 }
 
-header {
-    grid-column: 1 / -1;
+#container-mesgs {
     display: flex;
-    justify-content: flex-start;
-}
-
-#graph-img {
-    display: none;
-}
-
-header img {
-    height: 80px;
-    /* top, right, bottom, left: */
-    margin: 15px 15px 0px 10px;
-}
-
-input,
-textarea {
-    background-color: rgba(128, 128, 128, 0.5);
-    margin-top: 20px;
-    padding: 5px;
-    color: white;
-    border-radius: 8px;
-}
-
-#item-search {
-    grid-column: 1 / -1;
-    text-align: center;
-}
-
-#item-messages {
-    padding: 20px;
-    align-self: stretch;
-    height: 800px;
-}
-
-#item-sites {
-    display: none;
-}
-
-#container2 {
-    border-radius: 8px;
-    display: flex;
+    gap: 7px;
     flex-direction: column;
-    margin-left: 20px;
-
-    height: 600px;
-    overflow: auto;
-    background-color: black;
-    justify-content: flex-start;
-    align-items: center;
 }
 
-footer {
-    text-align: center;
-    padding-bottom: 10px;
-
+#cell-logo-and-graph {
     grid-column: 1 / -1;
-    /* background-color: blue; */
-
-    font-weight: 900;
 }
+
+#cell-search {
+    /* grow, shrink, basis */
+    flex: 0 0 2rem;
+}
+
+#cell-data {
+    flex-basis: 35rem;
+    overflow: auto;
+}
+
+/* .container {
+    
+} */
+
+.cell {
+    padding: 10px;
+    border-radius: 8px;
+    background-color: var(--eggplant);
+}
+
+::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    background: var(--pale-spring-bud);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--spanish-gray);
+    -webkit-border-radius: 1ex;
+    -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);
+}
+
+/* ::-webkit-scrollbar-corner {
+    background: #000;
+} */
 
 /* Medium devices (tablets, 768px and up) */
 @media (min-width: 768px) {
-    #graph-img {
-        display: unset;
-    }
-
-    #item-sites {
-        display: unset;
-    }
-
-    #container1 {
-        grid-template-columns: 35fr 4fr;
-    }
 }
 
 /* dl {
