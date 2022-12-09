@@ -1,15 +1,51 @@
 :root {
-    --eggplant: #4b3b47ff;
-    --granite-gray: #6a6262ff;
-    --spanish-gray: #9c9990ff;
-    --pale-spring-bud: #cfd2b2;
-    --gainsboro: #e0d8deff;
+    --color1: #53354a;
+    --colorFoo: #704c65;
+    --color2: #846951;
+    --color3: #1d161a;
+    --color4: #84727e;
+    --color5: #513a24;
+    --light: #e0d8deff;
+    --dark: var(--color3);
+}
+
+.bg-flat {
+    background-color: var(--color1);
+}
+
+.bg-flat-dark {
+    background-color: var(--color3);
+}
+
+.bg-gradient {
+    background: rgb(83, 53, 74);
+    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 75%, rgba(112, 76, 101, 1) 100%);
+
+    /* background: rgb(83, 53, 74);
+    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 50%, rgba(103, 67, 92, 1) 100%); */
+
+    /* background: rgb(83, 53, 74);
+    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 62%, rgba(134, 87, 120, 1) 100%); */
+
+    /*     
+    background: rgb(83, 53, 74);
+    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 60%, rgba(81, 58, 36, 1) 100%); */
+    /* 
+
+    background: rgb(83, 53, 74);
+    background: linear-gradient(86deg, rgba(83, 53, 74, 1) 73%, rgba(132, 114, 126, 1) 96%); */
 }
 
 body {
-    background-color: var(--granite-gray);
+    color: var(--light);
+}
 
-    color: var(--gainsboro);
+#logo {
+    width: 15%;
+}
+
+#graph {
+    width: 30%;
 }
 
 #container-main {
@@ -25,8 +61,15 @@ body {
     flex-direction: column;
 }
 
-#cell-logo-and-graph {
+#container-logo-and-graph {
     grid-column: 1 / -1;
+    padding: 10px 50px;
+    border-radius: 8px;
+
+    display: flex;
+    align-items: center;
+    align-self: center;
+    justify-content: space-between;
 }
 
 #cell-search {
@@ -46,24 +89,19 @@ body {
 .cell {
     padding: 10px;
     border-radius: 8px;
-    background-color: var(--eggplant);
 }
 
 ::-webkit-scrollbar {
     height: 12px;
     width: 12px;
-    background: var(--pale-spring-bud);
+    background: var(--color1);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--spanish-gray);
+    background: var(--color2);
     -webkit-border-radius: 1ex;
-    -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);
+    -webkit-box-shadow: var(--color2);
 }
-
-/* ::-webkit-scrollbar-corner {
-    background: #000;
-} */
 
 /* Medium devices (tablets, 768px and up) */
 @media (min-width: 768px) {
