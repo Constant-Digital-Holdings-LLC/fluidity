@@ -37,16 +37,16 @@ body {
 }
 
 #container-main {
-    margin: 15px;
+    margin: 25px;
     display: grid;
-    gap: 10px;
+    gap: 15px;
 
-    grid-template-columns: 2fr 10fr;
+    grid-template-columns: minmax(10rem, 12rem) 1fr;
 }
 
 #container-mesgs {
     display: flex;
-    gap: 3px;
+    gap: 15px;
     flex-direction: column;
 }
 
@@ -54,6 +54,7 @@ body {
     grid-column: 1 / -1;
     padding: 8px 40px;
     border-radius: 8px;
+    border: 1px solid var(--color4);
 
     display: flex;
     align-items: center;
@@ -61,9 +62,47 @@ body {
     justify-content: space-between;
 }
 
+#cell-search-and-stats {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
 #cell-search {
     /* grow, shrink, basis */
-    flex: 0 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* background-color: #706c9d; */
+    flex-shrink: 1;
+    flex-basis: 50%;
+}
+
+#cell-search input {
+    color: var(--light);
+    background-color: var(--dark);
+}
+
+#cell-search input:focus {
+    outline-color: var(--color3);
+    /* box-shadow: 0 0 10px #719ece; */
+}
+
+#cell-stats {
+    text-align: center;
+}
+
+#cell-search ul {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+}
+
+#cell-search ul li {
+    width: 8rem;
 }
 
 #cell-data {
@@ -74,6 +113,7 @@ body {
 .cell {
     padding: 15px;
     border-radius: 8px;
+    border: 1px solid var(--color4);
 }
 
 ::-webkit-scrollbar {
