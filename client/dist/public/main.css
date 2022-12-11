@@ -7,16 +7,9 @@
     --color2: #706c9d;
     --color3: #54b0ed;
     --color4: #00fdff;
+    --color5: #472e40;
     --light: #ffe5ff;
     --dark: #52423d;
-}
-
-.bg-flat {
-    background-color: var(--color1);
-}
-
-.bg-flat-dark {
-    background-color: var(--color2);
 }
 
 .bg-gradient {
@@ -26,6 +19,7 @@
 
 body {
     color: var(--light);
+    background-color: var(--color2);
 }
 
 #logo {
@@ -54,7 +48,7 @@ body {
     grid-column: 1 / -1;
     padding: 8px 40px;
     border-radius: 8px;
-    border: 1px solid var(--color4);
+    /* border: 1px solid var(--color4); */
 
     display: flex;
     align-items: center;
@@ -81,7 +75,8 @@ body {
 
 #cell-search input {
     color: var(--light);
-    background-color: var(--dark);
+    background-color: var(--color5);
+    border-radius: 8px;
 }
 
 #cell-search input:focus {
@@ -94,7 +89,7 @@ body {
 }
 
 #cell-search ul {
-    list-style: none;
+    /* list-style: none; */
     display: flex;
     align-items: center;
     justify-content: flex-start;
