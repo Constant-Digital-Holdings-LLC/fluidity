@@ -29,14 +29,23 @@
     </head>
     <body class="bg-flat-dark">
         <div id="container-main" class="container">
-            <div id="container-logo-and-graph" class="container bg-gradient">
+            <div id="container-logo-and-graph" class="container bg-gradient cell">
                 <img src="img/logo.svg" id="logo" />
 
                 <img src="img/spline-chart.svg" id="graph" />
             </div>
             <div id="cell-heard" class="cell bg-flat">Heard</div>
             <div id="container-mesgs" class="container">
-                <div id="cell-search" class="cell bg-gradient">Search</div>
+                <div id="cell-search-and-stats" class="cell bg-gradient">
+                    <div id="cell-search">
+                        <form><input type="text" /></form>
+                        <ul>
+                            <li>Santiago Pk</li>
+                            <li>Mt Disappointment</li>
+                        </ul>
+                    </div>
+                    <div id="cell-stats">Records [0]</div>
+                </div>
                 <div id="cell-data" class="cell bg-gradient">
                     <p>
                         Lorem ipsum dolor sit amet consectetur adipisicing elit. Quo, eum perferendis? Harum sint
