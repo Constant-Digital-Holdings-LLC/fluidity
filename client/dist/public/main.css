@@ -32,7 +32,7 @@ body {
 }
 
 #container-main {
-    margin: 10px;
+    margin: 5px;
     display: grid;
     gap: 5px;
     grid-template-columns: minmax(10rem, 12rem) 1fr;
@@ -41,7 +41,7 @@ body {
 #container-mesgs {
     width: 94vw;
     display: flex;
-    gap: 8px;
+    gap: 5px;
     flex-direction: column;
 }
 
@@ -140,8 +140,8 @@ body {
 @media (min-width: 768px) {
     #container-main {
         display: grid;
+        margin: 13px;
         gap: 13px;
-        margin: 20px;
 
         grid-template-columns: minmax(10rem, 12rem) 1fr;
     }
@@ -149,9 +149,8 @@ body {
     /* blah begin */
 
     #container-mesgs {
-        width: 100%;
-
         gap: 13px;
+        width: 100%;
     }
 
     /* blah end */
@@ -182,17 +181,16 @@ body {
     }
 
     #cell-data {
-        max-height: 62vh;
-    }
-}
-
-@media (min-width: 820px) {
-    #cell-data {
         max-height: 65vh;
     }
 }
 
-@media (min-width: 1300px) {
+/* high-res */
+@media (min-width: 1920px) {
+    #container-main {
+        margin: 13px;
+    }
+
     #cell-data {
         max-height: 70vh;
     }
