@@ -39,7 +39,7 @@ body {
 }
 
 #container-mesgs {
-    width: 95vw;
+    width: 94vw;
     display: flex;
     gap: 8px;
     flex-direction: column;
@@ -58,13 +58,15 @@ body {
 }
 
 #cell-search-and-stats {
+    min-width: 22rem;
     display: flex;
-    gap: 0px;
+    gap: 3rem;
     align-items: center;
     justify-content: space-between;
 }
 
 #cell-search {
+    width: fit-content;
     display: flex;
     gap: 25px;
     align-items: center;
@@ -76,6 +78,7 @@ body {
 }
 
 #cell-search input {
+    border: 2px groove var(--color3);
     width: 6rem;
     color: var(--light);
     background-color: var(--color5);
@@ -83,7 +86,7 @@ body {
 }
 
 #cell-search input:focus {
-    outline-color: var(--color3);
+    outline-color: var(--color6);
     /* box-shadow: 0 0 10px #719ece; */
 }
 
@@ -106,8 +109,13 @@ body {
 }
 
 #cell-data {
-    flex: 1 1 80vh;
+    min-width: 22rem;
+    max-height: 80vh;
     overflow: auto;
+}
+
+#cell-data p {
+    margin: 0px 0px 10px 0px;
 }
 
 .cell {
@@ -165,7 +173,7 @@ body {
     }
 
     #cell-search ul li {
-        width: 8rem;
+        width: 9rem;
         flex-shrink: 0;
     }
 
@@ -174,8 +182,19 @@ body {
     }
 
     #cell-data {
-        flex: 1 1 75vh;
-        overflow: auto;
+        max-height: 62vh;
+    }
+}
+
+@media (min-width: 820px) {
+    #cell-data {
+        max-height: 65vh;
+    }
+}
+
+@media (min-width: 1300px) {
+    #cell-data {
+        max-height: 70vh;
     }
 }
 
