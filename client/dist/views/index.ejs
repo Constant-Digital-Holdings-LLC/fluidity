@@ -4,8 +4,10 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <link rel="stylesheet" href="normalize.css" />
-        <link rel="stylesheet" href="main.css" />
+        <link rel="stylesheet" href="/css/normalize.css" />
+        <link href="/css/fontawesome.css" rel="stylesheet" />
+        <link href="/css/solid.css" rel="stylesheet" />
+        <link rel="stylesheet" href="/css/fluidity.css" />
 
         <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%= pair[0]
         %>="<%= pair[1] %>" <% }) %> />
@@ -34,14 +36,28 @@
 
                 <img src="img/spline-chart.svg" id="graph" />
             </div>
-            <div id="cell-heard" class="cell bg-gradient">Heard</div>
+            <div id="cell-heard" class="cell bg-gradient">
+                <i class="fa-solid fa-tower-cell"></i>
+                Site...
+            </div>
             <div id="container-mesgs" class="container">
                 <div id="cell-search-and-stats" class="cell bg-gradient">
                     <div id="cell-search">
-                        <form><input type="text" /></form>
-                        <ul>
-                            <li>Santiago Pk</li>
-                            <li>Verdugo Pk</li>
+                        <form>
+                            <div id="input-container">
+                                <i class="fa-solid fa-filter"></i>
+                                <input type="text" placeholder="filter..." />
+                            </div>
+                        </form>
+                        <ul class="fa-ul">
+                            <li>
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                Santiago Pk
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                Verdugo Pk
+                            </li>
                         </ul>
                     </div>
                     <div id="cell-stats">
