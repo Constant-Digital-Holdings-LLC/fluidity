@@ -1,3 +1,6 @@
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
 import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
@@ -30,13 +33,19 @@ app.get('/', (req, res) => {
 app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 
 try {
-    app.listen(port, (): void => {
-        console.log(`Connected successfully on port ${port}`);
-    });
+    https
+        .createServer(
+            {
+                key: fs.readFileSync('./ssl/dev_key.pem'),
+                cert: fs.readFileSync('./ssl/dev_cert.pem')
+            },
+            app
+        )
+        .listen(port);
+
+    log.info(`listening on port ${port}`);
 } catch (err) {
-    if (err instanceof Error) {
-        console.error(err);
-    }
+    log.error(err);
 }
 
 const ringBuffer = new RingBuffer<number>(5);
