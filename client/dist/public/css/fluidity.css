@@ -60,7 +60,7 @@
 body {
     color: var(--light);
     background-color: var(--color2);
-    font-size: small;
+    font-size: 0.8rem;
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
 }
@@ -112,6 +112,10 @@ body {
     gap: 0.6rem;
     align-items: center;
     justify-content: left;
+}
+
+#cell-search li {
+    width: 6.7rem;
 }
 
 #input-container {
@@ -204,7 +208,7 @@ body {
 /* Medium devices */
 @media (min-width: 768px) {
     body {
-        font-size: medium;
+        font-size: 0.9rem;
     }
 
     #container-main {
