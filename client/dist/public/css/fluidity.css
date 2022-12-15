@@ -15,6 +15,43 @@
     --big-gap: 1rem;
 }
 
+/* outfit-300 - latin */
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 300;
+    src: url('/webfonts/outfit-v6-latin-300.eot'); /* IE9 Compat Modes */
+    src: local(''), url('/webfonts/outfit-v6-latin-300.eot?#iefix') format('embedded-opentype'),
+        /* IE6-IE8 */ url('/webfonts/outfit-v6-latin-300.woff2') format('woff2'),
+        /* Super Modern Browsers */ url('/webfonts/outfit-v6-latin-300.woff') format('woff'),
+        /* Modern Browsers */ url('/webfonts/outfit-v6-latin-300.ttf') format('truetype'),
+        /* Safari, Android, iOS */ url('/webfonts/outfit-v6-latin-300.svg#Outfit') format('svg'); /* Legacy iOS */
+}
+/* outfit-regular - latin */
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/webfonts/outfit-v6-latin-regular.eot'); /* IE9 Compat Modes */
+    src: local(''), url('/webfonts/outfit-v6-latin-regular.eot?#iefix') format('embedded-opentype'),
+        /* IE6-IE8 */ url('/webfonts/outfit-v6-latin-regular.woff2') format('woff2'),
+        /* Super Modern Browsers */ url('/webfonts/outfit-v6-latin-regular.woff') format('woff'),
+        /* Modern Browsers */ url('/webfonts/outfit-v6-latin-regular.ttf') format('truetype'),
+        /* Safari, Android, iOS */ url('/webfonts/outfit-v6-latin-regular.svg#Outfit') format('svg'); /* Legacy iOS */
+}
+/* outfit-600 - latin */
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 600;
+    src: url('/webfonts/outfit-v6-latin-600.eot'); /* IE9 Compat Modes */
+    src: local(''), url('/webfonts/outfit-v6-latin-600.eot?#iefix') format('embedded-opentype'),
+        /* IE6-IE8 */ url('/webfonts/outfit-v6-latin-600.woff2') format('woff2'),
+        /* Super Modern Browsers */ url('/webfonts/outfit-v6-latin-600.woff') format('woff'),
+        /* Modern Browsers */ url('/webfonts/outfit-v6-latin-600.ttf') format('truetype'),
+        /* Safari, Android, iOS */ url('/webfonts/outfit-v6-latin-600.svg#Outfit') format('svg'); /* Legacy iOS */
+}
+
 .bg-gradient {
     background: rgb(83, 53, 74);
     background: linear-gradient(90deg, rgba(83, 53, 74, 1) 75%, rgba(112, 76, 101, 1) 100%);
@@ -23,10 +60,13 @@
 body {
     color: var(--light);
     background-color: var(--color2);
+    font-size: small;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
 }
 
 #logo {
-    height: 3rem;
+    height: 3.5rem;
     margin: 0.25rem;
 }
 
@@ -61,7 +101,7 @@ body {
 
 #cell-search-and-stats {
     display: flex;
-    gap: var(--big-gap);
+    gap: var(--small-gap);
     padding: 1rem;
     align-items: center;
     justify-content: space-between;
@@ -69,16 +109,9 @@ body {
 
 #cell-search {
     display: flex;
-    gap: 1rem;
+    gap: 0.6rem;
     align-items: center;
     justify-content: left;
-}
-
-#cell-stats p {
-    width: 6rem;
-    text-align: right;
-    padding: 0;
-    margin: 0;
 }
 
 #input-container {
@@ -87,10 +120,10 @@ body {
 }
 
 #input-container i {
+    color: var(--color2);
     position: absolute;
     left: 6px;
     top: 4px;
-    text-align: right;
 }
 
 #cell-search input {
@@ -99,7 +132,7 @@ body {
     background-color: var(--color5);
     border-radius: 5px;
     padding-left: 26px;
-    width: 9rem;
+    width: 8rem;
 }
 
 #cell-search input:focus {
@@ -115,7 +148,23 @@ body {
 }
 
 #cell-search li {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.2rem;
+}
+
+#cell-search li i {
+    color: var(--color2);
+}
+
+#cell-stats {
+    font-size: 0.8rem;
+    display: grid;
+    gap: 0.2rem;
+    grid-template-columns: 1fr 1fr;
+}
+
+.stat-data {
+    color: var(--color6);
 }
 
 #cell-data {
@@ -154,6 +203,10 @@ body {
 
 /* Medium devices */
 @media (min-width: 768px) {
+    body {
+        font-size: medium;
+    }
+
     #container-main {
         display: grid;
         grid-template-columns: 12rem auto;
@@ -165,6 +218,10 @@ body {
 
     #cell-search input {
         width: 13rem;
+    }
+
+    #cell-search {
+        gap: 1.5rem;
     }
 
     #cell-data p {
@@ -184,7 +241,7 @@ body {
     }
 
     #logo {
-        height: 4rem;
+        height: 4.5rem;
         margin: 0.5rem;
     }
 
@@ -195,6 +252,10 @@ body {
     #cell-search ul {
         display: flex;
         gap: 2rem;
+    }
+
+    #cell-stats {
+        gap: 0.5rem;
     }
 }
 
