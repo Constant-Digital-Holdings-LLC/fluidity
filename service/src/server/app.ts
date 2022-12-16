@@ -36,8 +36,8 @@ try {
     https
         .createServer(
             {
-                key: fs.readFileSync('./ssl/dev_key.pem'),
-                cert: fs.readFileSync('./ssl/dev_cert.pem')
+                key: fs.readFileSync('./ssl/dev-server_key.pem'),
+                cert: fs.readFileSync('./ssl/dev-server_cert.pem')
             },
             app
         )

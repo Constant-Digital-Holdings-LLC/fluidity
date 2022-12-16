@@ -26,8 +26,8 @@ app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
 try {
     https
         .createServer({
-        key: fs.readFileSync('./ssl/dev_key.pem'),
-        cert: fs.readFileSync('./ssl/dev_cert.pem')
+        key: fs.readFileSync('./ssl/dev-server_key.pem'),
+        cert: fs.readFileSync('./ssl/dev-server_cert.pem')
     }, app)
         .listen(port);
     log.info(`listening on port ${port}`);
