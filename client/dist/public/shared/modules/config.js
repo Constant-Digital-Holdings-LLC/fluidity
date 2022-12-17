@@ -11,6 +11,9 @@ import { inBrowser } from '#@shared/modules/utils.js';
 function isConfigData(obj) {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
+const isErrnoException = (object) => {
+    return (Object.prototype.hasOwnProperty.call(object, 'code') || Object.prototype.hasOwnProperty.call(object, 'errno'));
+};
 class ConfigBase {
     get pubConf() {
         const handler = {
@@ -63,19 +66,20 @@ class FSConfigUtil extends ConfigBase {
             }
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
-            const { existsSync: exists, readFileSync: read } = yield import('fs');
+            const { readFileSync: read } = yield import('fs');
+            const { fileURLToPath } = yield import('url');
             const path = yield import('node:path');
             let eObj;
             let cObj;
             try {
-                if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+                if (nodeEnvConfPath) {
                     eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
                     if (!isConfigData(eObj)) {
                         this.cachedConfig = undefined;
                         console.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`loadFiles(): impropper config file format for this node-env`);
                     }
-                    if (commonConfPath && exists(commonConfPath)) {
+                    if (commonConfPath) {
                         cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
                         if (isConfigData(cObj)) {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
@@ -89,14 +93,20 @@ class FSConfigUtil extends ConfigBase {
                         console.debug('loadFiles(): common config not provided');
                     }
                 }
-                else {
-                    throw new Error('loadFiles(): no config file for this node-env');
-                }
             }
             catch (err) {
-                console.error(err);
-                if (err instanceof Error)
+                if (err instanceof Error) {
+                    if (isErrnoException(err) && err.code === 'ENOENT' && typeof err.path === 'string') {
+                        console.error(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}\n\n`);
+                    }
+                    else {
+                        console.error(err);
+                    }
                     console.error(err.stack);
+                }
+                else {
+                    console.error(err);
+                }
             }
             return this.cachedConfig;
         });

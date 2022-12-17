@@ -4,6 +4,7 @@ import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import { fetchLogger } from '#@shared/modules/logger.js';
+import { handledFsNotFound } from '#@service/modules/utils.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 const conf = (await config()) ?? { app_name: 'Fluidity (w/o config)' };
 const log = fetchLogger(conf);
@@ -24,8 +25,6 @@ app.use(express.static('../../../client/dist/public', {
 const PORT = typeof conf['port'] === 'number' ? conf['port'] : 3000;
 try {
     if (typeof conf['tls_key'] === 'string' && typeof conf['tls_cert'] === 'string') {
-        fs.accessSync(conf['tls_key'], fs.constants.R_OK);
-        fs.accessSync(conf['tls_cert'], fs.constants.R_OK);
         https
             .createServer({
             key: fs.readFileSync(conf['tls_key']),
@@ -39,8 +38,10 @@ try {
     }
 }
 catch (err) {
-    if (err instanceof Error)
+    if (!(err instanceof Error && handledFsNotFound(err))) {
         log.error(err);
+        throw err;
+    }
 }
 const ringBuffer = new RingBuffer(5);
 ringBuffer.add(1);

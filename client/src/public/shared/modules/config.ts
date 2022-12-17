@@ -8,6 +8,12 @@ function isConfigData(obj: any): obj is ConfigData {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
 
+const isErrnoException = (object: Error): object is NodeJS.ErrnoException => {
+    return (
+        Object.prototype.hasOwnProperty.call(object, 'code') || Object.prototype.hasOwnProperty.call(object, 'errno')
+    );
+};
+
 export interface ConfigData {
     app_name?: string | null;
     app_version?: string | null;
@@ -81,14 +87,15 @@ class FSConfigUtil extends ConfigBase {
 
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
-        const { existsSync: exists, readFileSync: read } = await import('fs');
+        const { readFileSync: read } = await import('fs');
+        const { fileURLToPath } = await import('url');
         const path = await import('node:path');
 
         let eObj: unknown;
         let cObj: unknown;
 
         try {
-            if (nodeEnvConfPath && exists(nodeEnvConfPath)) {
+            if (nodeEnvConfPath) {
                 eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
 
                 if (!isConfigData(eObj)) {
@@ -97,7 +104,7 @@ class FSConfigUtil extends ConfigBase {
                     throw new Error(`loadFiles(): impropper config file format for this node-env`);
                 }
 
-                if (commonConfPath && exists(commonConfPath)) {
+                if (commonConfPath) {
                     cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
 
                     if (isConfigData(cObj)) {
@@ -114,12 +121,18 @@ class FSConfigUtil extends ConfigBase {
                 } else {
                     console.debug('loadFiles(): common config not provided');
                 }
-            } else {
-                throw new Error('loadFiles(): no config file for this node-env');
             }
         } catch (err) {
-            console.error(err);
-            if (err instanceof Error) console.error(err.stack);
+            if (err instanceof Error) {
+                if (isErrnoException(err) && err.code === 'ENOENT' && typeof err.path === 'string') {
+                    console.error(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}\n\n`);
+                } else {
+                    console.error(err);
+                }
+                console.error(err.stack);
+            } else {
+                console.error(err);
+            }
         }
 
         return this.cachedConfig;
