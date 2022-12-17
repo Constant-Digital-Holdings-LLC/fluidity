@@ -5,13 +5,8 @@ import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
-const conf = await config();
+const conf = (await config()) ?? { app_name: 'Fluidity (w/o config)' };
 const log = fetchLogger(conf);
-log.debug('this is debug data');
-log.info('this is info data');
-log.warn('this is warn data');
-log.error('this is error data');
-const port = 3000;
 const app = express();
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
@@ -22,18 +17,30 @@ app.get('/', (req, res) => {
     log.info(conf);
     res.render('index');
 });
-app.use(express.static('../../../client/dist/public', { maxAge: 1 }));
+log.debug(conf);
+app.use(express.static('../../../client/dist/public', {
+    maxAge: (typeof conf['http_cache_ttl_seconds'] === 'number' ? conf['http_cache_ttl_seconds'] : 1) * 1000
+}));
+const PORT = typeof conf['port'] === 'number' ? conf['port'] : 3000;
 try {
-    https
-        .createServer({
-        key: fs.readFileSync('./ssl/dev-server_key.pem'),
-        cert: fs.readFileSync('./ssl/dev-server_cert.pem')
-    }, app)
-        .listen(port);
-    log.info(`listening on port ${port}`);
+    if (typeof conf['tls_key'] === 'string' && typeof conf['tls_cert'] === 'string') {
+        fs.accessSync(conf['tls_key'], fs.constants.R_OK);
+        fs.accessSync(conf['tls_cert'], fs.constants.R_OK);
+        https
+            .createServer({
+            key: fs.readFileSync(conf['tls_key']),
+            cert: fs.readFileSync(conf['tls_cert'])
+        }, app)
+            .listen(PORT);
+        log.info(`${conf.app_name} ${conf.app_version} server listening on port ${PORT}`);
+    }
+    else {
+        throw new Error('missing PEM files for TLS in config');
+    }
 }
 catch (err) {
-    log.error(err);
+    if (err instanceof Error)
+        log.error(err);
 }
 const ringBuffer = new RingBuffer(5);
 ringBuffer.add(1);
