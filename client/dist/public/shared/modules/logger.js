@@ -1,5 +1,4 @@
 import { inBrowser } from '#@shared/modules/utils.js';
-import { configFromDOM } from '#@shared/modules/config.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -149,17 +148,11 @@ class LoggerUtil {
     }
 }
 export const fetchLogger = (conf) => {
-    if (!conf) {
-        if (inBrowser()) {
-            const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
-            return LoggerUtil.browserConsole({ logLevel, locLevel });
-        }
-        else {
-            throw new Error('fetchLogger() please provide ConfigData param to fetchLogger(), if in node');
-        }
+    const { log_level: logLevel, loc_level: locLevel } = conf || {};
+    if (inBrowser()) {
+        return LoggerUtil.browserConsole({ logLevel, locLevel });
     }
     else {
-        const { log_level: logLevel, loc_level: locLevel } = conf;
         return LoggerUtil.nodeConsole({ logLevel, locLevel });
     }
 };

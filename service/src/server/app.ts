@@ -5,7 +5,7 @@ import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
 import { fetchLogger } from '#@shared/modules/logger.js';
-import { handledFsNotFound } from '#@service/modules/utils.js';
+import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { config, ConfigData, configMiddleware } from '#@shared/modules/config.js';
 
 const conf: ConfigData = (await config()) ?? { app_name: 'Fluidity (w/o config)' };
@@ -48,12 +48,15 @@ try {
 
         log.info(`${conf.app_name} ${conf.app_version} server listening on port ${PORT}`);
     } else {
-        throw new Error('missing PEM files for TLS in config');
+        throw new Error('missing TLS config for server');
     }
 } catch (err) {
-    if (!(err instanceof Error && handledFsNotFound(err))) {
+    if (err instanceof Error) {
+        const formattedError = await prettyFsNotFound(err);
+
+        log.error(formattedError || err);
+    } else {
         log.error(err);
-        throw err;
     }
 }
 

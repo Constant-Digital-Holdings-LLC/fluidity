@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
-import { LogLevel } from '#@shared/modules/logger.js';
-import { inBrowser } from '#@shared/modules/utils.js';
+import { fetchLogger, LogLevel } from '#@shared/modules/logger.js';
+import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+
+const log = fetchLogger();
 
 type NodeEnv = 'development' | 'production';
 
@@ -87,8 +89,8 @@ class FSConfigUtil extends ConfigBase {
 
         const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
         const commonConfPath = cFiles['common']?.[0];
-        const { readFileSync: read } = await import('fs');
-        const { fileURLToPath } = await import('url');
+        const { readFileSync } = await import('fs');
+
         const path = await import('node:path');
 
         let eObj: unknown;
@@ -96,21 +98,21 @@ class FSConfigUtil extends ConfigBase {
 
         try {
             if (nodeEnvConfPath) {
-                eObj = cFiles[this.nodeEnv]?.[1].parse(read(nodeEnvConfPath, 'utf8'));
+                eObj = cFiles[this.nodeEnv]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
 
                 if (!isConfigData(eObj)) {
                     this.cachedConfig = undefined;
-                    console.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
+                    log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     throw new Error(`loadFiles(): impropper config file format for this node-env`);
                 }
 
                 if (commonConfPath) {
-                    cObj = cFiles['common']?.[1].parse(read(commonConfPath, 'utf8'));
+                    cObj = cFiles['common']?.[1].parse(readFileSync(commonConfPath, 'utf8'));
 
                     if (isConfigData(cObj)) {
                         this.cachedConfig = { ...eObj, ...cObj };
                     } else {
-                        console.warn(
+                        log.warn(
                             `loadFiles(): contents of ${path.join(
                                 process.cwd(),
                                 commonConfPath
@@ -119,19 +121,18 @@ class FSConfigUtil extends ConfigBase {
                         this.cachedConfig = eObj;
                     }
                 } else {
-                    console.debug('loadFiles(): common config not provided');
+                    log.debug('loadFiles(): common config not provided');
                 }
             }
         } catch (err) {
             if (err instanceof Error) {
-                if (isErrnoException(err) && err.code === 'ENOENT' && typeof err.path === 'string') {
-                    console.error(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}\n\n`);
-                } else {
-                    console.error(err);
-                }
-                console.error(err.stack);
+                const formattedError = await prettyFsNotFound(err);
+
+                log.error(formattedError || err);
+
+                log.error(err.stack);
             } else {
-                console.error(err);
+                log.error(err);
             }
         }
 

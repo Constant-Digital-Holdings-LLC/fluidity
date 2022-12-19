@@ -7,7 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { inBrowser } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+const log = fetchLogger();
 function isConfigData(obj) {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
@@ -66,46 +68,41 @@ class FSConfigUtil extends ConfigBase {
             }
             const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
-            const { readFileSync: read } = yield import('fs');
-            const { fileURLToPath } = yield import('url');
+            const { readFileSync } = yield import('fs');
             const path = yield import('node:path');
             let eObj;
             let cObj;
             try {
                 if (nodeEnvConfPath) {
-                    eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(read(nodeEnvConfPath, 'utf8'));
+                    eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
                     if (!isConfigData(eObj)) {
                         this.cachedConfig = undefined;
-                        console.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
+                        log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`loadFiles(): impropper config file format for this node-env`);
                     }
                     if (commonConfPath) {
-                        cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(read(commonConfPath, 'utf8'));
+                        cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(readFileSync(commonConfPath, 'utf8'));
                         if (isConfigData(cObj)) {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                         else {
-                            console.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
+                            log.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
                             this.cachedConfig = eObj;
                         }
                     }
                     else {
-                        console.debug('loadFiles(): common config not provided');
+                        log.debug('loadFiles(): common config not provided');
                     }
                 }
             }
             catch (err) {
                 if (err instanceof Error) {
-                    if (isErrnoException(err) && err.code === 'ENOENT' && typeof err.path === 'string') {
-                        console.error(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}\n\n`);
-                    }
-                    else {
-                        console.error(err);
-                    }
-                    console.error(err.stack);
+                    const formattedError = yield prettyFsNotFound(err);
+                    log.error(formattedError || err);
+                    log.error(err.stack);
                 }
                 else {
-                    console.error(err);
+                    log.error(err);
                 }
             }
             return this.cachedConfig;

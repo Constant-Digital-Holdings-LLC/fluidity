@@ -2,8 +2,6 @@ import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-import { configFromDOM } from '#@shared/modules/config.js';
-
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
@@ -202,15 +200,32 @@ class LoggerUtil implements Logger {
 }
 
 export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
-    if (!conf) {
-        if (inBrowser()) {
-            const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
-            return LoggerUtil.browserConsole({ logLevel, locLevel });
-        } else {
-            throw new Error('fetchLogger() please provide ConfigData param to fetchLogger(), if in node');
-        }
+    const { log_level: logLevel, loc_level: locLevel } = conf || {};
+
+    if (inBrowser()) {
+        return LoggerUtil.browserConsole({ logLevel, locLevel });
     } else {
-        const { log_level: logLevel, loc_level: locLevel } = conf;
         return LoggerUtil.nodeConsole({ logLevel, locLevel });
     }
+
+    // if (inBrowser()) {
+    //     const { log_level: logLevel, loc_level: locLevel } = conf || {};
+    //     // const { log_level: logLevel, loc_level: locLevel } = conf || configFromDOM();
+    //     return LoggerUtil.browserConsole({ logLevel, locLevel });
+    // } else {
+    //     const { log_level: logLevel, loc_level: locLevel } = conf || {};
+    //     return LoggerUtil.nodeConsole({ logLevel, locLevel });
+    // }
+
+    // if (!conf) {
+    //     if (inBrowser()) {
+    //         const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
+    //         return LoggerUtil.browserConsole({ logLevel, locLevel });
+    //     } else {
+    //         throw new Error('fetchLogger() please provide ConfigData param to fetchLogger(), if in node');
+    //     }
+    // } else {
+    //     const { log_level: logLevel, loc_level: locLevel } = conf;
+    //     return LoggerUtil.nodeConsole({ logLevel, locLevel });
+    // }
 };
