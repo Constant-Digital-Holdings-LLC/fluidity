@@ -207,25 +207,4 @@ export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
     } else {
         return LoggerUtil.nodeConsole({ logLevel, locLevel });
     }
-
-    // if (inBrowser()) {
-    //     const { log_level: logLevel, loc_level: locLevel } = conf || {};
-    //     // const { log_level: logLevel, loc_level: locLevel } = conf || configFromDOM();
-    //     return LoggerUtil.browserConsole({ logLevel, locLevel });
-    // } else {
-    //     const { log_level: logLevel, loc_level: locLevel } = conf || {};
-    //     return LoggerUtil.nodeConsole({ logLevel, locLevel });
-    // }
-
-    // if (!conf) {
-    //     if (inBrowser()) {
-    //         const { log_level: logLevel, loc_level: locLevel } = configFromDOM();
-    //         return LoggerUtil.browserConsole({ logLevel, locLevel });
-    //     } else {
-    //         throw new Error('fetchLogger() please provide ConfigData param to fetchLogger(), if in node');
-    //     }
-    // } else {
-    //     const { log_level: logLevel, loc_level: locLevel } = conf;
-    //     return LoggerUtil.nodeConsole({ logLevel, locLevel });
-    // }
 };
