@@ -6,7 +6,14 @@ const { RingBuffer } = rb_pgk;
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
-const conf = (await config()) ?? { app_name: 'Fluidity (w/o config)' };
+const conf = {
+    app_name: 'Fluidity',
+    port: 443,
+    tls_key: 'ssl/prod-server_key.pem',
+    tls_cert: 'ssl/prod-server_cert.pem',
+    http_cache_ttl_seconds: 300,
+    ...(await config())
+};
 const log = fetchLogger(conf);
 const app = express();
 app.use(await configMiddleware());
@@ -20,22 +27,16 @@ app.get('/', (req, res) => {
 });
 log.debug(conf);
 app.use(express.static('../../../client/dist/public', {
-    maxAge: (typeof conf['http_cache_ttl_seconds'] === 'number' ? conf['http_cache_ttl_seconds'] : 1) * 1000
+    maxAge: conf.http_cache_ttl_seconds * 1000
 }));
-const PORT = typeof conf['port'] === 'number' ? conf['port'] : 3000;
 try {
-    if (typeof conf['tls_key'] === 'string' && typeof conf['tls_cert'] === 'string') {
-        https
-            .createServer({
-            key: fs.readFileSync(conf['tls_key']),
-            cert: fs.readFileSync(conf['tls_cert'])
-        }, app)
-            .listen(PORT);
-        log.info(`${conf.app_name} ${conf.app_version} server listening on port ${PORT}`);
-    }
-    else {
-        throw new Error('missing TLS config for server');
-    }
+    https
+        .createServer({
+        key: fs.readFileSync(conf['tls_key']),
+        cert: fs.readFileSync(conf['tls_cert'])
+    }, app)
+        .listen(conf.port);
+    log.info(`${conf.app_name} ${conf.app_version} server listening on port ${conf.port}`);
 }
 catch (err) {
     if (err instanceof Error) {

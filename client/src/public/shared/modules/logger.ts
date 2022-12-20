@@ -1,10 +1,11 @@
-import { Runtime } from '#@shared/types.js';
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
+
+export type Runtime = 'nodejs' | 'browser';
 
 interface StackLocation {
     line: number | undefined;

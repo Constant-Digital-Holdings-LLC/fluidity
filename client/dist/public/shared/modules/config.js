@@ -10,18 +10,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 const log = fetchLogger();
-function isConfigData(obj) {
+function isMyConfigData(obj) {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
-const isErrnoException = (object) => {
-    return (Object.prototype.hasOwnProperty.call(object, 'code') || Object.prototype.hasOwnProperty.call(object, 'errno'));
-};
+import { pubSafeProps } from '#@shared/my_config.js';
 class ConfigBase {
     get pubConf() {
         const handler = {
             get(target, prop, receiver) {
                 if (typeof prop === 'string')
-                    if (ConfigBase.pubSafeProps.includes(prop)) {
+                    if (pubSafeProps.includes(prop)) {
                         return Reflect.get(target, prop, receiver);
                     }
                     else {
@@ -29,7 +27,7 @@ class ConfigBase {
                     }
             },
             ownKeys(target) {
-                return Object.keys(target).filter(prop => ConfigBase.pubSafeProps.includes(prop));
+                return Object.keys(target).filter(prop => pubSafeProps.includes(prop));
             }
         };
         if (this.cachedConfig) {
@@ -40,7 +38,6 @@ class ConfigBase {
         }
     }
 }
-ConfigBase.pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'];
 class FSConfigUtil extends ConfigBase {
     constructor() {
         super(...arguments);
@@ -75,14 +72,14 @@ class FSConfigUtil extends ConfigBase {
             try {
                 if (nodeEnvConfPath) {
                     eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
-                    if (!isConfigData(eObj)) {
+                    if (!isMyConfigData(eObj)) {
                         this.cachedConfig = undefined;
                         log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`loadFiles(): impropper config file format for this node-env`);
                     }
                     if (commonConfPath) {
                         cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(readFileSync(commonConfPath, 'utf8'));
-                        if (isConfigData(cObj)) {
+                        if (isMyConfigData(cObj)) {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                         else {
@@ -122,11 +119,11 @@ class DOMConfigUtil extends ConfigBase {
         return this.cachedConfig;
     }
     extract() {
-        return { log_level: 'debug', foo: 'bar' };
+        return { app_name: 'Fluidity', log_level: 'debug', foo: 'bar' };
     }
     addLocals(req, res, next) {
         if (!this.cachedConfig)
-            throw new Error('addLocals() middleware requires ConfigData for req.locals');
+            throw new Error('addLocals() middleware requires config data for req.locals');
         res.locals['configData'] = this.pubConf;
         next();
     }

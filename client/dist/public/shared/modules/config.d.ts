@@ -2,16 +2,17 @@ import type { Request, Response, NextFunction } from 'express';
 import { LogLevel } from '#@shared/modules/logger.js';
 type NodeEnv = 'development' | 'production';
 export interface ConfigData {
-    app_name?: string | null;
-    app_version?: string | null;
-    log_level?: LogLevel | null;
-    loc_level?: LogLevel | null;
-    node_env?: NodeEnv | null;
-    [index: string]: unknown;
+    readonly app_name: string;
+    readonly app_version?: string;
+    readonly log_level?: LogLevel;
+    readonly loc_level?: LogLevel;
+    readonly node_env?: NodeEnv;
+    readonly [index: string]: unknown;
 }
-export declare const configFromDOM: () => ConfigData;
-export declare const configFromFS: () => Promise<ConfigData | undefined>;
-export declare const config: () => Promise<ConfigData | undefined>;
+import { MyConfigData } from '#@shared/my_config.js';
+export declare const configFromDOM: () => MyConfigData;
+export declare const configFromFS: () => Promise<MyConfigData | undefined>;
+export declare const config: () => Promise<MyConfigData | undefined>;
 export declare const configMiddleware: () => Promise<(req: Request, res: Response, next: NextFunction) => void>;
 export {};
 //# sourceMappingURL=config.d.ts.map

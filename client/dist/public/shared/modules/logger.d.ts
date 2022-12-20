@@ -1,10 +1,10 @@
-import { Runtime } from '#@shared/types.js';
 import type { ConfigData } from '#@shared/modules/config.js';
 export declare const levelsArr: readonly ["debug", "info", "warn", "error"];
 export type LogLevel = typeof levelsArr[number] & keyof typeof console;
 type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
+export type Runtime = 'nodejs' | 'browser';
 interface StackLocation {
     line: number | undefined;
     file: string | undefined;
