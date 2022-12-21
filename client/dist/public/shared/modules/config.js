@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 const log = fetchLogger();
+const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 function isMyConfigData(obj) {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
 }
@@ -28,6 +29,9 @@ class ConfigBase {
             },
             ownKeys(target) {
                 return Object.keys(target).filter(prop => pubSafeProps.includes(prop));
+            },
+            set() {
+                throw new Error('pubConf is immutable.');
             }
         };
         if (this.cachedConfig) {
@@ -60,10 +64,10 @@ class FSConfigUtil extends ConfigBase {
     loadFiles(cFiles) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
-            if (inBrowser()) {
-                throw new Error('loadFiles(): not available to browser');
+            if (!NODE_ENV) {
+                throw new Error('loadFiles() not applicable outside of node');
             }
-            const nodeEnvConfPath = (_a = cFiles[this.nodeEnv]) === null || _a === void 0 ? void 0 : _a[0];
+            const nodeEnvConfPath = (_a = cFiles[NODE_ENV]) === null || _a === void 0 ? void 0 : _a[0];
             const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
             const { readFileSync } = yield import('fs');
             const path = yield import('node:path');
@@ -71,7 +75,7 @@ class FSConfigUtil extends ConfigBase {
             let cObj;
             try {
                 if (nodeEnvConfPath) {
-                    eObj = (_c = cFiles[this.nodeEnv]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
+                    eObj = (_c = cFiles[NODE_ENV]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
                     if (!isMyConfigData(eObj)) {
                         this.cachedConfig = undefined;
                         log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
@@ -125,6 +129,7 @@ class DOMConfigUtil extends ConfigBase {
         if (!this.cachedConfig)
             throw new Error('addLocals() middleware requires config data for req.locals');
         res.locals['configData'] = this.pubConf;
+        res.locals['NODE_ENV'] = NODE_ENV;
         next();
     }
 }

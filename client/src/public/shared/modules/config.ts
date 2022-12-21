@@ -3,7 +3,8 @@ import { fetchLogger, LogLevel } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 
 const log = fetchLogger();
-type NodeEnv = 'development' | 'production';
+type NodeEnv = 'development' | 'production' | null;
+const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
 function isMyConfigData(obj: any): obj is MyConfigData {
     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
@@ -32,7 +33,7 @@ interface ConfigFiles {
 
 abstract class ConfigBase {
     abstract get allConf(): MyConfigData | undefined;
-    public cachedConfig: MyConfigData | undefined;
+    protected cachedConfig: MyConfigData | undefined;
 
     protected get pubConf(): MyConfigData | undefined {
         const handler = {
@@ -45,8 +46,10 @@ abstract class ConfigBase {
                     }
             },
             ownKeys(target: object) {
-                // intercept property list
                 return Object.keys(target).filter(prop => pubSafeProps.includes(prop));
+            },
+            set() {
+                throw new Error('pubConf is immutable.');
             }
         };
         if (this.cachedConfig) {
@@ -58,8 +61,7 @@ abstract class ConfigBase {
 }
 
 class FSConfigUtil extends ConfigBase {
-    private nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-
+    readonly nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
     get allConf(): MyConfigData | undefined {
         return this.cachedConfig;
     }
@@ -77,11 +79,11 @@ class FSConfigUtil extends ConfigBase {
     }
 
     async loadFiles(cFiles: ConfigFiles): Promise<MyConfigData | undefined> {
-        if (inBrowser()) {
-            throw new Error('loadFiles(): not available to browser');
+        if (!NODE_ENV) {
+            throw new Error('loadFiles() not applicable outside of node');
         }
 
-        const nodeEnvConfPath = cFiles[this.nodeEnv]?.[0];
+        const nodeEnvConfPath = cFiles[NODE_ENV]?.[0];
         const commonConfPath = cFiles['common']?.[0];
         const { readFileSync } = await import('fs');
 
@@ -92,7 +94,7 @@ class FSConfigUtil extends ConfigBase {
 
         try {
             if (nodeEnvConfPath) {
-                eObj = cFiles[this.nodeEnv]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
+                eObj = cFiles[NODE_ENV]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
 
                 if (!isMyConfigData(eObj)) {
                     this.cachedConfig = undefined;
@@ -159,6 +161,7 @@ class DOMConfigUtil extends ConfigBase {
         if (!this.cachedConfig) throw new Error('addLocals() middleware requires config data for req.locals');
 
         res.locals['configData'] = this.pubConf;
+        res.locals['NODE_ENV'] = NODE_ENV;
         next();
     }
 }

@@ -10,4 +10,4 @@ export interface MyConfigData extends ConfigData {
 }
 
 //These config options can be exposed to the browser
-export const pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'];
+export const pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'] as const;

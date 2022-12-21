@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { LogLevel } from '#@shared/modules/logger.js';
-type NodeEnv = 'development' | 'production';
+type NodeEnv = 'development' | 'production' | null;
 export interface ConfigData {
     readonly app_name: string;
     readonly app_version?: string;

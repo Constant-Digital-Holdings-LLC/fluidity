@@ -5,5 +5,5 @@ export interface MyConfigData extends ConfigData {
     readonly http_cache_ttl_seconds?: number;
     readonly port?: number;
 }
-export declare const pubSafeProps: string[];
+export declare const pubSafeProps: readonly ["app_name", "log_level", "app_version", "loc_level", "node_env"];
 //# sourceMappingURL=my_config.d.ts.map
