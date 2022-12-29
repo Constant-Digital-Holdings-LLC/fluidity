@@ -1,4 +1,0 @@
----
-app_name: 'fluidity agent - dev'
-log_level: 'debug'
-foo: 'bar dev'

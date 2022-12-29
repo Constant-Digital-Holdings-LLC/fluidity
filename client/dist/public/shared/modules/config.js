@@ -52,11 +52,10 @@ class FSConfigUtil extends ConfigBase {
     }
     load() {
         return __awaiter(this, void 0, void 0, function* () {
-            const YAML = yield import('yaml');
             const cFiles = {
-                development: ['./conf/dev_conf.yaml', YAML],
-                production: ['./conf/prod_conf.yaml', YAML],
-                common: ['./conf/common_conf.yaml', YAML]
+                development: ['./conf/dev_conf.json', JSON],
+                production: ['./conf/prod_conf.json', JSON],
+                common: ['./conf/common_conf.json', JSON]
             };
             return this.loadFiles(cFiles);
         });

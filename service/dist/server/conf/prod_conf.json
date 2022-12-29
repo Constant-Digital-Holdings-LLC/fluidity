@@ -1,0 +1,7 @@
+{
+    "port": 443,
+    "tls_key": "ssl/prod-server_key.pem",
+    "tls_cert": "ssl/prod-server_cert.pem",
+    "http_cache_ttl_seconds": 300,
+    "log_level": "info"
+}

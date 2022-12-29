@@ -1,7 +1,0 @@
----
-log_level: 'debug'
-http_cache_ttl_seconds: 5
-port: 3000
-tls_key: 'ssl/dev-server_key.pem'
-tls_cert: 'ssl/dev-server_cert.pem'
-foo: 'this should be overwriten'

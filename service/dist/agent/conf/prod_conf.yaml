@@ -1,4 +1,0 @@
----
-app_name: 'fluidity agent - prod'
-log_level: 'info'
-foo: 'bar prod'
