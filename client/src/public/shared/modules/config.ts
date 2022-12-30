@@ -66,20 +66,14 @@ class FSConfigUtil extends ConfigBase {
         return this.cachedConfig;
     }
 
-    async load(): Promise<MyConfigData | undefined> {
+    load(): Promise<MyConfigData | undefined> {
         // const YAML = await import('yaml');
-
-        const cFiles: ConfigFiles = {
-            // development: ['./conf/dev_conf.yaml', YAML],
-            // production: ['./conf/prod_conf.yaml', YAML],
-            // common: ['./conf/common_conf.yaml', YAML]
-
+        // moving from YAML to JSON, loadFiles() is fine with either
+        return this.loadFiles({
             development: ['./conf/dev_conf.json', JSON],
             production: ['./conf/prod_conf.json', JSON],
             common: ['./conf/common_conf.json', JSON]
-        };
-
-        return this.loadFiles(cFiles);
+        });
     }
 
     async loadFiles(cFiles: ConfigFiles): Promise<MyConfigData | undefined> {

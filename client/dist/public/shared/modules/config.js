@@ -51,13 +51,10 @@ class FSConfigUtil extends ConfigBase {
         return this.cachedConfig;
     }
     load() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const cFiles = {
-                development: ['./conf/dev_conf.json', JSON],
-                production: ['./conf/prod_conf.json', JSON],
-                common: ['./conf/common_conf.json', JSON]
-            };
-            return this.loadFiles(cFiles);
+        return this.loadFiles({
+            development: ['./conf/dev_conf.json', JSON],
+            production: ['./conf/prod_conf.json', JSON],
+            common: ['./conf/common_conf.json', JSON]
         });
     }
     loadFiles(cFiles) {
