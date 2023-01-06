@@ -1,3 +1,5 @@
 {
-    "log_level": "debug"
+    "site": "office",
+    "log_level": "debug",
+    "collectors": [{ "label": "mcu", "type": "serial", "path": "COM10", "baudRate": 9600 }]
 }
