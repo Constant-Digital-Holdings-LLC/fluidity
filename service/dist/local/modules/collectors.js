@@ -19,10 +19,8 @@ class SerialCollector extends DataCollector {
     }
 }
 export class GenericSerialCollector extends SerialCollector {
-    params;
     constructor(params) {
         super(params);
-        this.params = params;
     }
     fetchParser() {
         return new ReadlineParser({ delimiter: '\r\n' });

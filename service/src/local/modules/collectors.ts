@@ -36,7 +36,7 @@ abstract class SerialCollector extends DataCollector {
 }
 
 export class GenericSerialCollector extends SerialCollector {
-    constructor(public override params: SerialPortParams) {
+    constructor(params: SerialPortParams) {
         super(params);
     }
 
