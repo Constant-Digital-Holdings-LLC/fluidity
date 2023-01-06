@@ -26,10 +26,8 @@ abstract class SerialCollector extends DataCollector {
 
     abstract fetchParser(): SerialParser;
 
-    constructor(public override params: SerialPortParams) {
+    constructor({ path, baudRate, ...params }: SerialPortParams) {
         super(params);
-
-        const { path, baudRate } = params;
 
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());

@@ -9,13 +9,10 @@ class DataCollector {
     }
 }
 class SerialCollector extends DataCollector {
-    params;
     port;
     parser;
-    constructor(params) {
+    constructor({ path, baudRate, ...params }) {
         super(params);
-        this.params = params;
-        const { path, baudRate } = params;
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
         this.parser.on('data', this.send);
