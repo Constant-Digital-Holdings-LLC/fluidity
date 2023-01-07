@@ -1,5 +1,6 @@
 {
+    "destinations": [{ "location": "https://localhost:3000", "key": "dkdfjdkfjk" }],
     "site": "office",
     "log_level": "debug",
-    "collectors": [{ "label": "mcu", "type": "serial", "path": "COM10", "baudRate": 9600 }]
+    "collectors": [{ "label": "mcu", "type": "generic-serial", "path": "COM10", "baudRate": 9600 }]
 }

@@ -2,8 +2,14 @@ import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 
 type SerialParser = ReadlineParser | RegexParser;
 
+interface Destination {
+    location: string;
+    key?: string;
+}
+
 interface DataCollectorParams {
     site: string;
+    destinations: Destination[];
     label: string;
     type: 'generic-serial' | 'srs1';
 }
@@ -13,8 +19,11 @@ interface SerialPortParams extends DataCollectorParams {
     baudRate: number;
 }
 
-class DataCollector {
+abstract class DataCollector {
     constructor(public params: DataCollectorParams) {}
+
+    abstract listen(): void;
+
     send(data: any) {
         console.log(data);
     }
@@ -31,6 +40,9 @@ abstract class SerialCollector extends DataCollector {
 
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
+    }
+
+    listen(): void {
         this.parser.on('data', this.send);
     }
 }

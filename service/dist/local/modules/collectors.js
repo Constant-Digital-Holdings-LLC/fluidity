@@ -15,6 +15,8 @@ class SerialCollector extends DataCollector {
         super(params);
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
+    }
+    listen() {
         this.parser.on('data', this.send);
     }
 }

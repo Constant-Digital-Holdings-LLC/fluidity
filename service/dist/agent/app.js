@@ -8,12 +8,14 @@ log.info('this is info data');
 log.warn('this is warn data');
 log.error('this is error data');
 log.debug(`conf: ${JSON.stringify(c)}`);
-if (typeof c?.['site'] === 'string') {
+if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
     const gsc = new GenericSerialCollector({
         path: 'COM10',
         baudRate: 9600,
         site: c['site'],
         label: 'foo',
-        type: 'generic-serial'
+        type: 'generic-serial',
+        destinations: c['destinations']
     });
+    gsc.listen();
 }
