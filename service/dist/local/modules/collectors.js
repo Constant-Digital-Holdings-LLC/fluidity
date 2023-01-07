@@ -16,11 +16,12 @@ class DataCollector {
         log.info(data);
     }
     send(data) {
+        const { site, label, collectorType, destinations } = this.params;
         const formattedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
-        this.params.destinations.forEach(d => {
+        destinations.forEach(d => {
             if (new URL(d.location).protocol === 'https:') {
                 log.debug(`location: ${d.location}, `);
-                this.sendHttps(formattedData);
+                this.sendHttps({ site, label, collectorType, data: formattedData });
             }
         });
     }
@@ -53,6 +54,6 @@ export class SRS1serialCollector extends SerialCollector {
         return [{ display: 99, field: data }];
     }
     fetchParser() {
-        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/gm });
+        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/g });
     }
 }

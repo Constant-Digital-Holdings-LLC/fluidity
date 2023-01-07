@@ -24,10 +24,10 @@ log.debug(`conf: ${JSON.stringify(c)}`);
 
 if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
     const gsc = new GenericSerialCollector({
-        path: 'COM5',
+        path: 'COM10',
         baudRate: 9600,
         site: c['site'],
-        label: 'TNC',
+        label: 'SomeDevice',
         collectorType: 'generic-serial',
         destinations: c['destinations']
     });
@@ -37,7 +37,7 @@ if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
 
 if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
     const srs = new SRS1serialCollector({
-        path: 'COM10',
+        path: 'COM4',
         baudRate: 9600,
         site: c['site'],
         label: 'SRS',
