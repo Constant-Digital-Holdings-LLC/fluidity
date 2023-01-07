@@ -1,4 +1,4 @@
-import { SerialPort, ReadlineParser } from 'serialport';
+import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { fetchLogger } from '#@shared/modules/logger.js';
 const log = fetchLogger();
 class DataCollector {
@@ -37,6 +37,14 @@ export class GenericSerialCollector extends SerialCollector {
         super(params);
     }
     fetchParser() {
-        return new ReadlineParser({ delimiter: '\r\n' });
+        return new ReadlineParser({ delimiter: '\n' });
+    }
+}
+export class SRS1serialCollector extends SerialCollector {
+    constructor(params) {
+        super(params);
+    }
+    fetchParser() {
+        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/gm });
     }
 }

@@ -66,6 +66,16 @@ export class GenericSerialCollector extends SerialCollector {
     }
 
     fetchParser(): ReadlineParser {
-        return new ReadlineParser({ delimiter: '\r\n' });
+        return new ReadlineParser({ delimiter: '\n' });
+    }
+}
+
+export class SRS1serialCollector extends SerialCollector {
+    constructor(params: SerialPortParams) {
+        super(params);
+    }
+
+    fetchParser(): RegexParser {
+        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/gm });
     }
 }
