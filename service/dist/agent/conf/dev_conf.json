@@ -1,5 +1,8 @@
 {
-    "destinations": [{ "location": "https://localhost:3000", "key": "dkdfjdkfjk" }],
+    "destinations": [
+        { "location": "https://localhost:3000", "key": "dkdfjdkfjk" },
+        { "location": "https://f-y.io:443", "key": "zfdfd" }
+    ],
     "site": "office",
     "log_level": "debug",
     "collectors": [{ "label": "mcu", "type": "generic-serial", "path": "COM10", "baudRate": 9600 }]

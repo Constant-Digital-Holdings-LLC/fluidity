@@ -1,11 +1,21 @@
 import { SerialPort, ReadlineParser } from 'serialport';
+import { fetchLogger } from '#@shared/modules/logger.js';
+const log = fetchLogger();
 class DataCollector {
     params;
     constructor(params) {
         this.params = params;
     }
+    sendHttps(data) {
+        log.info(data);
+    }
     send(data) {
-        console.log(data);
+        this.params.destinations.forEach(d => {
+            if (new URL(d.location).protocol === 'https:') {
+                log.debug(`location: ${d.location}, `);
+                this.sendHttps(data);
+            }
+        });
     }
 }
 class SerialCollector extends DataCollector {

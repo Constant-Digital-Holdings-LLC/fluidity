@@ -1,5 +1,8 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { DelimitedData, FluidityPacket } from '#@shared/types.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+
+const log = fetchLogger();
 
 type SerialParser = ReadlineParser | RegexParser;
 
@@ -22,8 +25,18 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
+    private sendHttps(data: DelimitedData[]): void {
+        log.info(data);
+    }
+
     send(data: DelimitedData[]) {
-        console.log(data);
+        this.params.destinations.forEach(d => {
+            if (new URL(d.location).protocol === 'https:') {
+                log.debug(`location: ${d.location}, `);
+
+                this.sendHttps(data);
+            }
+        });
     }
 }
 
