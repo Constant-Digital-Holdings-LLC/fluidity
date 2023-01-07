@@ -13,6 +13,7 @@ interface Destination {
 
 type DataCollectorParams = Omit<FluidityPacket, 'data'> & {
     destinations: Destination[];
+    omitTS?: boolean;
 };
 
 interface SerialPortParams extends DataCollectorParams {
@@ -25,16 +26,26 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
+    protected format(data: string): DelimitedData[] {
+        return [{ display: 1, field: data }];
+    }
+
+    private addTS(formattedData: DelimitedData[]): DelimitedData[] {
+        return formattedData;
+    }
+
     private sendHttps(data: DelimitedData[]): void {
         log.info(data);
     }
 
-    send(data: DelimitedData[]) {
+    send(data: string) {
+        const formattedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
+
         this.params.destinations.forEach(d => {
             if (new URL(d.location).protocol === 'https:') {
                 log.debug(`location: ${d.location}, `);
 
-                this.sendHttps(data);
+                this.sendHttps(formattedData);
             }
         });
     }
@@ -54,9 +65,7 @@ abstract class SerialCollector extends DataCollector {
     }
 
     listen(): void {
-        this.parser.on('data', data => {
-            this.send([{ display: 1, field: data }]);
-        });
+        this.parser.on('data', this.send.bind(this));
     }
 }
 
@@ -73,6 +82,10 @@ export class GenericSerialCollector extends SerialCollector {
 export class SRS1serialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
         super(params);
+    }
+
+    override format(data: string): DelimitedData[] {
+        return [{ display: 99, field: data }];
     }
 
     fetchParser(): RegexParser {

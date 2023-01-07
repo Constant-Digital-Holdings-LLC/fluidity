@@ -6,14 +6,21 @@ class DataCollector {
     constructor(params) {
         this.params = params;
     }
+    format(data) {
+        return [{ display: 1, field: data }];
+    }
+    addTS(formattedData) {
+        return formattedData;
+    }
     sendHttps(data) {
         log.info(data);
     }
     send(data) {
+        const formattedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
         this.params.destinations.forEach(d => {
             if (new URL(d.location).protocol === 'https:') {
                 log.debug(`location: ${d.location}, `);
-                this.sendHttps(data);
+                this.sendHttps(formattedData);
             }
         });
     }
@@ -27,9 +34,7 @@ class SerialCollector extends DataCollector {
         this.parser = this.port.pipe(this.fetchParser());
     }
     listen() {
-        this.parser.on('data', data => {
-            this.send([{ display: 1, field: data }]);
-        });
+        this.parser.on('data', this.send.bind(this));
     }
 }
 export class GenericSerialCollector extends SerialCollector {
@@ -43,6 +48,9 @@ export class GenericSerialCollector extends SerialCollector {
 export class SRS1serialCollector extends SerialCollector {
     constructor(params) {
         super(params);
+    }
+    format(data) {
+        return [{ display: 99, field: data }];
     }
     fetchParser() {
         return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/gm });
