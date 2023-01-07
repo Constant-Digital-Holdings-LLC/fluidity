@@ -1,4 +1,5 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
+import { DelimitedData, FluidityPacket } from '#@shared/types.js';
 
 type SerialParser = ReadlineParser | RegexParser;
 
@@ -7,12 +8,9 @@ interface Destination {
     key?: string;
 }
 
-interface DataCollectorParams {
-    site: string;
+type DataCollectorParams = Omit<FluidityPacket, 'data'> & {
     destinations: Destination[];
-    label: string;
-    type: 'generic-serial' | 'srs1';
-}
+};
 
 interface SerialPortParams extends DataCollectorParams {
     path: string;
@@ -24,7 +22,7 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
-    send(data: any) {
+    send(data: DelimitedData[]) {
         console.log(data);
     }
 }
@@ -43,7 +41,9 @@ abstract class SerialCollector extends DataCollector {
     }
 
     listen(): void {
-        this.parser.on('data', this.send);
+        this.parser.on('data', data => {
+            this.send([{ display: 1, field: data }]);
+        });
     }
 }
 

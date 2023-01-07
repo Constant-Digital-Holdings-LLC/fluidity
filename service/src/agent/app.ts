@@ -28,7 +28,7 @@ if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
         baudRate: 9600,
         site: c['site'],
         label: 'foo',
-        type: 'generic-serial',
+        collectorType: 'generic-serial',
         destinations: c['destinations']
     });
 

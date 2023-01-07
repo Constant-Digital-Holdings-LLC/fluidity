@@ -17,7 +17,9 @@ class SerialCollector extends DataCollector {
         this.parser = this.port.pipe(this.fetchParser());
     }
     listen() {
-        this.parser.on('data', this.send);
+        this.parser.on('data', data => {
+            this.send([{ display: 1, field: data }]);
+        });
     }
 }
 export class GenericSerialCollector extends SerialCollector {
