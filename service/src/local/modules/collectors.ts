@@ -11,15 +11,24 @@ interface Destination {
     key?: string;
 }
 
-type DataCollectorParams = Omit<FluidityPacket, 'data'> & {
+type DataCollectorParams = Omit<FluidityPacket, 'delimData'> & {
     destinations: Destination[];
     omitTS?: boolean;
+    options?: unknown;
 };
 
 interface SerialPortParams extends DataCollectorParams {
     path: string;
     baudRate: number;
 }
+
+interface SRSOptions {
+    portmap: string[];
+}
+
+const isSRSOptions = (obj: unknown): obj is SRSOptions => {
+    return Array.isArray((obj as SRSOptions).portmap);
+};
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {}
@@ -30,23 +39,23 @@ abstract class DataCollector {
         return [{ display: 1, field: data }];
     }
 
-    private addTS(formattedData: DelimitedData[]): DelimitedData[] {
-        return formattedData;
+    private addTS(delimData: DelimitedData[]): DelimitedData[] {
+        return delimData;
     }
 
-    private sendHttps(data: FluidityPacket): void {
-        log.info(data);
+    private sendHttps(fp: FluidityPacket): void {
+        log.info(fp);
     }
 
     send(data: string) {
         const { site, label, collectorType, destinations } = this.params;
-        const formattedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
+        const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
 
         destinations.forEach(d => {
             if (new URL(d.location).protocol === 'https:') {
                 log.debug(`location: ${d.location}, `);
 
-                this.sendHttps({ site, label, collectorType, data: formattedData });
+                this.sendHttps({ site, label, collectorType, delimData: delimData });
             }
         });
     }
@@ -80,12 +89,16 @@ export class GenericSerialCollector extends SerialCollector {
     }
 }
 
-export class SRS1serialCollector extends SerialCollector {
+export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
         super(params);
     }
 
     override format(data: string): DelimitedData[] {
+        if (isSRSOptions(this.params.options)) {
+            const { portmap } = this.params.options;
+        }
+
         return [{ display: 99, field: data }];
     }
 

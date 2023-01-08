@@ -1,4 +1,4 @@
-export type CollectorType = 'generic-serial' | 'srs1-serial';
+export type CollectorType = 'generic-serial' | 'srs-serial';
 
 export interface DelimitedData {
     display: number;
@@ -9,5 +9,5 @@ export interface FluidityPacket {
     site: string;
     label: string;
     collectorType: CollectorType;
-    data: DelimitedData[];
+    delimData: DelimitedData[];
 }

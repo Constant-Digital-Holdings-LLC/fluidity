@@ -1,6 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
-import { GenericSerialCollector, SRS1serialCollector } from '#@service/modules/collectors.js';
+import { GenericSerialCollector, SRSserialCollector } from '#@service/modules/collectors.js';
 
 const c = await config();
 const log = fetchLogger(c);
@@ -36,12 +36,12 @@ if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
 }
 
 if (typeof c?.['site'] === 'string' && Array.isArray(c['destinations'])) {
-    const srs = new SRS1serialCollector({
+    const srs = new SRSserialCollector({
         path: 'COM4',
         baudRate: 9600,
         site: c['site'],
         label: 'SRS',
-        collectorType: 'srs1-serial',
+        collectorType: 'srs-serial',
         destinations: c['destinations']
     });
 

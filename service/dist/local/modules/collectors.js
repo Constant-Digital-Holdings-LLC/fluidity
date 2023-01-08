@@ -9,19 +9,19 @@ class DataCollector {
     format(data) {
         return [{ display: 1, field: data }];
     }
-    addTS(formattedData) {
-        return formattedData;
+    addTS(delimData) {
+        return delimData;
     }
-    sendHttps(data) {
-        log.info(data);
+    sendHttps(fp) {
+        log.info(fp);
     }
     send(data) {
         const { site, label, collectorType, destinations } = this.params;
-        const formattedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
+        const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
         destinations.forEach(d => {
             if (new URL(d.location).protocol === 'https:') {
                 log.debug(`location: ${d.location}, `);
-                this.sendHttps({ site, label, collectorType, data: formattedData });
+                this.sendHttps({ site, label, collectorType, delimData: delimData });
             }
         });
     }

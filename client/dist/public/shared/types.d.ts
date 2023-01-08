@@ -7,6 +7,6 @@ export interface FluidityPacket {
     site: string;
     label: string;
     collectorType: CollectorType;
-    data: DelimitedData[];
+    delimData: DelimitedData[];
 }
 //# sourceMappingURL=types.d.ts.map
