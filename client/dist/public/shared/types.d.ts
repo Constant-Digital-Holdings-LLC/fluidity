@@ -1,4 +1,4 @@
-export type CollectorType = 'generic-serial' | 'srs1-serial';
+export type CollectorType = 'generic-serial' | 'srs-serial';
 export interface DelimitedData {
     display: number;
     field: string;

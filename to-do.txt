@@ -1,0 +1,9 @@
+- Cleanup agent app.ts (lots of debug code there)
+
+- Add error handling to agent.ts and collectors.ts
+
+- Fix Arduino SRS simulator so that test output mirrors SRS *raw data (not from configurator log)
+
+- Implement timestamp addition to DelimitedData
+
+- Start decoding hex values to human redable in SRSserialCollector's format() method

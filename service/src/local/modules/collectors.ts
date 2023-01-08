@@ -27,7 +27,7 @@ interface SRSOptions {
 }
 
 const isSRSOptions = (obj: unknown): obj is SRSOptions => {
-    return Array.isArray((obj as SRSOptions).portmap);
+    return Array.isArray((obj as SRSOptions)?.portmap);
 };
 
 abstract class DataCollector {
@@ -43,8 +43,8 @@ abstract class DataCollector {
         return delimData;
     }
 
-    private sendHttps(fp: FluidityPacket): void {
-        log.info(fp);
+    private sendHttps(fPacket: FluidityPacket): void {
+        log.info(fPacket);
     }
 
     send(data: string) {

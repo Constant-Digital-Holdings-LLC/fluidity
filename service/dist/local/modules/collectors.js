@@ -1,6 +1,9 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { fetchLogger } from '#@shared/modules/logger.js';
 const log = fetchLogger();
+const isSRSOptions = (obj) => {
+    return Array.isArray(obj?.portmap);
+};
 class DataCollector {
     params;
     constructor(params) {
@@ -12,8 +15,8 @@ class DataCollector {
     addTS(delimData) {
         return delimData;
     }
-    sendHttps(fp) {
-        log.info(fp);
+    sendHttps(fPacket) {
+        log.info(fPacket);
     }
     send(data) {
         const { site, label, collectorType, destinations } = this.params;
@@ -46,11 +49,14 @@ export class GenericSerialCollector extends SerialCollector {
         return new ReadlineParser({ delimiter: '\n' });
     }
 }
-export class SRS1serialCollector extends SerialCollector {
+export class SRSserialCollector extends SerialCollector {
     constructor(params) {
         super(params);
     }
     format(data) {
+        if (isSRSOptions(this.params.options)) {
+            const { portmap } = this.params.options;
+        }
         return [{ display: 99, field: data }];
     }
     fetchParser() {
