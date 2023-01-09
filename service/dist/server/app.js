@@ -23,7 +23,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set('views', '../../../client/dist/views');
 app.get('/', (req, res) => {
-    log.info(conf);
     res.render('index');
 });
 app.use(express.static('../../../client/dist/public', {
