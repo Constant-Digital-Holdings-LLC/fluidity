@@ -9,4 +9,8 @@ export interface FluidityPacket {
     collectorType: CollectorType;
     delimData: DelimitedData[];
 }
+export interface PublishTarget {
+    location: string;
+    key?: string;
+}
 //# sourceMappingURL=types.d.ts.map

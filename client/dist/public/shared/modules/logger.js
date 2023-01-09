@@ -8,7 +8,7 @@ class FormatterBase {
         var _a, _b;
         const { message, timestamp, level } = data;
         let formattedMesg;
-        if (typeof message !== 'string') {
+        if (typeof message !== 'string' && !(message instanceof Error)) {
             if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
                 formattedMesg = JSON.stringify(message, undefined, '\t');
             }
@@ -17,7 +17,7 @@ class FormatterBase {
             }
         }
         else {
-            formattedMesg = message;
+            formattedMesg = message.toString();
         }
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;

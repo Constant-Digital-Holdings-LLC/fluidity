@@ -41,14 +41,14 @@ abstract class FormatterBase implements LogFormatter {
         const { message, timestamp, level } = data;
         let formattedMesg: string;
 
-        if (typeof message !== 'string') {
+        if (typeof message !== 'string' && !(message instanceof Error)) {
             if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
                 formattedMesg = JSON.stringify(message, undefined, '\t');
             } else {
                 formattedMesg = JSON.stringify(message);
             }
         } else {
-            formattedMesg = message;
+            formattedMesg = message.toString();
         }
 
         if (data.location?.file && data.location?.line) {
@@ -81,7 +81,7 @@ class BrowserConsoleFormatter extends FormatterBase implements LogFormatter {
 
 class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatter {
     override format<T>(data: LogData<T>): string {
-        const colorLevels: [number, number, number, number] = [94, 97, 33, 91];
+        const colorLevels: number[] = [94, 97, 33, 91];
 
         return super
             .format(data)

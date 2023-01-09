@@ -1,6 +1,8 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { fetchLogger } from '#@shared/modules/logger.js';
-const log = fetchLogger();
+import { config } from '#@shared/modules/config.js';
+const conf = await config();
+const log = fetchLogger(conf);
 const isSRSOptions = (obj) => {
     return Array.isArray(obj?.portmap);
 };
@@ -16,14 +18,14 @@ class DataCollector {
         return delimData;
     }
     sendHttps(fPacket) {
-        log.info(fPacket);
+        log.debug(fPacket);
     }
     send(data) {
-        const { site, label, collectorType, destinations } = this.params;
+        const { site, label, collectorType, targets } = this.params;
         const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
-        destinations.forEach(d => {
-            if (new URL(d.location).protocol === 'https:') {
-                log.debug(`location: ${d.location}, `);
+        targets.forEach(t => {
+            if (new URL(t.location).protocol === 'https:') {
+                log.debug(`location: ${t.location}, `);
                 this.sendHttps({ site, label, collectorType, delimData: delimData });
             }
         });

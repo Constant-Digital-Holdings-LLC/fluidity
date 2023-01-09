@@ -1,21 +1,18 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { DelimitedData, FluidityPacket } from '#@shared/types.js';
+import { DelimitedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
+import { config } from '#@shared/modules/config.js';
 
-const log = fetchLogger();
+const conf = await config();
+const log = fetchLogger(conf);
 
-type SerialParser = ReadlineParser | RegexParser;
-
-interface Destination {
-    location: string;
-    key?: string;
-}
-
-type DataCollectorParams = Omit<FluidityPacket, 'delimData'> & {
-    destinations: Destination[];
+interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
+    targets: PublishTarget[];
     omitTS?: boolean;
     options?: unknown;
-};
+}
+
+type SerialParser = ReadlineParser | RegexParser;
 
 interface SerialPortParams extends DataCollectorParams {
     path: string;
@@ -31,7 +28,9 @@ const isSRSOptions = (obj: unknown): obj is SRSOptions => {
 };
 
 abstract class DataCollector {
-    constructor(public params: DataCollectorParams) {}
+    constructor(public params: DataCollectorParams) {
+        //need to make sure the props I care about are here
+    }
 
     abstract listen(): void;
 
@@ -44,16 +43,16 @@ abstract class DataCollector {
     }
 
     private sendHttps(fPacket: FluidityPacket): void {
-        log.info(fPacket);
+        log.debug(fPacket);
     }
 
     send(data: string) {
-        const { site, label, collectorType, destinations } = this.params;
+        const { site, label, collectorType, targets } = this.params;
         const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
 
-        destinations.forEach(d => {
-            if (new URL(d.location).protocol === 'https:') {
-                log.debug(`location: ${d.location}, `);
+        targets.forEach(t => {
+            if (new URL(t.location).protocol === 'https:') {
+                log.debug(`location: ${t.location}, `);
 
                 this.sendHttps({ site, label, collectorType, delimData: delimData });
             }
