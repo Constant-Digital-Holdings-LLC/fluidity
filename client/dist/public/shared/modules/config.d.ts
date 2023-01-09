@@ -10,7 +10,7 @@ export interface ConfigData {
     readonly [index: string]: unknown;
 }
 import { MyConfigData } from '#@shared/my_config.js';
-export declare const configFromDOM: () => MyConfigData;
+export declare const configFromDOM: () => MyConfigData | undefined;
 export declare const configFromFS: () => Promise<MyConfigData | undefined>;
 export declare const config: () => Promise<MyConfigData | undefined>;
 export declare const configMiddleware: () => Promise<(req: Request, res: Response, next: NextFunction) => void>;

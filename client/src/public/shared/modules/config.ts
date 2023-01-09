@@ -6,9 +6,14 @@ const log = fetchLogger();
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
-function isMyConfigData(obj: any): obj is MyConfigData {
-    return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-}
+const isMyConfigData = (obj: any): obj is MyConfigData =>
+    obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
+
+const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['app_name']);
+
+// function isMyConfigData(obj: any): obj is MyConfigData {
+//     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
+// }
 
 export interface ConfigData {
     readonly app_name: string;
@@ -130,6 +135,17 @@ class FSConfigUtil extends ConfigBase {
             }
         }
 
+        if (
+            typeof this.cachedConfig !== 'object' ||
+            (typeof this.cachedConfig === 'object' && !('app_name' in this.cachedConfig))
+        ) {
+            log.error(
+                `fatal: no config or config missing required 'app_name' property. config: ${JSON.stringify(
+                    this.cachedConfig
+                )}`
+            );
+            process.exit();
+        }
         return this.cachedConfig;
     }
 }
@@ -145,14 +161,18 @@ class DOMConfigUtil extends ConfigBase {
         if (!this.cachedConfig) {
             this.cachedConfig = this.extract();
         }
-        console.warn(`pub test: ${JSON.stringify(this.pubConf)}`);
+
         return this.cachedConfig;
     }
 
-    private extract(): MyConfigData {
-        //   parse DOM
+    private extract(): MyConfigData | undefined {
+        const conf = document.getElementById('configData')?.dataset;
 
-        return { app_name: 'Fluidity', log_level: 'debug', foo: 'bar' };
+        if (isMyConfigDataPopulated(conf)) {
+            return conf;
+        }
+
+        return undefined;
     }
 
     addLocals(req: Request, res: Response, next: NextFunction): void {
@@ -164,7 +184,7 @@ class DOMConfigUtil extends ConfigBase {
     }
 }
 
-export const configFromDOM = (): MyConfigData => {
+export const configFromDOM = (): MyConfigData | undefined => {
     return new DOMConfigUtil().allConf;
 };
 

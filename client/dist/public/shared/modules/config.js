@@ -11,9 +11,8 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-function isMyConfigData(obj) {
-    return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-}
+const isMyConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
+const isMyConfigDataPopulated = (obj) => isMyConfigData(obj) && Boolean(obj['app_name']);
 import { pubSafeProps } from '#@shared/my_config.js';
 class ConfigBase {
     get pubConf() {
@@ -102,6 +101,11 @@ class FSConfigUtil extends ConfigBase {
                     log.error(err);
                 }
             }
+            if (typeof this.cachedConfig !== 'object' ||
+                (typeof this.cachedConfig === 'object' && !('app_name' in this.cachedConfig))) {
+                log.error(`fatal: no config or config missing required 'app_name' property. config: ${JSON.stringify(this.cachedConfig)}`);
+                process.exit();
+            }
             return this.cachedConfig;
         });
     }
@@ -115,11 +119,15 @@ class DOMConfigUtil extends ConfigBase {
         if (!this.cachedConfig) {
             this.cachedConfig = this.extract();
         }
-        console.warn(`pub test: ${JSON.stringify(this.pubConf)}`);
         return this.cachedConfig;
     }
     extract() {
-        return { app_name: 'Fluidity', log_level: 'debug', foo: 'bar' };
+        var _a;
+        const conf = (_a = document.getElementById('configData')) === null || _a === void 0 ? void 0 : _a.dataset;
+        if (isMyConfigDataPopulated(conf)) {
+            return conf;
+        }
+        return undefined;
     }
     addLocals(req, res, next) {
         if (!this.cachedConfig)
