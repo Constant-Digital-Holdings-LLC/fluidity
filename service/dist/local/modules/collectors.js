@@ -10,12 +10,11 @@ class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        const required = ['targets', 'site', 'label', 'collectorType'];
-        if (!required.every(p => {
-            return Object.keys(params).includes(p) && params[p];
-        })) {
-            throw new Error(`DataCollector constructor missing one or more of the follwoing: ${required.toString()}`);
-        }
+        ['targets', 'site', 'label', 'collectorType'].forEach(p => {
+            if (!params?.[p]) {
+                throw new Error(`DataCollector constructor - required param: [${p}] missing or undefined`);
+            }
+        });
     }
     format(data) {
         return [{ display: 1, field: data }];

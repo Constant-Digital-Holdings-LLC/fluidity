@@ -29,15 +29,11 @@ const isSRSOptions = (obj: unknown): obj is SRSOptions => {
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
-        const required = ['targets', 'site', 'label', 'collectorType'] as const;
-
-        if (
-            !required.every(p => {
-                return Object.keys(params).includes(p) && params[p];
-            })
-        ) {
-            throw new Error(`DataCollector constructor missing one or more of the follwoing: ${required.toString()}`);
-        }
+        (['targets', 'site', 'label', 'collectorType'] as const).forEach(p => {
+            if (!params?.[p]) {
+                throw new Error(`DataCollector constructor - required param: [${p}] missing or undefined`);
+            }
+        });
     }
 
     abstract listen(): void;
