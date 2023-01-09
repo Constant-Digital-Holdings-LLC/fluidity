@@ -23,12 +23,20 @@ class DataCollector {
     send(data) {
         const { site, label, collectorType, targets } = this.params;
         const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
-        targets.forEach(t => {
-            if (new URL(t.location).protocol === 'https:') {
-                log.debug(`location: ${t.location}, `);
-                this.sendHttps({ site, label, collectorType, delimData: delimData });
-            }
-        });
+        try {
+            targets.forEach(t => {
+                if (new URL(t.location).protocol === 'https:') {
+                    log.debug(`location: ${t.location}, `);
+                    this.sendHttps({ site, label, collectorType, delimData: delimData });
+                }
+                else {
+                    throw new Error(`unsupported protocol in target location: ${t.location}`);
+                }
+            });
+        }
+        catch (err) {
+            log.error(err);
+        }
     }
 }
 class SerialCollector extends DataCollector {
