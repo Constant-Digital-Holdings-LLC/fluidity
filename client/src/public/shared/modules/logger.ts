@@ -49,6 +49,9 @@ abstract class FormatterBase implements LogFormatter {
             }
         } else {
             formattedMesg = message.toString();
+            if (message instanceof Error) {
+                formattedMesg += `${message.stack} <--stack`;
+            }
         }
 
         if (data.location?.file && data.location?.line) {

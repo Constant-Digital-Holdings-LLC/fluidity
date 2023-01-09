@@ -18,6 +18,9 @@ class FormatterBase {
         }
         else {
             formattedMesg = message.toString();
+            if (message instanceof Error) {
+                formattedMesg += `${message.stack} <--stack`;
+            }
         }
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;
