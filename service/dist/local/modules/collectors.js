@@ -10,6 +10,12 @@ class DataCollector {
     params;
     constructor(params) {
         this.params = params;
+        const required = ['targets', 'site', 'label', 'collectorType'];
+        if (!required.every(p => {
+            return Object.keys(params).includes(p) && params[p];
+        })) {
+            throw new Error(`DataCollector constructor missing one or more of the follwoing: ${required.toString()}`);
+        }
     }
     format(data) {
         return [{ display: 1, field: data }];
@@ -44,6 +50,10 @@ class SerialCollector extends DataCollector {
     parser;
     constructor({ path, baudRate, ...params }) {
         super(params);
+        if (!path)
+            throw new Error(`missing serial port identifier for ${params.collectorType}: ${params.label}`);
+        if (!baudRate)
+            throw new Error(`port speed for ${params.collectorType}: ${params.label}`);
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
     }

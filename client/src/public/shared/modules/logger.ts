@@ -50,7 +50,7 @@ abstract class FormatterBase implements LogFormatter {
         } else {
             formattedMesg = message.toString();
             if (message instanceof Error) {
-                formattedMesg += `${message.stack} <--stack`;
+                formattedMesg += `\nstack-->\n${message.stack} <--stack`;
             }
         }
 

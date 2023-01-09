@@ -29,7 +29,15 @@ const isSRSOptions = (obj: unknown): obj is SRSOptions => {
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
-        //need to make sure the props I care about are here
+        const required = ['targets', 'site', 'label', 'collectorType'] as const;
+
+        if (
+            !required.every(p => {
+                return Object.keys(params).includes(p) && params[p];
+            })
+        ) {
+            throw new Error(`DataCollector constructor missing one or more of the follwoing: ${required.toString()}`);
+        }
     }
 
     abstract listen(): void;
@@ -74,6 +82,9 @@ abstract class SerialCollector extends DataCollector {
 
     constructor({ path, baudRate, ...params }: SerialPortParams) {
         super(params);
+
+        if (!path) throw new Error(`missing serial port identifier for ${params.collectorType}: ${params.label}`);
+        if (!baudRate) throw new Error(`port speed for ${params.collectorType}: ${params.label}`);
 
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
