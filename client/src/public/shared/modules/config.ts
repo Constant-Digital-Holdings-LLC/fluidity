@@ -11,10 +11,6 @@ const isMyConfigData = (obj: any): obj is MyConfigData =>
 
 const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['app_name']);
 
-// function isMyConfigData(obj: any): obj is MyConfigData {
-//     return obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-// }
-
 export interface ConfigData {
     readonly app_name: string;
     readonly app_version?: string;
@@ -146,6 +142,7 @@ class FSConfigUtil extends ConfigBase {
             );
             process.exit();
         }
+
         return this.cachedConfig;
     }
 }

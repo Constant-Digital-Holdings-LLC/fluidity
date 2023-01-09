@@ -3,6 +3,7 @@ import { config } from '#@shared/modules/config.js';
 import { GenericSerialCollector, SRSserialCollector } from '#@service/modules/collectors.js';
 const conf = await config();
 const log = fetchLogger(conf);
+log.info(`Agent Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 if (conf) {
     const { targets, site } = conf;
     try {

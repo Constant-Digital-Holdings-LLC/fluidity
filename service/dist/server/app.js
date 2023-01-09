@@ -15,6 +15,7 @@ const conf = {
     ...(await config())
 };
 const log = fetchLogger(conf);
+log.info(`Server Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 const app = express();
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
@@ -25,7 +26,6 @@ app.get('/', (req, res) => {
     log.info(conf);
     res.render('index');
 });
-log.debug(conf);
 app.use(express.static('../../../client/dist/public', {
     maxAge: conf.http_cache_ttl_seconds * 1000
 }));

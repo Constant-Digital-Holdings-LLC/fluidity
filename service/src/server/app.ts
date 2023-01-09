@@ -21,6 +21,8 @@ const conf: WithRequired<MyConfigData, 'port' | 'tls_key' | 'tls_cert' | 'http_c
 
 const log = fetchLogger(conf);
 
+log.info(`Server Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
+
 const app = express();
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
@@ -33,8 +35,6 @@ app.get('/', (req, res) => {
     log.info(conf);
     res.render('index');
 });
-
-log.debug(conf);
 
 app.use(
     express.static('../../../client/dist/public', {
