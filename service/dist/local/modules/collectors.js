@@ -23,7 +23,6 @@ class DataCollector {
         return delimData;
     }
     sendHttps(fPacket) {
-        log.debug(fPacket);
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
@@ -74,14 +73,25 @@ export class GenericSerialCollector extends SerialCollector {
         return new ReadlineParser({ delimiter: '\n' });
     }
 }
+const rxTxActiveStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT on'];
+const connectionStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'];
 export class SRSserialCollector extends SerialCollector {
     constructor(params) {
         super(params);
+    }
+    portsInState(val) {
+        const boolArr = [];
+        for (let bit = 0; bit < 8; bit++) {
+            boolArr.push((val & 1) === 1);
+            val >>= 1;
+        }
+        return boolArr;
     }
     format(data) {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
+        console.log(this.portsInState(91));
         return [{ display: 99, field: data }];
     }
     fetchParser() {

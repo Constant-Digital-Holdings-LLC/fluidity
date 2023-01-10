@@ -2,6 +2,7 @@ import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { ProcessedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
+import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
@@ -48,7 +49,7 @@ abstract class DataCollector {
     }
 
     private sendHttps(fPacket: FluidityPacket): void {
-        log.debug(fPacket);
+        // log.debug(fPacket);
     }
 
     send(data: string) {
@@ -108,15 +109,35 @@ export class GenericSerialCollector extends SerialCollector {
     }
 }
 
+const rxTxActiveStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT on'] as const;
+const connectionStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
+
+type SRSTxRxState = typeof rxTxActiveStates[number];
+type SRSConnState = typeof connectionStates[number];
+type SRSstate = SRSTxRxState & SRSConnState;
+
 export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
         super(params);
+    }
+
+    private portsInState(val: number): boolean[] {
+        const boolArr: boolean[] = [];
+
+        for (let bit = 0; bit < 8; bit++) {
+            boolArr.push((val & 1) === 1);
+            val >>= 1;
+        }
+
+        return boolArr;
     }
 
     override format(data: string): ProcessedData[] {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
+
+        console.log(this.portsInState(91));
 
         return [{ display: 99, field: data }];
     }
