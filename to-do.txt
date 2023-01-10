@@ -4,7 +4,4 @@
 
 - Start decoding hex values to human redable in SRSserialCollector's format() method
 
-
-fc.net.register()
-fc.display.filterBy()
-fc.storage.get()
+- Write a simple api key permissions middleware 
