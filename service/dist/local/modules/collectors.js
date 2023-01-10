@@ -10,7 +10,6 @@ class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        log.error(params);
         ['targets', 'site', 'label', 'collectorType', 'keepRaw'].forEach(p => {
             if (typeof params?.[p] === 'undefined') {
                 throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
@@ -28,7 +27,7 @@ class DataCollector {
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
-        const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
+        const processedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
         try {
             targets.forEach(t => {
                 if (new URL(t.location).protocol === 'https:') {
@@ -37,7 +36,7 @@ class DataCollector {
                         site,
                         label,
                         collectorType,
-                        delimData: delimData,
+                        processedData: processedData,
                         rawData: keepRaw ? data : null
                     });
                 }

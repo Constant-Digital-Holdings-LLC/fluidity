@@ -1,5 +1,5 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { DelimitedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
+import { ProcessedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
@@ -30,8 +30,6 @@ const isSRSOptions = (obj: unknown): obj is SRSOptions => {
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
-        log.error(params);
-
         (['targets', 'site', 'label', 'collectorType', 'keepRaw'] as const).forEach(p => {
             if (typeof params?.[p] === 'undefined') {
                 throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
@@ -41,11 +39,11 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
-    protected format(data: string): DelimitedData[] {
+    protected format(data: string): ProcessedData[] {
         return [{ display: 1, field: data }];
     }
 
-    private addTS(delimData: DelimitedData[]): DelimitedData[] {
+    private addTS(delimData: ProcessedData[]): ProcessedData[] {
         return delimData;
     }
 
@@ -55,7 +53,7 @@ abstract class DataCollector {
 
     send(data: string) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
-        const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
+        const processedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
 
         try {
             targets.forEach(t => {
@@ -66,7 +64,7 @@ abstract class DataCollector {
                         site,
                         label,
                         collectorType,
-                        delimData: delimData,
+                        processedData: processedData,
                         rawData: keepRaw ? data : null
                     });
                 } else {
@@ -115,7 +113,7 @@ export class SRSserialCollector extends SerialCollector {
         super(params);
     }
 
-    override format(data: string): DelimitedData[] {
+    override format(data: string): ProcessedData[] {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
