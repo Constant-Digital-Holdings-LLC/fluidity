@@ -1,4 +1,4 @@
-import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
+import { SerialPort, ReadlineParser } from 'serialport';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
@@ -10,9 +10,10 @@ class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        ['targets', 'site', 'label', 'collectorType'].forEach(p => {
-            if (!params?.[p]) {
-                throw new Error(`DataCollector constructor - required param: [${p}] missing or undefined`);
+        log.error(params);
+        ['targets', 'site', 'label', 'collectorType', 'keepRaw'].forEach(p => {
+            if (typeof params?.[p] === 'undefined') {
+                throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
             }
         });
     }
@@ -26,13 +27,19 @@ class DataCollector {
         log.debug(fPacket);
     }
     send(data) {
-        const { site, label, collectorType, targets } = this.params;
+        const { site, label, collectorType, targets, keepRaw } = this.params;
         const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
         try {
             targets.forEach(t => {
                 if (new URL(t.location).protocol === 'https:') {
                     log.debug(`location: ${t.location}, `);
-                    this.sendHttps({ site, label, collectorType, delimData: delimData });
+                    this.sendHttps({
+                        site,
+                        label,
+                        collectorType,
+                        delimData: delimData,
+                        rawData: keepRaw ? data : null
+                    });
                 }
                 else {
                     throw new Error(`unsupported protocol in target location: ${t.location}`);
@@ -73,12 +80,12 @@ export class SRSserialCollector extends SerialCollector {
         super(params);
     }
     format(data) {
-        if (isSRSOptions(this.params.options)) {
-            const { portmap } = this.params.options;
+        if (isSRSOptions(this.params.extendedOptions)) {
+            const { portmap } = this.params.extendedOptions;
         }
         return [{ display: 99, field: data }];
     }
     fetchParser() {
-        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/g });
+        return new ReadlineParser({ delimiter: '\r\n' });
     }
 }

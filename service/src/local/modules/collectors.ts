@@ -9,7 +9,8 @@ const log = fetchLogger(conf);
 interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
     targets: PublishTarget[];
     omitTS?: boolean;
-    options?: unknown;
+    keepRaw: boolean;
+    extendedOptions?: unknown;
 }
 
 type SerialParser = ReadlineParser | RegexParser;
@@ -29,9 +30,11 @@ const isSRSOptions = (obj: unknown): obj is SRSOptions => {
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
-        (['targets', 'site', 'label', 'collectorType'] as const).forEach(p => {
-            if (!params?.[p]) {
-                throw new Error(`DataCollector constructor - required param: [${p}] missing or undefined`);
+        log.error(params);
+
+        (['targets', 'site', 'label', 'collectorType', 'keepRaw'] as const).forEach(p => {
+            if (typeof params?.[p] === 'undefined') {
+                throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
             }
         });
     }
@@ -51,7 +54,7 @@ abstract class DataCollector {
     }
 
     send(data: string) {
-        const { site, label, collectorType, targets } = this.params;
+        const { site, label, collectorType, targets, keepRaw } = this.params;
         const delimData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
 
         try {
@@ -59,7 +62,13 @@ abstract class DataCollector {
                 if (new URL(t.location).protocol === 'https:') {
                     log.debug(`location: ${t.location}, `);
 
-                    this.sendHttps({ site, label, collectorType, delimData: delimData });
+                    this.sendHttps({
+                        site,
+                        label,
+                        collectorType,
+                        delimData: delimData,
+                        rawData: keepRaw ? data : null
+                    });
                 } else {
                     throw new Error(`unsupported protocol in target location: ${t.location}`);
                 }
@@ -107,14 +116,14 @@ export class SRSserialCollector extends SerialCollector {
     }
 
     override format(data: string): DelimitedData[] {
-        if (isSRSOptions(this.params.options)) {
-            const { portmap } = this.params.options;
+        if (isSRSOptions(this.params.extendedOptions)) {
+            const { portmap } = this.params.extendedOptions;
         }
 
         return [{ display: 99, field: data }];
     }
 
-    fetchParser(): RegexParser {
-        return new RegexParser({ regex: /(?:>*[\r\n]|Reply: <(?::ok)?)/g });
+    fetchParser(): ReadlineParser {
+        return new ReadlineParser({ delimiter: '\r\n' });
     }
 }

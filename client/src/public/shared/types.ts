@@ -10,6 +10,7 @@ export interface FluidityPacket {
     label: string;
     collectorType: CollectorType;
     delimData: DelimitedData[];
+    rawData?: string | null;
 }
 
 export interface PublishTarget {

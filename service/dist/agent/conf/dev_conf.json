@@ -6,13 +6,21 @@
     "site": "office",
     "log_level": "debug",
     "collectors": [
-        { "label": "TNC", "collectorType": "generic-serial", "path": "COM10", "baudRate": 9600, "omitTS": true },
+        {
+            "label": "TNC",
+            "collectorType": "generic-serial",
+            "path": "COM10",
+            "baudRate": 9600,
+            "omitTS": true,
+            "keepRaw": false
+        },
         {
             "label": "SRS",
             "collectorType": "srs-serial",
             "path": "COM4",
             "baudRate": 9600,
-            "options": {
+            "keepRaw": true,
+            "extendedOptions": {
                 "portmap": [
                     "440",
                     "2M",
