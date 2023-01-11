@@ -109,12 +109,12 @@ export class GenericSerialCollector extends SerialCollector {
     }
 }
 
-const radioStatesArr = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT ON'] as const;
-const portStatesArr = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
+// const radioStatesArr = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT ON'] as const;
+// const portStatesArr = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
 
-type SRSRadioState = typeof radioStatesArr[number];
-type SRSPortState = typeof portStatesArr[number];
-type SRSstate = SRSRadioState & SRSPortState;
+// type SRSRadioState = typeof radioStatesArr[number];
+// type SRSPortState = typeof portStatesArr[number];
+// type SRSstate = SRSRadioState & SRSPortState;
 
 enum RadioStates {
     'COR',
@@ -139,9 +139,9 @@ export class SRSserialCollector extends SerialCollector {
     }
 
     private decode(
-        stateType: 'port' | 'radio',
+        stateTypes: RadioStates | PortStates,
         radix: number,
-        elements: number[]
+        decodeList: string[]
     ): (Array<keyof typeof RadioStates> | Array<keyof typeof PortStates>)[] {
         return [['INTERFACED', 'LINK']];
     }
@@ -162,7 +162,13 @@ export class SRSserialCollector extends SerialCollector {
             const { portmap } = this.params.extendedOptions;
         }
 
-        log.debug(data);
+        log.debug(data[0]);
+
+        const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
+
+        if (result) {
+            log.debug(result[1]);
+        }
 
         console.log(this.portsInState(91));
 

@@ -72,11 +72,29 @@ export class GenericSerialCollector extends SerialCollector {
         return new ReadlineParser({ delimiter: '\n' });
     }
 }
-const rxTxActiveStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT on'];
-const connectionStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'];
+var RadioStates;
+(function (RadioStates) {
+    RadioStates[RadioStates["COR"] = 0] = "COR";
+    RadioStates[RadioStates["PL"] = 1] = "PL";
+    RadioStates[RadioStates["RCVACT"] = 2] = "RCVACT";
+    RadioStates[RadioStates["DTMF"] = 3] = "DTMF";
+    RadioStates[RadioStates["XMIT ON"] = 4] = "XMIT ON";
+})(RadioStates || (RadioStates = {}));
+var PortStates;
+(function (PortStates) {
+    PortStates[PortStates["LINK"] = 0] = "LINK";
+    PortStates[PortStates["LOOPBACK"] = 1] = "LOOPBACK";
+    PortStates[PortStates["DISABLED"] = 2] = "DISABLED";
+    PortStates[PortStates["SUDISABLED"] = 3] = "SUDISABLED";
+    PortStates[PortStates["SPLIT GROUP"] = 4] = "SPLIT GROUP";
+    PortStates[PortStates["INTERFACED"] = 5] = "INTERFACED";
+})(PortStates || (PortStates = {}));
 export class SRSserialCollector extends SerialCollector {
     constructor(params) {
         super(params);
+    }
+    decode(stateTypes, radix, decodeList) {
+        return [['INTERFACED', 'LINK']];
     }
     portsInState(val) {
         const boolArr = [];
@@ -90,7 +108,11 @@ export class SRSserialCollector extends SerialCollector {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
-        log.debug(data);
+        log.debug(data[0]);
+        const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
+        if (result) {
+            log.debug(result[1]);
+        }
         console.log(this.portsInState(91));
         return [{ display: 99, field: data }];
     }
