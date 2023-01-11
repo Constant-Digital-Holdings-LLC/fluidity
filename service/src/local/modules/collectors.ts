@@ -59,7 +59,7 @@ abstract class DataCollector {
         try {
             targets.forEach(t => {
                 if (new URL(t.location).protocol === 'https:') {
-                    log.debug(`location: ${t.location}, `);
+                    // log.debug(`location: ${t.location}, `);
 
                     this.sendHttps({
                         site,
@@ -109,16 +109,41 @@ export class GenericSerialCollector extends SerialCollector {
     }
 }
 
-const rxTxActiveStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT on'] as const;
-const connectionStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
+const radioStatesArr = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT ON'] as const;
+const portStatesArr = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
 
-type SRSTxRxState = typeof rxTxActiveStates[number];
-type SRSConnState = typeof connectionStates[number];
-type SRSstate = SRSTxRxState & SRSConnState;
+type SRSRadioState = typeof radioStatesArr[number];
+type SRSPortState = typeof portStatesArr[number];
+type SRSstate = SRSRadioState & SRSPortState;
+
+enum RadioStates {
+    'COR',
+    'PL',
+    'RCVACT',
+    'DTMF',
+    'XMIT ON'
+}
+
+enum PortStates {
+    'LINK',
+    'LOOPBACK',
+    'DISABLED',
+    'SUDISABLED',
+    'SPLIT GROUP',
+    'INTERFACED'
+}
 
 export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
         super(params);
+    }
+
+    private decode(
+        stateType: 'port' | 'radio',
+        radix: number,
+        elements: number[]
+    ): (Array<keyof typeof RadioStates> | Array<keyof typeof PortStates>)[] {
+        return [['INTERFACED', 'LINK']];
     }
 
     private portsInState(val: number): boolean[] {
@@ -136,6 +161,8 @@ export class SRSserialCollector extends SerialCollector {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
+
+        log.debug(data);
 
         console.log(this.portsInState(91));
 

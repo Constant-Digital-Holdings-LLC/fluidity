@@ -30,7 +30,6 @@ class DataCollector {
         try {
             targets.forEach(t => {
                 if (new URL(t.location).protocol === 'https:') {
-                    log.debug(`location: ${t.location}, `);
                     this.sendHttps({
                         site,
                         label,
@@ -91,6 +90,7 @@ export class SRSserialCollector extends SerialCollector {
         if (isSRSOptions(this.params.extendedOptions)) {
             const { portmap } = this.params.extendedOptions;
         }
+        log.debug(data);
         console.log(this.portsInState(91));
         return [{ display: 99, field: data }];
     }
