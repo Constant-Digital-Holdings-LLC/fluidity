@@ -3,8 +3,8 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
 const log = fetchLogger(conf);
-const isSRSOptions = (obj) => {
-    return Array.isArray(obj?.portmap);
+const isSRSportMap = (obj) => {
+    return Array.isArray(obj) && typeof obj[0] === 'string';
 };
 class DataCollector {
     params;
@@ -87,69 +87,63 @@ export class SRSserialCollector extends SerialCollector {
         super(params);
     }
     decode(stateType, radix, decodeList) {
-        let portMatrix = [[], [], [], [], [], [], [], [], []];
+        const portMatrix = [[], [], [], [], [], [], [], []];
         decodeList.forEach((dc, decodeIndex) => {
+            const binText = [];
             let num = parseInt(dc, radix);
-            for (let bit = 0; bit < 8; bit++) {
-                if ((num & 1) === 1) {
-                    if (stateType === 'RADIO') {
-                        portMatrix[bit]?.push(radioStates[decodeIndex]);
+            const prefix = radix === 16 ? '0x' : '';
+            if (num) {
+                log.info(`Decoding:\t${prefix + dc.toUpperCase()} (${stateType === 'PORT' ? portStates[decodeIndex] : radioStates[decodeIndex]}) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`);
+                for (let bit = 0; bit < 8 && num; bit++) {
+                    if ((num & 1) === 1) {
+                        binText.unshift('1');
+                        if (stateType === 'RADIO') {
+                            portMatrix[bit]?.push(radioStates[decodeIndex]);
+                        }
+                        if (stateType === 'PORT') {
+                            portMatrix[bit]?.push(portStates[decodeIndex]);
+                        }
                     }
-                    if (stateType === 'PORT') {
-                        portMatrix[bit]?.push(portStates[decodeIndex]);
+                    else {
+                        binText.unshift('0');
                     }
+                    num >>= 1;
                 }
-                num >>= 1;
+                log.info(`Decoded:\t${JSON.stringify(binText)}\t`);
             }
         });
         return portMatrix;
     }
-    portsInState(val) {
-        const boolArr = [];
-        for (let bit = 0; bit < 8; bit++) {
-            boolArr.push((val & 1) === 1);
-            val >>= 1;
-        }
-        return boolArr;
-    }
     format(data) {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
+        let stateData = [[]];
+        const pLookup = (p) => {
+            let portName;
+            const eo = this.params.extendedOptions;
+            if (eo && typeof eo === 'object' && 'portmap' in eo) {
+                const { portmap } = eo;
+                if (isSRSportMap(portmap)) {
+                    portName = portmap[p];
+                }
+            }
+            return portName ? `port-${p} [${portName}]` : `port-${p}`;
+        };
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
-            let stateData = [[]];
             if (data[0] === '[') {
                 stateData = this.decode('RADIO', 16, result[1].split(' '));
-                log.info(`Orig: ${data}`);
-                log.debug('Radio States:');
-                log.debug(`port 0 ${stateData[0]}`);
-                log.debug(`port 1 ${stateData[1]}`);
-                log.debug(`port 2 ${stateData[2]}`);
-                log.debug(`port 3 ${stateData[3]}`);
-                log.debug(`port 4 ${stateData[4]}`);
-                log.debug(`port 5 ${stateData[5]}`);
-                log.debug(`port 6 ${stateData[6]}`);
-                log.debug(`port 7 ${stateData[7]}`);
             }
             if (data[0] === '{') {
                 stateData = this.decode('PORT', 16, result[1].split(' '));
-                log.info(`Orig: ${data}`);
-                log.debug('Port States:');
-                log.debug(`port 0 ${stateData[0]}`);
-                log.debug(`port 1 ${stateData[1]}`);
-                log.debug(`port 2 ${stateData[2]}`);
-                log.debug(`port 3 ${stateData[3]}`);
-                log.debug(`port 4 ${stateData[4]}`);
-                log.debug(`port 5 ${stateData[5]}`);
-                log.debug(`port 6 ${stateData[6]}`);
-                log.debug(`port 7 ${stateData[7]}`);
-            }
-            if (isSRSOptions(this.params.extendedOptions)) {
-                const { portmap } = this.params.extendedOptions;
             }
         }
         else {
             return null;
         }
-        return [{ display: 99, field: data }];
+        stateData.forEach((s, index) => {
+            if (s.length)
+                log.info(`${pLookup(index)}: ${s}\t`);
+        });
+        return [{ display: 1, field: data }];
     }
     fetchParser() {
         return new ReadlineParser({ delimiter: '\r\n' });

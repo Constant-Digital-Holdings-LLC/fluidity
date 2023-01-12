@@ -2,6 +2,7 @@ import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { ProcessedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
+import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
@@ -20,12 +21,12 @@ interface SerialPortParams extends DataCollectorParams {
     baudRate: number;
 }
 
-interface SRSOptions {
-    portmap: string[];
+interface SRSPortMap {
+    [key: number]: string | undefined;
 }
 
-const isSRSOptions = (obj: unknown): obj is SRSOptions => {
-    return Array.isArray((obj as SRSOptions)?.portmap);
+const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
+    return Array.isArray(obj) && typeof obj[0] === 'string';
 };
 
 abstract class DataCollector {
@@ -129,84 +130,81 @@ export class SRSserialCollector extends SerialCollector {
     }
 
     private decode(stateType: 'RADIO' | 'PORT', radix: number, decodeList: string[]): StateData {
-        let portMatrix: StateData = [[], [], [], [], [], [], [], [], []];
+        const portMatrix: StateData = [[], [], [], [], [], [], [], []];
 
         decodeList.forEach((dc, decodeIndex) => {
+            const binText: string[] = [];
             let num = parseInt(dc, radix);
+            const prefix = radix === 16 ? '0x' : '';
 
-            for (let bit = 0; bit < 8; bit++) {
-                if ((num & 1) === 1) {
-                    if (stateType === 'RADIO') {
-                        (portMatrix[bit] as Array<typeof radioStates[number] | undefined>)?.push(
-                            radioStates[decodeIndex]
-                        );
+            if (num) {
+                log.info(
+                    `Decoding:\t${prefix + dc.toUpperCase()} (${
+                        stateType === 'PORT' ? portStates[decodeIndex] : radioStates[decodeIndex]
+                    }) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`
+                );
+
+                for (let bit = 0; bit < 8 && num; bit++) {
+                    if ((num & 1) === 1) {
+                        binText.unshift('1');
+                        if (stateType === 'RADIO') {
+                            (portMatrix[bit] as Array<typeof radioStates[number] | undefined>)?.push(
+                                radioStates[decodeIndex]
+                            );
+                        }
+                        if (stateType === 'PORT') {
+                            (portMatrix[bit] as Array<typeof portStates[number] | undefined>)?.push(
+                                portStates[decodeIndex]
+                            );
+                        }
+                    } else {
+                        binText.unshift('0');
                     }
-                    if (stateType === 'PORT') {
-                        (portMatrix[bit] as Array<typeof portStates[number] | undefined>)?.push(
-                            portStates[decodeIndex]
-                        );
-                    }
+                    num >>= 1;
                 }
-                num >>= 1;
+
+                log.info(`Decoded:\t${JSON.stringify(binText)}\t`);
             }
         });
 
         return portMatrix;
     }
 
-    private portsInState(val: number): boolean[] {
-        const boolArr: boolean[] = [];
-
-        for (let bit = 0; bit < 8; bit++) {
-            boolArr.push((val & 1) === 1);
-            val >>= 1;
-        }
-
-        return boolArr;
-    }
-
     override format(data: string): ProcessedData[] | null {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
+        let stateData: StateData = [[]];
+
+        const pLookup = (p: number): string => {
+            let portName: string | undefined;
+            const eo = this.params.extendedOptions;
+
+            if (eo && typeof eo === 'object' && 'portmap' in eo) {
+                const { portmap } = eo;
+                if (isSRSportMap(portmap)) {
+                    portName = portmap[p];
+                }
+            }
+
+            return portName ? `port-${p} [${portName}]` : `port-${p}`;
+        };
 
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
-            let stateData: StateData = [[]];
-
             if (data[0] === '[') {
                 stateData = this.decode('RADIO', 16, result[1].split(' '));
-                log.info(`Orig: ${data}`);
-                log.debug('Radio States:');
-                log.debug(`port 0 ${stateData[0]}`);
-                log.debug(`port 1 ${stateData[1]}`);
-                log.debug(`port 2 ${stateData[2]}`);
-                log.debug(`port 3 ${stateData[3]}`);
-                log.debug(`port 4 ${stateData[4]}`);
-                log.debug(`port 5 ${stateData[5]}`);
-                log.debug(`port 6 ${stateData[6]}`);
-                log.debug(`port 7 ${stateData[7]}`);
             }
 
             if (data[0] === '{') {
                 stateData = this.decode('PORT', 16, result[1].split(' '));
-                log.info(`Orig: ${data}`);
-                log.debug('Port States:');
-                log.debug(`port 0 ${stateData[0]}`);
-                log.debug(`port 1 ${stateData[1]}`);
-                log.debug(`port 2 ${stateData[2]}`);
-                log.debug(`port 3 ${stateData[3]}`);
-                log.debug(`port 4 ${stateData[4]}`);
-                log.debug(`port 5 ${stateData[5]}`);
-                log.debug(`port 6 ${stateData[6]}`);
-                log.debug(`port 7 ${stateData[7]}`);
-            }
-
-            if (isSRSOptions(this.params.extendedOptions)) {
-                const { portmap } = this.params.extendedOptions;
             }
         } else {
             return null;
         }
 
-        return [{ display: 99, field: data }];
+        stateData.forEach((s, index) => {
+            if (s.length) log.info(`${pLookup(index)}: ${s}\t`);
+        });
+
+        return [{ display: 1, field: data }];
     }
 
     fetchParser(): ReadlineParser {
