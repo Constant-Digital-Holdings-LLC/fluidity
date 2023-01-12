@@ -116,35 +116,12 @@ export class GenericSerialCollector extends SerialCollector {
     }
 }
 
-// const radioStatesArr = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT ON'] as const;
-// const portStatesArr = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT GROUP', 'INTERFACED'] as const;
+const radioStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT_ON'] as const;
+const portStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT_GROUP', 'INTERFACED'] as const;
 
-// type SRSRadioState = typeof radioStatesArr[number];
-// type SRSPortState = typeof portStatesArr[number];
-// type SRSstate = SRSRadioState & SRSPortState;
-
-interface Enum {
-    [id: number]: string;
-}
-
-enum RadioStates {
-    COR,
-    PL,
-    RCVACT,
-    DTMF,
-    XMIT_ON
-}
-
-enum PortStates {
-    LINK,
-    LOOPBACK,
-    DISABLED,
-    SUDISABLED,
-    SPLIT_GROUP,
-    INTERFACED
-}
-
-type StateData = (Array<keyof typeof RadioStates> | Array<keyof typeof PortStates>)[];
+type RadioStateData = Array<typeof radioStates[number]>[];
+type PortStateData = Array<typeof portStates[number]>[];
+type StateData = RadioStateData | PortStateData;
 
 export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
@@ -152,27 +129,29 @@ export class SRSserialCollector extends SerialCollector {
     }
 
     private decode(stateType: 'RADIO' | 'PORT', radix: number, decodeList: string[]): StateData {
-        // let portMatrix: Array<keyof typeof RadioStates>[] = [[]];
-        let portMatrix: StateData = [[]];
+        let portMatrix: StateData = [[], [], [], [], [], [], [], [], []];
 
-        log.debug(stateType);
-
-        (portMatrix[0] as Array<keyof typeof RadioStates>)?.push('PL', 'COR');
-
-        decodeList.forEach((dc, index) => {
+        decodeList.forEach((dc, decodeIndex) => {
             let num = parseInt(dc, radix);
 
             for (let bit = 0; bit < 8; bit++) {
                 if ((num & 1) === 1) {
                     if (stateType === 'RADIO') {
-                        (portMatrix[bit] as Array<keyof typeof RadioStates>)?.push('COR');
+                        (portMatrix[bit] as Array<typeof radioStates[number] | undefined>)?.push(
+                            radioStates[decodeIndex]
+                        );
+                    }
+                    if (stateType === 'PORT') {
+                        (portMatrix[bit] as Array<typeof portStates[number] | undefined>)?.push(
+                            portStates[decodeIndex]
+                        );
                     }
                 }
                 num >>= 1;
             }
         });
 
-        return [['INTERFACED', 'LINK']];
+        return portMatrix;
     }
 
     private portsInState(val: number): boolean[] {
@@ -190,14 +169,34 @@ export class SRSserialCollector extends SerialCollector {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
 
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
-            let stateData: StateData;
+            let stateData: StateData = [[]];
 
             if (data[0] === '[') {
                 stateData = this.decode('RADIO', 16, result[1].split(' '));
+                log.info(`Orig: ${data}`);
+                log.debug('Radio States:');
+                log.debug(`port 0 ${stateData[0]}`);
+                log.debug(`port 1 ${stateData[1]}`);
+                log.debug(`port 2 ${stateData[2]}`);
+                log.debug(`port 3 ${stateData[3]}`);
+                log.debug(`port 4 ${stateData[4]}`);
+                log.debug(`port 5 ${stateData[5]}`);
+                log.debug(`port 6 ${stateData[6]}`);
+                log.debug(`port 7 ${stateData[7]}`);
             }
 
             if (data[0] === '{') {
                 stateData = this.decode('PORT', 16, result[1].split(' '));
+                log.info(`Orig: ${data}`);
+                log.debug('Port States:');
+                log.debug(`port 0 ${stateData[0]}`);
+                log.debug(`port 1 ${stateData[1]}`);
+                log.debug(`port 2 ${stateData[2]}`);
+                log.debug(`port 3 ${stateData[3]}`);
+                log.debug(`port 4 ${stateData[4]}`);
+                log.debug(`port 5 ${stateData[5]}`);
+                log.debug(`port 6 ${stateData[6]}`);
+                log.debug(`port 7 ${stateData[7]}`);
             }
 
             if (isSRSOptions(this.params.extendedOptions)) {
@@ -206,8 +205,6 @@ export class SRSserialCollector extends SerialCollector {
         } else {
             return null;
         }
-
-        // console.log(this.portsInState(91));
 
         return [{ display: 99, field: data }];
     }
