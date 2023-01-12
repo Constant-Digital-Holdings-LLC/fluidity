@@ -93,6 +93,7 @@ export class SRSserialCollector extends SerialCollector {
             let num = parseInt(dc, radix);
             const prefix = radix === 16 ? '0x' : '';
             if (num) {
+                log.info('\n\n');
                 log.info(`Decoding:\t${prefix + dc.toUpperCase()} (${stateType === 'PORT' ? portStates[decodeIndex] : radioStates[decodeIndex]}) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`);
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
@@ -141,7 +142,7 @@ export class SRSserialCollector extends SerialCollector {
         }
         stateData.forEach((s, index) => {
             if (s.length)
-                log.info(`${pLookup(index)}: ${s}\t`);
+                log.info(`${pLookup(index)}:\t${s}\t`);
         });
         return [{ display: 1, field: data }];
     }

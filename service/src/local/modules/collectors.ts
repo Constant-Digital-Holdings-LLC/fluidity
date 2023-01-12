@@ -138,6 +138,7 @@ export class SRSserialCollector extends SerialCollector {
             const prefix = radix === 16 ? '0x' : '';
 
             if (num) {
+                log.info('\n\n');
                 log.info(
                     `Decoding:\t${prefix + dc.toUpperCase()} (${
                         stateType === 'PORT' ? portStates[decodeIndex] : radioStates[decodeIndex]
@@ -201,7 +202,7 @@ export class SRSserialCollector extends SerialCollector {
         }
 
         stateData.forEach((s, index) => {
-            if (s.length) log.info(`${pLookup(index)}: ${s}\t`);
+            if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
         });
 
         return [{ display: 1, field: data }];
