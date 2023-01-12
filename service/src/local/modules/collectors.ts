@@ -2,7 +2,6 @@ import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { ProcessedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
-import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
@@ -40,7 +39,7 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
-    protected format(data: string): ProcessedData[] {
+    protected format(data: string): ProcessedData[] | null {
         return [{ display: 1, field: data }];
     }
 
@@ -54,26 +53,34 @@ abstract class DataCollector {
 
     send(data: string) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
-        const processedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
 
-        try {
-            targets.forEach(t => {
-                if (new URL(t.location).protocol === 'https:') {
-                    // log.debug(`location: ${t.location}, `);
+        let processedData = this.format(data);
 
-                    this.sendHttps({
-                        site,
-                        label,
-                        collectorType,
-                        processedData: processedData,
-                        rawData: keepRaw ? data : null
-                    });
-                } else {
-                    throw new Error(`unsupported protocol in target location: ${t.location}`);
-                }
-            });
-        } catch (err) {
-            log.error(err);
+        if (processedData) {
+            !this.params.omitTS && (processedData = this.addTS(processedData));
+            try {
+                targets.forEach(t => {
+                    if (new URL(t.location).protocol === 'https:') {
+                        // log.debug(`location: ${t.location}, `);
+
+                        if (processedData) {
+                            this.sendHttps({
+                                site,
+                                label,
+                                collectorType,
+                                processedData: processedData,
+                                rawData: keepRaw ? data : null
+                            });
+                        }
+                    } else {
+                        throw new Error(`unsupported protocol in target location: ${t.location}`);
+                    }
+                });
+            } catch (err) {
+                log.error(err);
+            }
+        } else {
+            log.debug(`DataCollector: ignoring unkown string: ${data}`);
         }
     }
 }
@@ -116,33 +123,55 @@ export class GenericSerialCollector extends SerialCollector {
 // type SRSPortState = typeof portStatesArr[number];
 // type SRSstate = SRSRadioState & SRSPortState;
 
+interface Enum {
+    [id: number]: string;
+}
+
 enum RadioStates {
-    'COR',
-    'PL',
-    'RCVACT',
-    'DTMF',
-    'XMIT ON'
+    COR,
+    PL,
+    RCVACT,
+    DTMF,
+    XMIT_ON
 }
 
 enum PortStates {
-    'LINK',
-    'LOOPBACK',
-    'DISABLED',
-    'SUDISABLED',
-    'SPLIT GROUP',
-    'INTERFACED'
+    LINK,
+    LOOPBACK,
+    DISABLED,
+    SUDISABLED,
+    SPLIT_GROUP,
+    INTERFACED
 }
+
+type StateData = (Array<keyof typeof RadioStates> | Array<keyof typeof PortStates>)[];
 
 export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
         super(params);
     }
 
-    private decode(
-        stateTypes: RadioStates | PortStates,
-        radix: number,
-        decodeList: string[]
-    ): (Array<keyof typeof RadioStates> | Array<keyof typeof PortStates>)[] {
+    private decode(stateType: 'RADIO' | 'PORT', radix: number, decodeList: string[]): StateData {
+        // let portMatrix: Array<keyof typeof RadioStates>[] = [[]];
+        let portMatrix: StateData = [[]];
+
+        log.debug(stateType);
+
+        (portMatrix[0] as Array<keyof typeof RadioStates>)?.push('PL', 'COR');
+
+        decodeList.forEach((dc, index) => {
+            let num = parseInt(dc, radix);
+
+            for (let bit = 0; bit < 8; bit++) {
+                if ((num & 1) === 1) {
+                    if (stateType === 'RADIO') {
+                        (portMatrix[bit] as Array<keyof typeof RadioStates>)?.push('COR');
+                    }
+                }
+                num >>= 1;
+            }
+        });
+
         return [['INTERFACED', 'LINK']];
     }
 
@@ -157,20 +186,28 @@ export class SRSserialCollector extends SerialCollector {
         return boolArr;
     }
 
-    override format(data: string): ProcessedData[] {
-        if (isSRSOptions(this.params.extendedOptions)) {
-            const { portmap } = this.params.extendedOptions;
-        }
-
-        log.debug(data[0]);
-
+    override format(data: string): ProcessedData[] | null {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
 
-        if (result) {
-            log.debug(result[1]);
+        if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
+            let stateData: StateData;
+
+            if (data[0] === '[') {
+                stateData = this.decode('RADIO', 16, result[1].split(' '));
+            }
+
+            if (data[0] === '{') {
+                stateData = this.decode('PORT', 16, result[1].split(' '));
+            }
+
+            if (isSRSOptions(this.params.extendedOptions)) {
+                const { portmap } = this.params.extendedOptions;
+            }
+        } else {
+            return null;
         }
 
-        console.log(this.portsInState(91));
+        // console.log(this.portsInState(91));
 
         return [{ display: 99, field: data }];
     }

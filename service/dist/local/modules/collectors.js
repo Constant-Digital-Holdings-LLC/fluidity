@@ -26,25 +26,33 @@ class DataCollector {
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
-        const processedData = this.params.omitTS ? this.format(data) : this.addTS(this.format(data));
-        try {
-            targets.forEach(t => {
-                if (new URL(t.location).protocol === 'https:') {
-                    this.sendHttps({
-                        site,
-                        label,
-                        collectorType,
-                        processedData: processedData,
-                        rawData: keepRaw ? data : null
-                    });
-                }
-                else {
-                    throw new Error(`unsupported protocol in target location: ${t.location}`);
-                }
-            });
+        let processedData = this.format(data);
+        if (processedData) {
+            !this.params.omitTS && (processedData = this.addTS(processedData));
+            try {
+                targets.forEach(t => {
+                    if (new URL(t.location).protocol === 'https:') {
+                        if (processedData) {
+                            this.sendHttps({
+                                site,
+                                label,
+                                collectorType,
+                                processedData: processedData,
+                                rawData: keepRaw ? data : null
+                            });
+                        }
+                    }
+                    else {
+                        throw new Error(`unsupported protocol in target location: ${t.location}`);
+                    }
+                });
+            }
+            catch (err) {
+                log.error(err);
+            }
         }
-        catch (err) {
-            log.error(err);
+        else {
+            log.debug(`DataCollector: ignoring unkown string: ${data}`);
         }
     }
 }
@@ -93,7 +101,10 @@ export class SRSserialCollector extends SerialCollector {
     constructor(params) {
         super(params);
     }
-    decode(stateTypes, radix, decodeList) {
+    decode(stateType, radix, decodeList) {
+        const portMatrix = [[]];
+        log.debug(stateType);
+        portMatrix[0]?.push('PL');
         return [['INTERFACED', 'LINK']];
     }
     portsInState(val) {
@@ -105,15 +116,22 @@ export class SRSserialCollector extends SerialCollector {
         return boolArr;
     }
     format(data) {
-        if (isSRSOptions(this.params.extendedOptions)) {
-            const { portmap } = this.params.extendedOptions;
-        }
-        log.debug(data[0]);
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
-        if (result) {
-            log.debug(result[1]);
+        if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
+            let stateData;
+            if (data[0] === '[') {
+                stateData = this.decode(RadioStates, 16, result[1].split(' '));
+            }
+            if (data[0] === '{') {
+                stateData = this.decode(PortStates, 16, result[1].split(' '));
+            }
+            if (isSRSOptions(this.params.extendedOptions)) {
+                const { portmap } = this.params.extendedOptions;
+            }
         }
-        console.log(this.portsInState(91));
+        else {
+            return null;
+        }
         return [{ display: 99, field: data }];
     }
     fetchParser() {
