@@ -98,11 +98,11 @@ export class SRSserialCollector extends SerialCollector {
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
                         binText.unshift('1');
-                        if (stateType === 'RADIO') {
-                            portMatrix[bit]?.push(radioStates[decodeIndex]);
+                        if (stateType === 'RADIO' && radioStates[decodeIndex]) {
+                            portMatrix[bit].push(radioStates[decodeIndex]);
                         }
-                        if (stateType === 'PORT') {
-                            portMatrix[bit]?.push(portStates[decodeIndex]);
+                        if (stateType === 'PORT' && portStates[decodeIndex]) {
+                            portMatrix[bit].push(portStates[decodeIndex]);
                         }
                     }
                     else {

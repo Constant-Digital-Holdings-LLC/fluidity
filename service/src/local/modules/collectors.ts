@@ -119,9 +119,11 @@ export class GenericSerialCollector extends SerialCollector {
 
 const radioStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT_ON'] as const;
 const portStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT_GROUP', 'INTERFACED'] as const;
+type RadioStates = typeof radioStates[number];
+type PortStates = typeof portStates[number];
+type RadioStateData = RadioStates[][];
+type PortStateData = PortStates[][];
 
-type RadioStateData = Array<typeof radioStates[number]>[];
-type PortStateData = Array<typeof portStates[number]>[];
 type StateData = RadioStateData | PortStateData;
 
 export class SRSserialCollector extends SerialCollector {
@@ -148,15 +150,11 @@ export class SRSserialCollector extends SerialCollector {
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
                         binText.unshift('1');
-                        if (stateType === 'RADIO') {
-                            (portMatrix[bit] as Array<typeof radioStates[number] | undefined>)?.push(
-                                radioStates[decodeIndex]
-                            );
+                        if (stateType === 'RADIO' && radioStates[decodeIndex]) {
+                            (portMatrix[bit] as Array<RadioStates>).push(radioStates[decodeIndex]!);
                         }
-                        if (stateType === 'PORT') {
-                            (portMatrix[bit] as Array<typeof portStates[number] | undefined>)?.push(
-                                portStates[decodeIndex]
-                            );
+                        if (stateType === 'PORT' && portStates[decodeIndex]) {
+                            (portMatrix[bit] as Array<PortStates>).push(portStates[decodeIndex]!);
                         }
                     } else {
                         binText.unshift('0');
