@@ -8,9 +8,18 @@ const isSRSportMap = (obj) => {
 };
 class FormatUtility {
     formattedData = [];
-    s(display = 0, element) { }
-    d(display = 0, element) { }
-    l(element) { }
+    s(display = 0, element) {
+        this.formattedData.push({ display, field: element, fieldType: 'string' });
+        return this;
+    }
+    d(display = 0, element) {
+        this.formattedData.push({ display, field: element, fieldType: 'date' });
+        return this;
+    }
+    l(display = 0, element) {
+        this.formattedData.push({ display, field: element, fieldType: 'link' });
+        return this;
+    }
     s0(element) {
         return this.s(0, element);
     }
@@ -19,27 +28,6 @@ class FormatUtility {
     }
     s2(element) {
         return this.s(2, element);
-    }
-    s3(element) {
-        return this.s(3, element);
-    }
-    s4(element) {
-        return this.s(4, element);
-    }
-    s5(element) {
-        return this.s(5, element);
-    }
-    s6(element) {
-        return this.s(6, element);
-    }
-    s7(element) {
-        return this.s(7, element);
-    }
-    s8(element) {
-        return this.s(8, element);
-    }
-    s9(element) {
-        return this.s(9, element);
     }
     d0(element) {
         return this.d(0, element);
@@ -50,31 +38,15 @@ class FormatUtility {
     d2(element) {
         return this.d(2, element);
     }
-    d3(element) {
-        return this.d(3, element);
-    }
-    d4(element) {
-        return this.d(4, element);
-    }
-    d5(element) {
-        return this.d(5, element);
-    }
-    d6(element) {
-        return this.d(6, element);
-    }
-    d7(element) {
-        return this.d(7, element);
-    }
-    d8(element) {
-        return this.d(8, element);
-    }
-    d9(element) {
-        return this.d(9, element);
+    l0(element) {
+        return this.l(0, element);
     }
     get done() {
         return this.formattedData;
     }
 }
+const f = new FormatUtility();
+f.s0('the ').s1('dog').s0(' walked across the ').s2('street').s0('at ').d0(new Date()).s0('!').done;
 class DataCollector {
     params;
     constructor(params) {

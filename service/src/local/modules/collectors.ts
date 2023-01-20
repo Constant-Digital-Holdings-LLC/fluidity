@@ -29,78 +29,53 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
 };
 
 class FormatUtility {
-    protected formattedData: FormattedData[] = [];
+    private formattedData: FormattedData[] = [];
 
-    s(display: number = 0, element: string): void {}
-    d(display: number = 0, element: Date): void {}
-    l(element: FluidityLink): void {}
+    s(display: number = 0, element: string): this {
+        this.formattedData.push({ display, field: element, fieldType: 'string' });
+        return this;
+    }
+    d(display: number = 0, element: Date): this {
+        this.formattedData.push({ display, field: element, fieldType: 'date' });
+        return this;
+    }
+    l(display: number = 0, element: FluidityLink): this {
+        this.formattedData.push({ display, field: element, fieldType: 'link' });
+        return this;
+    }
 
-    s0(element: string): void {
+    s0(element: string): this {
         return this.s(0, element);
     }
-    s1(element: string): void {
+    s1(element: string): this {
         return this.s(1, element);
     }
-    s2(element: string): void {
+    s2(element: string): this {
         return this.s(2, element);
     }
-    s3(element: string): void {
-        return this.s(3, element);
-    }
-    s4(element: string): void {
-        return this.s(4, element);
-    }
-    s5(element: string): void {
-        return this.s(5, element);
-    }
-    s6(element: string): void {
-        return this.s(6, element);
-    }
-    s7(element: string): void {
-        return this.s(7, element);
-    }
-    s8(element: string): void {
-        return this.s(8, element);
-    }
-    s9(element: string): void {
-        return this.s(9, element);
-    }
 
-    d0(element: Date): void {
+    d0(element: Date): this {
         return this.d(0, element);
     }
-    d1(element: Date): void {
+    d1(element: Date): this {
         return this.d(1, element);
     }
-    d2(element: Date): void {
+    d2(element: Date): this {
         return this.d(2, element);
     }
-    d3(element: Date): void {
-        return this.d(3, element);
-    }
-    d4(element: Date): void {
-        return this.d(4, element);
-    }
-    d5(element: Date): void {
-        return this.d(5, element);
-    }
-    d6(element: Date): void {
-        return this.d(6, element);
-    }
-    d7(element: Date): void {
-        return this.d(7, element);
-    }
-    d8(element: Date): void {
-        return this.d(8, element);
-    }
-    d9(element: Date): void {
-        return this.d(9, element);
+
+    l0(element: FluidityLink): this {
+        return this.l(0, element);
     }
 
     public get done(): FormattedData[] {
         return this.formattedData;
     }
 }
+
+const f = new FormatUtility();
+
+f.s0('the ').s1('dog').s0(' walked across the ').s2('street').s0('at ').d0(new Date()).s0('!').done;
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
