@@ -1,8 +1,7 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { ProcessedData, FluidityPacket, PublishTarget } from '#@shared/types.js';
+import { FormattedData, FluidityPacket, PublishTarget, FluidityLink } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
-import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
@@ -29,6 +28,80 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
     return Array.isArray(obj) && typeof obj[0] === 'string';
 };
 
+class FormatUtility {
+    protected formattedData: FormattedData[] = [];
+
+    s(display: number = 0, element: string): void {}
+    d(display: number = 0, element: Date): void {}
+    l(element: FluidityLink): void {}
+
+    s0(element: string): void {
+        return this.s(0, element);
+    }
+    s1(element: string): void {
+        return this.s(1, element);
+    }
+    s2(element: string): void {
+        return this.s(2, element);
+    }
+    s3(element: string): void {
+        return this.s(3, element);
+    }
+    s4(element: string): void {
+        return this.s(4, element);
+    }
+    s5(element: string): void {
+        return this.s(5, element);
+    }
+    s6(element: string): void {
+        return this.s(6, element);
+    }
+    s7(element: string): void {
+        return this.s(7, element);
+    }
+    s8(element: string): void {
+        return this.s(8, element);
+    }
+    s9(element: string): void {
+        return this.s(9, element);
+    }
+
+    d0(element: Date): void {
+        return this.d(0, element);
+    }
+    d1(element: Date): void {
+        return this.d(1, element);
+    }
+    d2(element: Date): void {
+        return this.d(2, element);
+    }
+    d3(element: Date): void {
+        return this.d(3, element);
+    }
+    d4(element: Date): void {
+        return this.d(4, element);
+    }
+    d5(element: Date): void {
+        return this.d(5, element);
+    }
+    d6(element: Date): void {
+        return this.d(6, element);
+    }
+    d7(element: Date): void {
+        return this.d(7, element);
+    }
+    d8(element: Date): void {
+        return this.d(8, element);
+    }
+    d9(element: Date): void {
+        return this.d(9, element);
+    }
+
+    public get done(): FormattedData[] {
+        return this.formattedData;
+    }
+}
+
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
         (['targets', 'site', 'label', 'collectorType', 'keepRaw'] as const).forEach(p => {
@@ -40,12 +113,12 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
-    protected format(data: string): ProcessedData[] | null {
-        return [{ display: 1, field: data }];
+    protected format(data: string): FormattedData[] | null {
+        return [{ display: 1, field: data, fieldType: 'string' }];
     }
 
-    private addTS(delimData: ProcessedData[]): ProcessedData[] {
-        return delimData;
+    private addTS(data: FormattedData[]): FormattedData[] {
+        return data;
     }
 
     private sendHttps(fPacket: FluidityPacket): void {
@@ -55,21 +128,21 @@ abstract class DataCollector {
     send(data: string) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
 
-        let processedData = this.format(data);
+        let formattedData = this.format(data);
 
-        if (processedData) {
-            !this.params.omitTS && (processedData = this.addTS(processedData));
+        if (formattedData) {
+            !this.params.omitTS && (formattedData = this.addTS(formattedData));
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
                         // log.debug(`location: ${t.location}, `);
 
-                        if (processedData) {
+                        if (formattedData) {
                             this.sendHttps({
                                 site,
                                 label,
                                 collectorType,
-                                processedData: processedData,
+                                formattedData: formattedData,
                                 rawData: keepRaw ? data : null
                             });
                         }
@@ -169,7 +242,7 @@ export class SRSserialCollector extends SerialCollector {
         return portMatrix;
     }
 
-    override format(data: string): ProcessedData[] | null {
+    override format(data: string): FormattedData[] | null {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
         let stateData: StateData = [[]];
 
@@ -203,7 +276,7 @@ export class SRSserialCollector extends SerialCollector {
             if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
         });
 
-        return [{ display: 1, field: data }];
+        return [{ display: 1, field: data, fieldType: 'string' }];
     }
 
     fetchParser(): ReadlineParser {

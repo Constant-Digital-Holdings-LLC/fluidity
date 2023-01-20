@@ -1,13 +1,19 @@
 export type CollectorType = 'generic-serial' | 'srs-serial';
-export interface ProcessedData {
+export interface FluidityLink {
+    name: string;
+    location: URL;
+}
+export type FluidityField = string | Date | FluidityLink;
+export interface FormattedData {
     display: number;
-    field: string;
+    field: FluidityField;
+    fieldType: 'link' | 'date' | 'string';
 }
 export interface FluidityPacket {
     site: string;
     label: string;
     collectorType: CollectorType;
-    processedData: ProcessedData[];
+    formattedData: FormattedData[];
     rawData?: string | null;
 }
 export interface PublishTarget {

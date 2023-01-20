@@ -6,6 +6,75 @@ const log = fetchLogger(conf);
 const isSRSportMap = (obj) => {
     return Array.isArray(obj) && typeof obj[0] === 'string';
 };
+class FormatUtility {
+    formattedData = [];
+    s(display = 0, element) { }
+    d(display = 0, element) { }
+    l(element) { }
+    s0(element) {
+        return this.s(0, element);
+    }
+    s1(element) {
+        return this.s(1, element);
+    }
+    s2(element) {
+        return this.s(2, element);
+    }
+    s3(element) {
+        return this.s(3, element);
+    }
+    s4(element) {
+        return this.s(4, element);
+    }
+    s5(element) {
+        return this.s(5, element);
+    }
+    s6(element) {
+        return this.s(6, element);
+    }
+    s7(element) {
+        return this.s(7, element);
+    }
+    s8(element) {
+        return this.s(8, element);
+    }
+    s9(element) {
+        return this.s(9, element);
+    }
+    d0(element) {
+        return this.d(0, element);
+    }
+    d1(element) {
+        return this.d(1, element);
+    }
+    d2(element) {
+        return this.d(2, element);
+    }
+    d3(element) {
+        return this.d(3, element);
+    }
+    d4(element) {
+        return this.d(4, element);
+    }
+    d5(element) {
+        return this.d(5, element);
+    }
+    d6(element) {
+        return this.d(6, element);
+    }
+    d7(element) {
+        return this.d(7, element);
+    }
+    d8(element) {
+        return this.d(8, element);
+    }
+    d9(element) {
+        return this.d(9, element);
+    }
+    get done() {
+        return this.formattedData;
+    }
+}
 class DataCollector {
     params;
     constructor(params) {
@@ -17,27 +86,27 @@ class DataCollector {
         });
     }
     format(data) {
-        return [{ display: 1, field: data }];
+        return [{ display: 1, field: data, fieldType: 'string' }];
     }
-    addTS(delimData) {
-        return delimData;
+    addTS(data) {
+        return data;
     }
     sendHttps(fPacket) {
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
-        let processedData = this.format(data);
-        if (processedData) {
-            !this.params.omitTS && (processedData = this.addTS(processedData));
+        let formattedData = this.format(data);
+        if (formattedData) {
+            !this.params.omitTS && (formattedData = this.addTS(formattedData));
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
-                        if (processedData) {
+                        if (formattedData) {
                             this.sendHttps({
                                 site,
                                 label,
                                 collectorType,
-                                processedData: processedData,
+                                formattedData: formattedData,
                                 rawData: keepRaw ? data : null
                             });
                         }
@@ -144,7 +213,7 @@ export class SRSserialCollector extends SerialCollector {
             if (s.length)
                 log.info(`${pLookup(index)}:\t${s}\t`);
         });
-        return [{ display: 1, field: data }];
+        return [{ display: 1, field: data, fieldType: 'string' }];
     }
     fetchParser() {
         return new ReadlineParser({ delimiter: '\r\n' });
