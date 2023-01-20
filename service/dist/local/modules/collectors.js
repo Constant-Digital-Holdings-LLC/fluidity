@@ -110,7 +110,7 @@ export class SRSserialCollector extends SerialCollector {
                     }
                     num >>= 1;
                 }
-                log.info(`Decoded:\t${binText.toString()}\t`);
+                log.info(`Decoded:\t${binText.toString()}\t\t`);
             }
         });
         return portMatrix;
