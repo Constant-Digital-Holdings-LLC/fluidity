@@ -1,7 +1,8 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { FormattedData, FluidityPacket, PublishTarget, FluidityLink } from '#@shared/types.js';
+import { FormattedData, FluidityPacket, PublishTarget, FluidityLink, FluidityField } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
+import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
@@ -31,16 +32,19 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
 class FormatUtility {
     private formattedData: FormattedData[] = [];
 
-    s(display: number = 0, element: string): this {
-        this.formattedData.push({ display, field: element, fieldType: 'string' });
-        return this;
-    }
-    d(display: number = 0, element: Date): this {
-        this.formattedData.push({ display, field: element, fieldType: 'date' });
-        return this;
-    }
-    l(display: number = 0, element: FluidityLink): this {
-        this.formattedData.push({ display, field: element, fieldType: 'link' });
+    e(element: FluidityField, display?: number): this {
+        display ??= 0;
+        if (typeof element === 'string') {
+            this.formattedData.push({ display, field: element, fieldType: 'string' });
+        }
+        if (element instanceof Object) {
+            if ('location' in element && 'name' in element) {
+                this.formattedData.push({ display, field: element, fieldType: 'link' });
+            }
+            if (element instanceof Date) {
+                this.formattedData.push({ display, field: element, fieldType: 'date' });
+            }
+        }
         return this;
     }
 
@@ -193,13 +197,13 @@ export class SRSserialCollector extends SerialCollector {
         const f = new FormatUtility();
         log.info(
             f
-                .s(0, 'I went ')
-                .s(1, 'online')
-                .s(0, ' and searched ')
-                .l(0, { location: 'http://google.com', name: 'Google' })
-                .s(0, 'at ')
-                .d(0, new Date())
-                .s(0, '!').done
+                .e('I went ')
+                .e('online', 1)
+                .e(' and searched ')
+                .e({ location: 'http://google.com', name: 'Google' })
+                .e('at ')
+                .e(new Date())
+                .e('!').done
         );
 
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
