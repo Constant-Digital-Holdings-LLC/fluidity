@@ -1,7 +1,7 @@
 export type CollectorType = 'generic-serial' | 'srs-serial';
 export interface FluidityLink {
     name: string;
-    location: URL;
+    location: string;
 }
 export type FluidityField = string | Date | FluidityLink;
 export interface FormattedData {

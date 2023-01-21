@@ -2,10 +2,8 @@ export type CollectorType = 'generic-serial' | 'srs-serial';
 
 export interface FluidityLink {
     name: string;
-    location: URL;
+    location: string;
 }
-
-const test: FluidityLink = { name: 'foo', location: new URL('http://foo.com') };
 
 export type FluidityField = string | Date | FluidityLink;
 

@@ -20,33 +20,10 @@ class FormatUtility {
         this.formattedData.push({ display, field: element, fieldType: 'link' });
         return this;
     }
-    s0(element) {
-        return this.s(0, element);
-    }
-    s1(element) {
-        return this.s(1, element);
-    }
-    s2(element) {
-        return this.s(2, element);
-    }
-    d0(element) {
-        return this.d(0, element);
-    }
-    d1(element) {
-        return this.d(1, element);
-    }
-    d2(element) {
-        return this.d(2, element);
-    }
-    l0(element) {
-        return this.l(0, element);
-    }
     get done() {
         return this.formattedData;
     }
 }
-const f = new FormatUtility();
-f.s0('the ').s1('dog').s0(' walked across the ').s2('street').s0('at ').d0(new Date()).s0('!').done;
 class DataCollector {
     params;
     constructor(params) {
@@ -157,6 +134,15 @@ export class SRSserialCollector extends SerialCollector {
         return portMatrix;
     }
     format(data) {
+        const f = new FormatUtility();
+        log.info(f
+            .s(0, 'I went ')
+            .s(1, 'online')
+            .s(0, ' and searched ')
+            .l(0, { location: 'http://google.com', name: 'Google' })
+            .s(0, 'at ')
+            .d(0, new Date())
+            .s(0, '!').done);
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
         let stateData = [[]];
         const pLookup = (p) => {
