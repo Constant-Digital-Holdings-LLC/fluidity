@@ -8,18 +8,19 @@ const isSRSportMap = (obj) => {
 };
 class FormatUtility {
     formattedData = [];
-    e(element, display) {
-        display ??= 0;
+    e(element, suggestStyle) {
+        suggestStyle ??= 0;
         if (typeof element === 'string') {
-            this.formattedData.push({ display, field: element, fieldType: 'string' });
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'string' });
         }
-        if (element instanceof Object) {
-            if ('location' in element && 'name' in element) {
-                this.formattedData.push({ display, field: element, fieldType: 'link' });
-            }
-            if (element instanceof Date) {
-                this.formattedData.push({ display, field: element, fieldType: 'date' });
-            }
+        else if (element instanceof Object && 'location' in element && 'name' in element) {
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'link' });
+        }
+        else if (element instanceof Date) {
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'date' });
+        }
+        else {
+            this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'string' });
         }
         return this;
     }
@@ -38,7 +39,7 @@ class DataCollector {
         });
     }
     format(data) {
-        return [{ display: 1, field: data, fieldType: 'string' }];
+        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
     }
     addTS(data) {
         return data;
@@ -142,6 +143,8 @@ export class SRSserialCollector extends SerialCollector {
             .e('I went ')
             .e('online', 1)
             .e(' and searched ')
+            .e(5, 1)
+            .e(' times on ')
             .e({ location: 'http://google.com', name: 'Google' })
             .e('at ')
             .e(new Date())
@@ -174,7 +177,7 @@ export class SRSserialCollector extends SerialCollector {
             if (s.length)
                 log.info(`${pLookup(index)}:\t${s}\t`);
         });
-        return [{ display: 1, field: data, fieldType: 'string' }];
+        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
     }
     fetchParser() {
         return new ReadlineParser({ delimiter: '\r\n' });

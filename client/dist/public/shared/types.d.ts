@@ -5,7 +5,7 @@ export interface FluidityLink {
 }
 export type FluidityField = string | Date | FluidityLink;
 export interface FormattedData {
-    display: number;
+    suggestStyle: number;
     field: FluidityField;
     fieldType: 'link' | 'date' | 'string';
 }

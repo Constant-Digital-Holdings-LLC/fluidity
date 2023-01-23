@@ -2,10 +2,14 @@ import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import { FormattedData, FluidityPacket, PublishTarget, FluidityLink, FluidityField } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
-import { type } from 'os';
 
 const conf = await config();
 const log = fetchLogger(conf);
+
+type SerialParser = ReadlineParser | RegexParser;
+type StringAble = {
+    toString(): string;
+};
 
 interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
     targets: PublishTarget[];
@@ -13,8 +17,6 @@ interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
     keepRaw: boolean;
     extendedOptions?: unknown;
 }
-
-type SerialParser = ReadlineParser | RegexParser;
 
 interface SerialPortParams extends DataCollectorParams {
     path: string;
@@ -32,19 +34,18 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
 class FormatUtility {
     private formattedData: FormattedData[] = [];
 
-    e(element: FluidityField, display?: number): this {
-        display ??= 0;
+    e(element: FluidityField | StringAble, suggestStyle?: number): this {
+        suggestStyle ??= 0;
         if (typeof element === 'string') {
-            this.formattedData.push({ display, field: element, fieldType: 'string' });
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'string' });
+        } else if (element instanceof Object && 'location' in element && 'name' in element) {
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'link' });
+        } else if (element instanceof Date) {
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'date' });
+        } else {
+            this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'string' });
         }
-        if (element instanceof Object) {
-            if ('location' in element && 'name' in element) {
-                this.formattedData.push({ display, field: element, fieldType: 'link' });
-            }
-            if (element instanceof Date) {
-                this.formattedData.push({ display, field: element, fieldType: 'date' });
-            }
-        }
+
         return this;
     }
 
@@ -65,7 +66,7 @@ abstract class DataCollector {
     abstract listen(): void;
 
     protected format(data: string): FormattedData[] | null {
-        return [{ display: 1, field: data, fieldType: 'string' }];
+        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
     }
 
     private addTS(data: FormattedData[]): FormattedData[] {
@@ -200,6 +201,8 @@ export class SRSserialCollector extends SerialCollector {
                 .e('I went ')
                 .e('online', 1)
                 .e(' and searched ')
+                .e(5, 1)
+                .e(' times on ')
                 .e({ location: 'http://google.com', name: 'Google' })
                 .e('at ')
                 .e(new Date())
@@ -239,7 +242,7 @@ export class SRSserialCollector extends SerialCollector {
             if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
         });
 
-        return [{ display: 1, field: data, fieldType: 'string' }];
+        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
     }
 
     fetchParser(): ReadlineParser {
