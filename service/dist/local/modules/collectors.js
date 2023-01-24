@@ -7,10 +7,7 @@ const isSRSportMap = (obj) => {
     return Array.isArray(obj) && typeof obj[0] === 'string';
 };
 class LineFormatHelper {
-    formattedData;
-    constructor() {
-        this.formattedData = [];
-    }
+    formattedData = [];
     e(element, suggestStyle) {
         suggestStyle ??= 0;
         if (typeof element === 'string') {

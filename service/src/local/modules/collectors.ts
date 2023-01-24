@@ -32,11 +32,7 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
 };
 
 class LineFormatHelper {
-    private formattedData: FormattedData[];
-
-    constructor() {
-        this.formattedData = [];
-    }
+    private formattedData: FormattedData[] = [];
 
     e(element: FluidityField | StringAble, suggestStyle?: number): this {
         suggestStyle ??= 0;
@@ -53,7 +49,7 @@ class LineFormatHelper {
         return this;
     }
 
-    public get done(): FormattedData[] {
+    get done(): FormattedData[] {
         return this.formattedData;
     }
 }
