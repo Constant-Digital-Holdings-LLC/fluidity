@@ -156,8 +156,12 @@ export class SRSserialCollector extends SerialCollector {
         super(params);
     }
 
-    private decode(stateType: 'RADIO' | 'PORT', radix: number, decodeList: string[]): StateData {
-        const portMatrix: StateData = [[], [], [], [], [], [], [], []];
+    private decode<T extends RadioStates | PortStates>(
+        stateList: readonly string[],
+        radix: number,
+        decodeList: string[]
+    ): T[][] {
+        const portMatrix: T[][] = [[], [], [], [], [], [], [], []];
 
         decodeList.forEach((dc, decodeIndex) => {
             const binText: string[] = [];
@@ -167,19 +171,16 @@ export class SRSserialCollector extends SerialCollector {
             if (num) {
                 log.info('\n\n');
                 log.info(
-                    `Decoding:\t${prefix + dc.toUpperCase()} (${
-                        stateType === 'PORT' ? portStates[decodeIndex] : radioStates[decodeIndex]
-                    }) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`
+                    `Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex]}) of ${decodeList.map(
+                        v => prefix + v.toUpperCase()
+                    )}\t`
                 );
 
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
                         binText.unshift('1');
-                        if (stateType === 'RADIO' && radioStates[decodeIndex]) {
-                            (portMatrix[bit] as Array<RadioStates>).push(radioStates[decodeIndex]!);
-                        }
-                        if (stateType === 'PORT' && portStates[decodeIndex]) {
-                            (portMatrix[bit] as Array<PortStates>).push(portStates[decodeIndex]!);
+                        if (typeof stateList[decodeIndex] === 'string') {
+                            portMatrix[bit]?.push(stateList[decodeIndex] as T);
                         }
                     } else {
                         binText.unshift('0');
@@ -228,19 +229,19 @@ export class SRSserialCollector extends SerialCollector {
 
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
             if (data[0] === '[') {
-                stateData = this.decode('RADIO', 16, result[1].split(' '));
+                this.decode<RadioStates>(radioStates, 16, result[1].split(' ')).forEach((s, index) => {
+                    if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
+                });
             }
 
             if (data[0] === '{') {
-                stateData = this.decode('PORT', 16, result[1].split(' '));
+                this.decode<PortStates>(portStates, 16, result[1].split(' ')).forEach((s, index) => {
+                    if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
+                });
             }
         } else {
             return null;
         }
-
-        stateData.forEach((s, index) => {
-            if (s.length) log.info(`${pLookup(index)}:\t${s}\t`);
-        });
 
         return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
     }
