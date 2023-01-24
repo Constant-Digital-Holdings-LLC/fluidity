@@ -1,5 +1,5 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { FormattedData, FluidityPacket, PublishTarget, FluidityLink, FluidityField } from '#@shared/types.js';
+import { FormattedData, FluidityPacket, PublishTarget, FluidityField } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
@@ -91,7 +91,7 @@ abstract class DataCollector {
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
-                        // log.debug(`location: ${t.location}, `);
+                        log.debug(`location: ${t.location}, `);
 
                         if (formattedData) {
                             this.sendHttps({

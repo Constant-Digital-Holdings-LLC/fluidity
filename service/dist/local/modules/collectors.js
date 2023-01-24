@@ -58,6 +58,7 @@ class DataCollector {
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
+                        log.debug(`location: ${t.location}, `);
                         if (formattedData) {
                             this.sendHttps({
                                 site,
