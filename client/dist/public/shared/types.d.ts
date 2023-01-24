@@ -7,7 +7,7 @@ export type FluidityField = string | Date | FluidityLink;
 export interface FormattedData {
     suggestStyle: number;
     field: FluidityField;
-    fieldType: 'link' | 'date' | 'string';
+    fieldType: 'LINK' | 'DATE' | 'STRING';
 }
 export interface FluidityPacket {
     site: string;

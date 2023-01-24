@@ -6,21 +6,24 @@ const log = fetchLogger(conf);
 const isSRSportMap = (obj) => {
     return Array.isArray(obj) && typeof obj[0] === 'string';
 };
-class FormatUtility {
-    formattedData = [];
+class LineFormatHelper {
+    formattedData;
+    constructor() {
+        this.formattedData = [];
+    }
     e(element, suggestStyle) {
         suggestStyle ??= 0;
         if (typeof element === 'string') {
-            this.formattedData.push({ suggestStyle, field: element, fieldType: 'string' });
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'STRING' });
         }
         else if (element instanceof Object && 'location' in element && 'name' in element) {
-            this.formattedData.push({ suggestStyle, field: element, fieldType: 'link' });
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'LINK' });
         }
         else if (element instanceof Date) {
-            this.formattedData.push({ suggestStyle, field: element, fieldType: 'date' });
+            this.formattedData.push({ suggestStyle, field: element, fieldType: 'DATE' });
         }
         else {
-            this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'string' });
+            this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'STRING' });
         }
         return this;
     }
@@ -39,12 +42,13 @@ class DataCollector {
         });
     }
     format(data) {
-        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
+        return new LineFormatHelper().e(data).done;
     }
     addTS(data) {
         return data;
     }
     sendHttps(fPacket) {
+        log.debug(fPacket);
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
@@ -115,8 +119,8 @@ export class SRSserialCollector extends SerialCollector {
             let num = parseInt(dc, radix);
             const prefix = radix === 16 ? '0x' : '';
             if (num) {
-                log.info('\n\n');
-                log.info(`Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex]}) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`);
+                log.debug('\n\n');
+                log.debug(`Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex]}) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`);
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
                         binText.unshift('1');
@@ -129,25 +133,13 @@ export class SRSserialCollector extends SerialCollector {
                     }
                     num >>= 1;
                 }
-                log.info(`Decoded:\t${binText.toString()}\t\t`);
+                log.debug(`Decoded:\t${binText.toString()}\t\t`);
             }
         });
         return portMatrix;
     }
     format(data) {
-        const f = new FormatUtility();
-        log.info(f
-            .e('I went ')
-            .e('online', 1)
-            .e(' and searched ')
-            .e(5, 1)
-            .e(' times on ')
-            .e({ location: 'http://google.com', name: 'Google' })
-            .e('at ')
-            .e(new Date())
-            .e('!').done);
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
-        let stateData = [[]];
         const pLookup = (p) => {
             let portName;
             const eo = this.params.extendedOptions;
@@ -161,22 +153,29 @@ export class SRSserialCollector extends SerialCollector {
         };
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
             if (data[0] === '[') {
-                this.decode(radioStates, 16, result[1].split(' ')).forEach((s, index) => {
-                    if (s.length)
-                        log.info(`${pLookup(index)}:\t${s}\t`);
-                });
+                return [
+                    ...new LineFormatHelper()
+                        .e('RADIO States->', 0)
+                        .done,
+                    ...this.decode(radioStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? new LineFormatHelper()
+                        .e(`${pLookup(index)}:`, 0)
+                        .e(s, 21)
+                        .done : [])
+                ];
             }
             if (data[0] === '{') {
-                this.decode(portStates, 16, result[1].split(' ')).forEach((s, index) => {
-                    if (s.length)
-                        log.info(`${pLookup(index)}:\t${s}\t`);
-                });
+                return [
+                    ...new LineFormatHelper()
+                        .e('PORT States->', 0)
+                        .done,
+                    ...this.decode(portStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? new LineFormatHelper()
+                        .e(`${pLookup(index)}:`, 0)
+                        .e(s, 22)
+                        .done : [])
+                ];
             }
         }
-        else {
-            return null;
-        }
-        return [{ suggestStyle: 1, field: data, fieldType: 'string' }];
+        return null;
     }
     fetchParser() {
         return new ReadlineParser({ delimiter: '\r\n' });
