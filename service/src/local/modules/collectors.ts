@@ -146,10 +146,6 @@ const radioStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT_ON'] as const;
 const portStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT_GROUP', 'INTERFACED'] as const;
 type RadioStates = typeof radioStates[number];
 type PortStates = typeof portStates[number];
-type RadioStateData = RadioStates[][];
-type PortStateData = PortStates[][];
-
-type StateData = RadioStateData | PortStateData;
 
 export class SRSserialCollector extends SerialCollector {
     constructor(params: SerialPortParams) {
@@ -211,7 +207,6 @@ export class SRSserialCollector extends SerialCollector {
         );
 
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
-        let stateData: StateData = [[]];
 
         const pLookup = (p: number): string => {
             let portName: string | undefined;
