@@ -47,7 +47,9 @@ class DataCollector {
         return data;
     }
     sendHttps(fPacket) {
+        log.debug('############### BEGIN ONE HTTP POST ###############');
         log.debug(fPacket);
+        log.debug('############### END ONE HTTP POST   ###############');
     }
     send(data) {
         const { site, label, collectorType, targets, keepRaw } = this.params;

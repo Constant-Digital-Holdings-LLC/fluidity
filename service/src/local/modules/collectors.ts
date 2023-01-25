@@ -65,7 +65,7 @@ abstract class DataCollector {
         });
     }
 
-    abstract listen(): void;
+    abstract run(): void;
 
     protected format(data: string, fh: FormatHelper): FormattedData[] | null {
         return fh.e(data).done;
@@ -76,7 +76,9 @@ abstract class DataCollector {
     }
 
     private sendHttps(fPacket: FluidityPacket): void {
+        log.debug('############### BEGIN ONE HTTP POST ###############');
         log.debug(fPacket);
+        log.debug('############### END ONE HTTP POST   ###############');
     }
 
     send(data: string) {
@@ -129,7 +131,7 @@ abstract class SerialCollector extends DataCollector {
         this.parser = this.port.pipe(this.fetchParser());
     }
 
-    listen(): void {
+    run(): void {
         this.parser.on('data', this.send.bind(this));
     }
 }
