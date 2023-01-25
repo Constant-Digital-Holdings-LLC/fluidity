@@ -31,7 +31,7 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
     return Array.isArray(obj) && typeof obj[0] === 'string';
 };
 
-class LineFormatHelper {
+class FormatHelper {
     private formattedData: FormattedData[] = [];
 
     e(element: FluidityField | StringAble, suggestStyle?: number): this {
@@ -50,7 +50,9 @@ class LineFormatHelper {
     }
 
     get done(): FormattedData[] {
-        return this.formattedData;
+        const clone: FormattedData[] = JSON.parse(JSON.stringify(this.formattedData));
+        this.formattedData.length = 0;
+        return clone;
     }
 }
 
@@ -65,8 +67,8 @@ abstract class DataCollector {
 
     abstract listen(): void;
 
-    protected format(data: string): FormattedData[] | null {
-        return new LineFormatHelper().e(data).done;
+    protected format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
     }
 
     private addTS(data: FormattedData[]): FormattedData[] {
@@ -80,7 +82,7 @@ abstract class DataCollector {
     send(data: string) {
         const { site, label, collectorType, targets, keepRaw } = this.params;
 
-        let formattedData = this.format(data);
+        let formattedData = this.format(data, new FormatHelper());
 
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
@@ -191,7 +193,7 @@ export class SRSserialCollector extends SerialCollector {
         return portMatrix;
     }
 
-    override format(data: string): FormattedData[] | null {
+    override format(data: string, fh: FormatHelper): FormattedData[] | null {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
 
         const pLookup = (p: number): string => {
@@ -212,28 +214,30 @@ export class SRSserialCollector extends SerialCollector {
             if (data[0] === '[') {
                 //prettier-ignore
                 return [
-                    ...new LineFormatHelper()
+                    ...fh
                         .e('RADIO States->', 0)
                         .done,
                     ...this.decode<RadioStates>(radioStates, 16, result[1].split(' ')).flatMap((s, index) =>
-                        s.length ? new LineFormatHelper()
+                        s.length ? fh
                             .e(`${pLookup(index)}:`, 0)
                             .e(s, 21)
-                            .done : []
+                            .done
+                            : []
                     )
                 ];
             }
             if (data[0] === '{') {
                 //prettier-ignore
                 return [
-                    ...new LineFormatHelper()
+                    ...fh
                         .e('PORT States->', 0)
                         .done,
                     ...this.decode<PortStates>(portStates, 16, result[1].split(' ')).flatMap((s, index) =>
-                        s.length ? new LineFormatHelper()
+                        s.length ? fh
                             .e(`${pLookup(index)}:`, 0)
                             .e(s, 22)
-                            .done : []
+                            .done
+                            : []
                     )
                 ];
             }
