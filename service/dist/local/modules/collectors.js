@@ -155,25 +155,23 @@ export class SRSserialCollector extends SerialCollector {
             if (data[0] === '[') {
                 return [
                     ...fh
-                        .e('RADIO States->', 0)
+                        .e('RADIO States->')
                         .done,
                     ...this.decode(radioStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh
-                        .e(`${pLookup(index)}:`, 0)
+                        .e(`${pLookup(index)}:`)
                         .e(s, 21)
-                        .done
-                        : [])
+                        .done : [])
                 ];
             }
             if (data[0] === '{') {
                 return [
                     ...fh
-                        .e('PORT States->', 0)
+                        .e('PORT States->')
                         .done,
                     ...this.decode(portStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh
-                        .e(`${pLookup(index)}:`, 0)
+                        .e(`${pLookup(index)}:`)
                         .e(s, 22)
-                        .done
-                        : [])
+                        .done : [])
                 ];
             }
         }
