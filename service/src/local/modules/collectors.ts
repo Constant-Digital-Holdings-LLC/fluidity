@@ -87,7 +87,7 @@ abstract class DataCollector {
         }
     }
 
-    abstract run(): void;
+    abstract start(): void;
 
     protected format(data: string, fh: FormatHelper): FormattedData[] | null {
         return fh.e(data).done;
@@ -157,7 +157,7 @@ abstract class NetAnnounce extends DataCollector {
         return fh.e(data).done;
     }
 
-    run(): void {
+    start(): void {
         //use setIntervalAsync (imported) here. Have it call this.send()
     }
 }
@@ -182,7 +182,7 @@ abstract class SerialCollector extends DataCollector {
         this.parser = this.port.pipe(this.fetchParser());
     }
 
-    run(): void {
+    start(): void {
         this.parser.on('data', this.send.bind(this));
     }
 }

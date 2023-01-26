@@ -16,10 +16,10 @@ if (conf) {
             conf['collectors'].forEach(collectorConfig => {
                 switch (collectorConfig.collectorType as CollectorType) {
                     case 'generic-serial':
-                        new GenericSerialCollector({ site, targets, ...collectorConfig }).run();
+                        new GenericSerialCollector({ site, targets, ...collectorConfig }).start();
                         break;
                     case 'srs-serial':
-                        new SRSserialCollector({ site, targets, ...collectorConfig }).run();
+                        new SRSserialCollector({ site, targets, ...collectorConfig }).start();
                         break;
                     default:
                         throw new Error(`no collectors found for type ${collectorConfig.collectorType}`);
