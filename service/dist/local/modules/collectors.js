@@ -34,11 +34,25 @@ class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        ['targets', 'site', 'label', 'collectorType', 'keepRaw'].forEach(p => {
-            if (typeof params?.[p] === 'undefined') {
-                throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
-            }
-        });
+        const { targets, site, label, collectorType, keepRaw, omitTS } = params || {};
+        if (!Array.isArray(targets)) {
+            throw new Error(`DataCollector constructor - expected array of targets[] in config`);
+        }
+        if (typeof site !== 'string') {
+            throw new Error(`DataCollector constructor - site name in config`);
+        }
+        if (typeof label !== 'string') {
+            throw new Error(`DataCollector constructor - collector of type ${collectorType} missing label in config`);
+        }
+        if (typeof collectorType !== 'string') {
+            throw new Error(`DataCollector constructor - collector ${label} requires a collectorType field in config`);
+        }
+        if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
+            throw new Error(`DataCollector constructor - optional keepRaw field should be a boolean for collector: ${label}`);
+        }
+        if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
+            throw new Error(`DataCollector constructor - optional omitTS field should be a boolean for collector ${label}`);
+        }
     }
     format(data, fh) {
         return fh.e(data).done;
@@ -84,19 +98,37 @@ class DataCollector {
         }
     }
 }
+class NetAnnounce extends DataCollector {
+    pollIntervalMin;
+    announceEveryMin;
+    constructor(params) {
+        super(params);
+        if (typeof params.pollIntervalMin === 'number' && typeof params.announceEveryMin === 'number') {
+            ({ pollIntervalMin: this.pollIntervalMin, announceEveryMin: this.announceEveryMin } = params);
+        }
+        else {
+            throw new Error(`expected numeric values pollIntervalMin and announceEveryMin for ${params.collectorType}: ${params.label}`);
+        }
+    }
+    format(data, fh) {
+        return fh.e(data).done;
+    }
+    run() {
+    }
+}
 class SerialCollector extends DataCollector {
     port;
     parser;
     constructor({ path, baudRate, ...params }) {
         super(params);
-        if (!path)
-            throw new Error(`missing serial port identifier for ${params.collectorType}: ${params.label}`);
-        if (!baudRate)
-            throw new Error(`port speed for ${params.collectorType}: ${params.label}`);
+        if (typeof path !== 'string')
+            throw new Error(`expected serial port identifier (string) in config for ${params.collectorType}: ${params.label}`);
+        if (typeof baudRate !== 'number')
+            throw new Error(`expected numeric port speed in config for ${params.collectorType}: ${params.label}`);
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
     }
-    listen() {
+    run() {
         this.parser.on('data', this.send.bind(this));
     }
 }

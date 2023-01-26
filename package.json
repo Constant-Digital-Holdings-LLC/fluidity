@@ -33,6 +33,7 @@
         "express": "^4.18.1",
         "ring-buffer-ts": "^1.0.3",
         "serialport": "^10.5.0",
+        "set-interval-async": "^3.0.3",
         "stack-trace": "^1.0.0-pre1",
         "yaml": "^2.1.1"
     }

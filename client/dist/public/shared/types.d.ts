@@ -1,4 +1,4 @@
-export type CollectorType = 'generic-serial' | 'srs-serial';
+export type CollectorType = 'generic-serial' | 'srs-serial' | 'net-announce';
 export interface FluidityLink {
     name: string;
     location: string;

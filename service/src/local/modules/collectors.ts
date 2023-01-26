@@ -1,4 +1,5 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
+import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 import { FormattedData, FluidityPacket, PublishTarget, FluidityField } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
@@ -14,7 +15,7 @@ type StringAble = {
 interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
     targets: PublishTarget[];
     omitTS?: boolean;
-    keepRaw: boolean;
+    keepRaw?: boolean;
     extendedOptions?: unknown;
 }
 
@@ -58,11 +59,32 @@ class FormatHelper {
 
 abstract class DataCollector {
     constructor(public params: DataCollectorParams) {
-        (['targets', 'site', 'label', 'collectorType', 'keepRaw'] as const).forEach(p => {
-            if (typeof params?.[p] === 'undefined') {
-                throw new Error(`DataCollector constructor - required param: [${p}] undefined`);
-            }
-        });
+        const { targets, site, label, collectorType, keepRaw, omitTS } = params || {};
+
+        // for ${params.collectorType}: ${params.label}
+
+        if (!Array.isArray(targets)) {
+            throw new Error(`DataCollector constructor - expected array of targets[] in config`);
+        }
+        if (typeof site !== 'string') {
+            throw new Error(`DataCollector constructor - site name in config`);
+        }
+        if (typeof label !== 'string') {
+            throw new Error(`DataCollector constructor - collector of type ${collectorType} missing label in config`);
+        }
+        if (typeof collectorType !== 'string') {
+            throw new Error(`DataCollector constructor - collector ${label} requires a collectorType field in config`);
+        }
+        if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
+            throw new Error(
+                `DataCollector constructor - optional keepRaw field should be a boolean for collector: ${label}`
+            );
+        }
+        if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
+            throw new Error(
+                `DataCollector constructor - optional omitTS field should be a boolean for collector ${label}`
+            );
+        }
     }
 
     abstract run(): void;
@@ -115,6 +137,31 @@ abstract class DataCollector {
     }
 }
 
+abstract class NetAnnounce extends DataCollector {
+    private pollIntervalMin: number;
+    private announceEveryMin: number;
+
+    constructor(params: { pollIntervalMin: number; announceEveryMin: number } & DataCollectorParams) {
+        super(params);
+
+        if (typeof params.pollIntervalMin === 'number' && typeof params.announceEveryMin === 'number') {
+            ({ pollIntervalMin: this.pollIntervalMin, announceEveryMin: this.announceEveryMin } = params);
+        } else {
+            throw new Error(
+                `expected numeric values pollIntervalMin and announceEveryMin for ${params.collectorType}: ${params.label}`
+            );
+        }
+    }
+
+    override format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
+    }
+
+    run(): void {
+        //use setIntervalAsync (imported) here. Have it call this.send()
+    }
+}
+
 abstract class SerialCollector extends DataCollector {
     port: SerialPort;
     parser: SerialParser;
@@ -124,8 +171,12 @@ abstract class SerialCollector extends DataCollector {
     constructor({ path, baudRate, ...params }: SerialPortParams) {
         super(params);
 
-        if (!path) throw new Error(`missing serial port identifier for ${params.collectorType}: ${params.label}`);
-        if (!baudRate) throw new Error(`port speed for ${params.collectorType}: ${params.label}`);
+        if (typeof path !== 'string')
+            throw new Error(
+                `expected serial port identifier (string) in config for ${params.collectorType}: ${params.label}`
+            );
+        if (typeof baudRate !== 'number')
+            throw new Error(`expected numeric port speed in config for ${params.collectorType}: ${params.label}`);
 
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());

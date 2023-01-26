@@ -11,8 +11,7 @@
             "collectorType": "generic-serial",
             "path": "COM10",
             "baudRate": 9600,
-            "omitTS": true,
-            "keepRaw": false
+            "omitTS": true
         },
         {
             "label": "SRS",
