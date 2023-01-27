@@ -22,6 +22,8 @@ class FormatterBase {
                 formattedMesg += `\nstack-->\n${message.stack} <--stack`;
             }
         }
+        if (message instanceof Object)
+            formattedMesg !== null && formattedMesg !== void 0 ? formattedMesg : (formattedMesg = message.toString());
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;
             return `[${this.dateString(timestamp)}]: ${formattedMesg} (${file}:${line})`;

@@ -13,6 +13,12 @@ if (conf) {
                     log.info(`\nLoading collector: ${name} [${description}]`);
 
                     const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
+                    // If the thing I'm loggin is javascript code, I think I want to call .toString() on it rather than JSON.strinify...
+                    // these two yield differing results:
+
+                    log.debug('Here:');
+                    log.debug(Plugin);
+
                     new Plugin({ site, targets, ...collectorConfig }).start();
                 })
             );

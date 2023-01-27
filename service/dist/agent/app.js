@@ -9,13 +9,10 @@ if (conf) {
             await Promise.all(conf['collectors'].map(async (collectorConfig) => {
                 const { name, description } = collectorConfig;
                 log.info(`\nLoading collector: ${name} [${description}]`);
-                try {
-                    const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
-                    new Plugin({ site, targets, ...collectorConfig }).start();
-                }
-                catch (err) {
-                    log.error(err);
-                }
+                const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
+                log.debug('Here:');
+                log.debug(Plugin);
+                new Plugin({ site, targets, ...collectorConfig }).start();
             }));
         }
         else {

@@ -54,6 +54,8 @@ abstract class FormatterBase implements LogFormatter {
             }
         }
 
+        if (message instanceof Object) formattedMesg ??= message.toString();
+
         if (data.location?.file && data.location?.line) {
             const {
                 location: { file, line }

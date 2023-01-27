@@ -5,3 +5,5 @@
 - Start decoding hex values to human redable in SRSserialCollector's format() method
 
 - Write a simple api key permissions middleware 
+
+- If the thing I'm loggin is javascript code, I think I want to call .toString() on it rather than JSON.strinify...
