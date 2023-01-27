@@ -8,21 +8,21 @@
     "collectors": [
         {
             "description": "TNC",
-            "name": "genericSerial",
+            "plugin": "genericSerial",
             "path": "COM10",
             "baudRate": 9600,
             "omitTS": true
         },
         {
             "description": "Ham.Live",
-            "name": "netAnnounce",
+            "plugin": "netAnnounce",
             "pollIntervalMin": 1,
             "announceEveryMin": 5,
             "omitTS": true
         },
         {
             "description": "SRS",
-            "name": "srsSerial",
+            "plugin": "srsSerial",
             "path": "COM4",
             "baudRate": 9600,
             "keepRaw": true,

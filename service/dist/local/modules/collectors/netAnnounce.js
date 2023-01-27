@@ -12,13 +12,13 @@ export default class NetAnnounce extends DataCollector {
             ({ pollIntervalMin: this.pollIntervalMin, announceEveryMin: this.announceEveryMin } = params);
         }
         else {
-            throw new Error(`expected numeric values pollIntervalMin/announceEveryMin for ${params.name}: ${params.description}`);
+            throw new Error(`expected numeric values pollIntervalMin/announceEveryMin for ${params.plugin}: ${params.description}`);
         }
     }
     format(data, fh) {
         return fh.e(data).done;
     }
     start() {
-        log.info(`${this.params.name} started`);
+        log.info(`${this.params.plugin} started`);
     }
 }

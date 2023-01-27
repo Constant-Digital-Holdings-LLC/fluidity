@@ -17,7 +17,7 @@ export default class NetAnnounce extends DataCollector implements DataCollectorP
             ({ pollIntervalMin: this.pollIntervalMin, announceEveryMin: this.announceEveryMin } = params);
         } else {
             throw new Error(
-                `expected numeric values pollIntervalMin/announceEveryMin for ${params.name}: ${params.description}`
+                `expected numeric values pollIntervalMin/announceEveryMin for ${params.plugin}: ${params.description}`
             );
         }
     }
@@ -28,6 +28,6 @@ export default class NetAnnounce extends DataCollector implements DataCollectorP
 
     start(): void {
         //use setIntervalAsync (imported) here. Have it call this.send()
-        log.info(`${this.params.name} started`);
+        log.info(`${this.params.plugin} started`);
     }
 }

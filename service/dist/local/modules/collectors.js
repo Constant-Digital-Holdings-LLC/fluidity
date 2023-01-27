@@ -31,7 +31,7 @@ export class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        const { targets, site, description, name, keepRaw, omitTS } = params || {};
+        const { targets, site, description, plugin, keepRaw, omitTS } = params || {};
         if (!Array.isArray(targets)) {
             throw new Error(`DataCollector constructor - expected array of targets[] in config`);
         }
@@ -39,20 +39,20 @@ export class DataCollector {
             throw new Error(`DataCollector constructor - site name in config`);
         }
         if (typeof description !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${name} missing description in config`);
+            throw new Error(`DataCollector constructor - collector ${plugin} missing description in config`);
         }
-        if (typeof name !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${description} requires a name field in config`);
+        if (typeof plugin !== 'string') {
+            throw new Error(`DataCollector constructor - collector ${description} requires a plugin field in config`);
         }
         if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
-            throw new Error(`DataCollector constructor - optional keepRaw field should be a boolean for collector: ${name}`);
+            throw new Error(`DataCollector constructor - optional keepRaw field should be a boolean for collector: ${plugin}`);
         }
         if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
-            throw new Error(`DataCollector constructor - optional omitTS field should be a boolean for collector ${name}`);
+            throw new Error(`DataCollector constructor - optional omitTS field should be a boolean for collector ${plugin}`);
         }
     }
     stop() {
-        log.info(`stopped: ${this.params.name}`);
+        log.info(`stopped: ${this.params.plugin}`);
     }
     format(data, fh) {
         return fh.e(data).done;
@@ -66,7 +66,7 @@ export class DataCollector {
         log.debug('############### END ONE HTTP POST   ###############');
     }
     send(data) {
-        const { site, description, name, targets, keepRaw } = this.params;
+        const { site, description, plugin, targets, keepRaw } = this.params;
         let formattedData = this.format(data, new FormatHelper());
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
@@ -78,7 +78,7 @@ export class DataCollector {
                             this.sendHttps({
                                 site,
                                 description,
-                                name,
+                                plugin,
                                 formattedData: formattedData,
                                 rawData: keepRaw ? data : null
                             });
@@ -104,14 +104,14 @@ export class SerialCollector extends DataCollector {
     constructor({ path, baudRate, ...params }) {
         super(params);
         if (typeof path !== 'string')
-            throw new Error(`expected serial port identifier (string) in config for ${params.name}: ${params.description}`);
+            throw new Error(`expected serial port identifier (string) in config for ${params.plugin}: ${params.description}`);
         if (typeof baudRate !== 'number')
-            throw new Error(`expected numeric port speed in config for ${params.name}: ${params.description}`);
+            throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
     }
     start() {
         this.parser.on('data', this.send.bind(this));
-        log.info(`${this.params.name} started`);
+        log.info(`${this.params.plugin} started`);
     }
 }

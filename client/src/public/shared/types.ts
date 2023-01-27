@@ -14,7 +14,7 @@ export interface FormattedData {
 export interface FluidityPacket {
     site: string;
     description: string;
-    name: string;
+    plugin: string;
     formattedData: FormattedData[];
     rawData?: string | null;
 }

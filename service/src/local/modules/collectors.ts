@@ -52,7 +52,7 @@ export interface DataCollectorPlugin {
 
 export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
-        const { targets, site, description, name, keepRaw, omitTS } = params || {};
+        const { targets, site, description, plugin, keepRaw, omitTS } = params || {};
 
         // for ${params.collectorType}: ${params.label}
 
@@ -63,26 +63,26 @@ export abstract class DataCollector implements DataCollectorPlugin {
             throw new Error(`DataCollector constructor - site name in config`);
         }
         if (typeof description !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${name} missing description in config`);
+            throw new Error(`DataCollector constructor - collector ${plugin} missing description in config`);
         }
-        if (typeof name !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${description} requires a name field in config`);
+        if (typeof plugin !== 'string') {
+            throw new Error(`DataCollector constructor - collector ${description} requires a plugin field in config`);
         }
         if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
             throw new Error(
-                `DataCollector constructor - optional keepRaw field should be a boolean for collector: ${name}`
+                `DataCollector constructor - optional keepRaw field should be a boolean for collector: ${plugin}`
             );
         }
         if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
             throw new Error(
-                `DataCollector constructor - optional omitTS field should be a boolean for collector ${name}`
+                `DataCollector constructor - optional omitTS field should be a boolean for collector ${plugin}`
             );
         }
     }
 
     abstract start(): void;
     stop(): void {
-        log.info(`stopped: ${this.params.name}`);
+        log.info(`stopped: ${this.params.plugin}`);
     }
 
     protected format(data: string, fh: FormatHelper): FormattedData[] | null {
@@ -100,7 +100,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 
     protected send(data: string): void {
-        const { site, description, name, targets, keepRaw } = this.params;
+        const { site, description, plugin, targets, keepRaw } = this.params;
 
         let formattedData = this.format(data, new FormatHelper());
 
@@ -115,7 +115,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
                             this.sendHttps({
                                 site,
                                 description,
-                                name,
+                                plugin,
                                 formattedData: formattedData,
                                 rawData: keepRaw ? data : null
                             });
@@ -148,10 +148,10 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
 
         if (typeof path !== 'string')
             throw new Error(
-                `expected serial port identifier (string) in config for ${params.name}: ${params.description}`
+                `expected serial port identifier (string) in config for ${params.plugin}: ${params.description}`
             );
         if (typeof baudRate !== 'number')
-            throw new Error(`expected numeric port speed in config for ${params.name}: ${params.description}`);
+            throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
 
         this.port = new SerialPort({ path, baudRate });
         this.parser = this.port.pipe(this.fetchParser());
@@ -159,6 +159,6 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
 
     start(): void {
         this.parser.on('data', this.send.bind(this));
-        log.info(`${this.params.name} started`);
+        log.info(`${this.params.plugin} started`);
     }
 }
