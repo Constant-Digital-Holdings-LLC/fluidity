@@ -1,5 +1,3 @@
-export type CollectorType = 'generic-serial' | 'srs-serial' | 'net-announce';
-
 export interface FluidityLink {
     name: string;
     location: string;
@@ -15,8 +13,8 @@ export interface FormattedData {
 
 export interface FluidityPacket {
     site: string;
-    label: string;
-    collectorType: CollectorType;
+    description: string;
+    name: string;
     formattedData: FormattedData[];
     rawData?: string | null;
 }
@@ -25,3 +23,7 @@ export interface PublishTarget {
     location: string;
     key?: string;
 }
+
+export type StringAble = {
+    toString(): string;
+};

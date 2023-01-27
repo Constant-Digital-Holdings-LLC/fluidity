@@ -7,30 +7,11 @@
     "log_level": "debug",
     "collectors": [
         {
-            "label": "TNC",
-            "collectorType": "generic-serial",
+            "description": "TNC",
+            "name": "genericSerial",
             "path": "COM10",
             "baudRate": 9600,
             "omitTS": true
-        },
-        {
-            "label": "SRS",
-            "collectorType": "srs-serial",
-            "path": "COM4",
-            "baudRate": 9600,
-            "keepRaw": true,
-            "extendedOptions": {
-                "portmap": [
-                    "440",
-                    "2M",
-                    "L1-PV Switch",
-                    "L2-South Mtn",
-                    "L3-TBD-OFF",
-                    "L4-Saddle",
-                    "L5-Sulphur",
-                    "L6-San Pedro"
-                ]
-            }
         }
     ]
 }
