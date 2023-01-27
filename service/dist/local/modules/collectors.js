@@ -3,7 +3,7 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
 const log = fetchLogger(conf);
-class FormatHelper {
+export class FormatHelper {
     formattedData = [];
     e(element, suggestStyle) {
         suggestStyle ??= 0;
@@ -27,7 +27,7 @@ class FormatHelper {
         return clone;
     }
 }
-class DataCollector {
+export class DataCollector {
     params;
     constructor(params) {
         this.params = params;

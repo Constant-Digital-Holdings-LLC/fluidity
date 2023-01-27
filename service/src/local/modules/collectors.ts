@@ -8,7 +8,7 @@ const log = fetchLogger(conf);
 
 type SerialParser = ReadlineParser | RegexParser;
 
-interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
+export interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
     targets: PublishTarget[];
     omitTS?: boolean;
     keepRaw?: boolean;
@@ -20,7 +20,7 @@ export interface SerialCollectorParams extends DataCollectorParams {
     baudRate: number;
 }
 
-class FormatHelper {
+export class FormatHelper {
     private formattedData: FormattedData[] = [];
 
     e(element: FluidityField | StringAble, suggestStyle?: number): this {
@@ -50,7 +50,7 @@ export interface DataCollectorPlugin {
     stop?(): void;
 }
 
-abstract class DataCollector implements DataCollectorPlugin {
+export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
         const { targets, site, description, name, keepRaw, omitTS } = params || {};
 

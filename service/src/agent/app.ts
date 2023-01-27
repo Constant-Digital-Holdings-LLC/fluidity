@@ -15,7 +15,9 @@ if (conf) {
                         const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
                         new Plugin({ site, targets, ...collectorConfig }).start();
                     } catch (err) {
-                        log.error(`plugin load error: ${name} [${description}]`);
+                        console.error(`plugin load error: ${name} [${description}]`);
+                        if (err instanceof Error) console.error(err.stack);
+                        process.exit();
                     }
                 })
             );
