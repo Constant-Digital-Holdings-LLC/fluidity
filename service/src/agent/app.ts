@@ -10,16 +10,13 @@ if (conf) {
             await Promise.all(
                 conf['collectors'].map(async collectorConfig => {
                     const { name, description } = collectorConfig;
-                    log.info(`\nLoading collector: ${name} [${description}]`);
-
-                    const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
-                    // If the thing I'm loggin is javascript code, I think I want to call .toString() on it rather than JSON.strinify...
-                    // these two yield differing results:
-
-                    log.debug('Here:');
-                    log.debug(Plugin);
-
-                    new Plugin({ site, targets, ...collectorConfig }).start();
+                    log.info(`Loading collector: ${name} [${description}]`);
+                    try {
+                        const { default: Plugin } = await import(`#@service/modules/collectors/${name}.js`);
+                        new Plugin({ site, targets, ...collectorConfig }).start();
+                    } catch (err) {
+                        log.error(`plugin load error: ${name} [${description}]`);
+                    }
                 })
             );
         } else {
