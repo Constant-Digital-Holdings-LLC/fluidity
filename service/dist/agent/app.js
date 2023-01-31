@@ -25,15 +25,20 @@ if (conf) {
         }
     }
     catch (err) {
-        log.error(err);
         process.exitCode = 1;
+        log.error(err);
     }
     try {
-        startQueue.forEach(p => p.start());
+        if (startQueue.length) {
+            startQueue.forEach(p => p.start());
+        }
+        else {
+            throw new Error('no valid plugins in start queue');
+        }
     }
     catch (err) {
+        process.exitCode = 1;
         log.error('In collector plugin execution:\n');
         log.error(err);
-        process.exitCode = 1;
     }
 }
