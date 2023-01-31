@@ -1,5 +1,12 @@
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
-import { FormattedData, FluidityPacket, PublishTarget, FluidityField, StringAble } from '#@shared/types.js';
+import {
+    FormattedData,
+    FluidityPacket,
+    isFfluidityPacket,
+    PublishTarget,
+    FluidityField,
+    StringAble
+} from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
@@ -8,12 +15,25 @@ const log = fetchLogger(conf);
 
 type SerialParser = ReadlineParser | RegexParser;
 
-export interface DataCollectorParams extends Omit<FluidityPacket, 'delimData'> {
+export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData'> {
     targets: PublishTarget[];
     omitTS?: boolean;
     keepRaw?: boolean;
-    extendedOptions?: unknown;
+    extendedOptions?: object;
 }
+
+export const isDataCollectorParams = (obj: any): obj is DataCollectorParams => {
+    const { targets, omitTS, keepRaw, extendedOptions } = obj;
+
+    return (
+        isFfluidityPacket(obj, true) &&
+        Array.isArray(targets) &&
+        Boolean(targets.length) &&
+        (typeof omitTS === 'undefined' || typeof omitTS === 'boolean') &&
+        (typeof keepRaw === 'undefined' || typeof keepRaw === 'boolean') &&
+        (typeof extendedOptions === 'undefined' || extendedOptions instanceof Object)
+    );
+};
 
 export interface SerialCollectorParams extends DataCollectorParams {
     path: string;
@@ -52,32 +72,7 @@ export interface DataCollectorPlugin {
 
 export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
-        const { targets, site, description, plugin, keepRaw, omitTS } = params || {};
-
-        // for ${params.collectorType}: ${params.label}
-
-        if (!Array.isArray(targets)) {
-            throw new Error(`DataCollector constructor - expected array of targets[] in config`);
-        }
-        if (typeof site !== 'string') {
-            throw new Error(`DataCollector constructor - site name in config`);
-        }
-        if (typeof description !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${plugin} missing description in config`);
-        }
-        if (typeof plugin !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${description} requires a plugin field in config`);
-        }
-        if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
-            throw new Error(
-                `DataCollector constructor - optional keepRaw field should be a boolean for collector: ${plugin}`
-            );
-        }
-        if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
-            throw new Error(
-                `DataCollector constructor - optional omitTS field should be a boolean for collector ${plugin}`
-            );
-        }
+        if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
     }
 
     abstract start(): void;

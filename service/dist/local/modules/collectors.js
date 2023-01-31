@@ -1,8 +1,18 @@
 import { SerialPort } from 'serialport';
+import { isFfluidityPacket } from '#@shared/types.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
 const log = fetchLogger(conf);
+export const isDataCollectorParams = (obj) => {
+    const { targets, omitTS, keepRaw, extendedOptions } = obj;
+    return (isFfluidityPacket(obj, true) &&
+        Array.isArray(targets) &&
+        Boolean(targets.length) &&
+        (typeof omitTS === 'undefined' || typeof omitTS === 'boolean') &&
+        (typeof keepRaw === 'undefined' || typeof keepRaw === 'boolean') &&
+        (typeof extendedOptions === 'undefined' || extendedOptions instanceof Object));
+};
 export class FormatHelper {
     formattedData = [];
     e(element, suggestStyle) {
@@ -31,25 +41,8 @@ export class DataCollector {
     params;
     constructor(params) {
         this.params = params;
-        const { targets, site, description, plugin, keepRaw, omitTS } = params || {};
-        if (!Array.isArray(targets)) {
-            throw new Error(`DataCollector constructor - expected array of targets[] in config`);
-        }
-        if (typeof site !== 'string') {
-            throw new Error(`DataCollector constructor - site name in config`);
-        }
-        if (typeof description !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${plugin} missing description in config`);
-        }
-        if (typeof plugin !== 'string') {
-            throw new Error(`DataCollector constructor - collector ${description} requires a plugin field in config`);
-        }
-        if (typeof keepRaw !== 'undefined' && typeof keepRaw !== 'boolean') {
-            throw new Error(`DataCollector constructor - optional keepRaw field should be a boolean for collector: ${plugin}`);
-        }
-        if (typeof omitTS !== 'undefined' && typeof omitTS !== 'boolean') {
-            throw new Error(`DataCollector constructor - optional omitTS field should be a boolean for collector ${plugin}`);
-        }
+        if (!isDataCollectorParams(params))
+            throw new Error(`DataCollector class constructor - invalid runtime params`);
     }
     stop() {
         log.info(`stopped: ${this.params.plugin}`);
