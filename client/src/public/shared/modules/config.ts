@@ -7,20 +7,20 @@ type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
 const isMyConfigData = (obj: any): obj is MyConfigData =>
-    obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
+    obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
-const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['app_name']);
+const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['appName']);
 
 export interface ConfigData {
-    readonly app_name: string;
-    readonly app_version?: string;
-    readonly log_level?: LogLevel;
-    readonly loc_level?: LogLevel;
-    readonly node_env?: NodeEnv;
+    readonly appName: string;
+    readonly appVersion?: string;
+    readonly logLevel?: LogLevel;
+    readonly locLevel?: LogLevel;
+    readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }
 
-import { MyConfigData, pubSafeProps } from '#@shared/my_config.js';
+import { MyConfigData, pubSafeProps } from '#@shared/modules/my_config.js';
 
 interface ConfigParser {
     parse(src: string): unknown;
@@ -40,14 +40,14 @@ abstract class ConfigBase {
         const handler = {
             get(target: object, prop: PropertyKey, receiver: any) {
                 if (typeof prop === 'string')
-                    if (pubSafeProps.includes(prop)) {
+                    if (pubSafeProps.includes(prop as any)) {
                         return Reflect.get(target, prop, receiver);
                     } else {
                         return undefined;
                     }
             },
             ownKeys(target: object) {
-                return Object.keys(target).filter(prop => pubSafeProps.includes(prop));
+                return Object.keys(target).filter(prop => pubSafeProps.includes(prop as any));
             },
             set() {
                 throw new Error('pubConf is immutable.');
@@ -70,6 +70,7 @@ class FSConfigUtil extends ConfigBase {
     load(): Promise<MyConfigData | undefined> {
         // const YAML = await import('yaml');
         // moving from YAML to JSON, loadFiles() is fine with either
+
         return this.loadFiles({
             development: ['./conf/dev_conf.json', JSON],
             production: ['./conf/prod_conf.json', JSON],
@@ -98,7 +99,7 @@ class FSConfigUtil extends ConfigBase {
                 if (!isMyConfigData(eObj)) {
                     this.cachedConfig = undefined;
                     log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
-                    throw new Error(`loadFiles(): impropper config file format for this node-env`);
+                    throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                 }
 
                 if (commonConfPath) {
@@ -107,7 +108,7 @@ class FSConfigUtil extends ConfigBase {
                     if (isMyConfigData(cObj)) {
                         this.cachedConfig = { ...eObj, ...cObj };
                     } else {
-                        log.warn(
+                        console.warn(
                             `loadFiles(): contents of ${path.join(
                                 process.cwd(),
                                 commonConfPath
@@ -116,16 +117,14 @@ class FSConfigUtil extends ConfigBase {
                         this.cachedConfig = eObj;
                     }
                 } else {
-                    log.debug('loadFiles(): common config not provided');
+                    console.debug('loadFiles(): common config not provided');
                 }
             }
         } catch (err) {
             if (err instanceof Error) {
                 const formattedError = await prettyFsNotFound(err);
 
-                log.error(formattedError || err);
-
-                log.error(err.stack);
+                log.error(formattedError || err.message);
             } else {
                 log.error(err);
             }
@@ -133,10 +132,10 @@ class FSConfigUtil extends ConfigBase {
 
         if (
             typeof this.cachedConfig !== 'object' ||
-            (typeof this.cachedConfig === 'object' && !('app_name' in this.cachedConfig))
+            (typeof this.cachedConfig === 'object' && !('appName' in this.cachedConfig))
         ) {
             log.error(
-                `fatal: no config or config missing required 'app_name' property. config: ${JSON.stringify(
+                `fatal: no config or config missing required 'appName' property. config: ${JSON.stringify(
                     this.cachedConfig
                 )}`
             );

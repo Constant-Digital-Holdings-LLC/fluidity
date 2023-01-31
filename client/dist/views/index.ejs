@@ -12,7 +12,7 @@
         <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%= pair[0]
         %>="<%= pair[1] %>" <% }) %> />
 
-        <title><%=configData.app_name%> <%=NODE_ENV%></title>
+        <title><%=configData.appName%> <%=NODE_ENV%></title>
 
         <!--Modules-->
         <script async src="/external/modules/es-module-shims/dist/es-module-shims.js"></script>

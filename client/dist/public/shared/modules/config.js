@@ -11,9 +11,9 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-const isMyConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-z0-9 _]*$/.test(prop));
-const isMyConfigDataPopulated = (obj) => isMyConfigData(obj) && Boolean(obj['app_name']);
-import { pubSafeProps } from '#@shared/my_config.js';
+const isMyConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
+const isMyConfigDataPopulated = (obj) => isMyConfigData(obj) && Boolean(obj['appName']);
+import { pubSafeProps } from '#@shared/modules/my_config.js';
 class ConfigBase {
     get pubConf() {
         const handler = {
@@ -74,7 +74,7 @@ class FSConfigUtil extends ConfigBase {
                     if (!isMyConfigData(eObj)) {
                         this.cachedConfig = undefined;
                         log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
-                        throw new Error(`loadFiles(): impropper config file format for this node-env`);
+                        throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     }
                     if (commonConfPath) {
                         cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(readFileSync(commonConfPath, 'utf8'));
@@ -82,28 +82,27 @@ class FSConfigUtil extends ConfigBase {
                             this.cachedConfig = Object.assign(Object.assign({}, eObj), cObj);
                         }
                         else {
-                            log.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
+                            console.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
                             this.cachedConfig = eObj;
                         }
                     }
                     else {
-                        log.debug('loadFiles(): common config not provided');
+                        console.debug('loadFiles(): common config not provided');
                     }
                 }
             }
             catch (err) {
                 if (err instanceof Error) {
                     const formattedError = yield prettyFsNotFound(err);
-                    log.error(formattedError || err);
-                    log.error(err.stack);
+                    log.error(formattedError || err.message);
                 }
                 else {
                     log.error(err);
                 }
             }
             if (typeof this.cachedConfig !== 'object' ||
-                (typeof this.cachedConfig === 'object' && !('app_name' in this.cachedConfig))) {
-                log.error(`fatal: no config or config missing required 'app_name' property. config: ${JSON.stringify(this.cachedConfig)}`);
+                (typeof this.cachedConfig === 'object' && !('appName' in this.cachedConfig))) {
+                log.error(`fatal: no config or config missing required 'appName' property. config: ${JSON.stringify(this.cachedConfig)}`);
                 process.exit();
             }
             return this.cachedConfig;

@@ -4,7 +4,7 @@
         { "location": "https://f-y.io:443", "key": "zfdfd" }
     ],
     "site": "office",
-    "log_level": "info",
+    "logLevel": "info",
     "collectors": [
         {
             "description": "TNC",

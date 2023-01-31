@@ -10,12 +10,12 @@ import { config, configMiddleware } from '#@shared/modules/config.js';
 import { MyConfigData } from '#@shared/modules/my_config.js';
 import { WithRequired } from '#@shared/modules/utils.js';
 
-const conf: WithRequired<MyConfigData, 'port' | 'tls_key' | 'tls_cert' | 'http_cache_ttl_seconds'> = {
-    app_name: 'Fluidity',
+const conf: WithRequired<MyConfigData, 'port' | 'tlsKey' | 'tlsCert' | 'httpCacheTTLSeconds'> = {
+    appName: 'Fluidity',
     port: 443,
-    tls_key: 'ssl/prod-server_key.pem',
-    tls_cert: 'ssl/prod-server_cert.pem',
-    http_cache_ttl_seconds: 300,
+    tlsKey: 'ssl/prod-server_key.pem',
+    tlsCert: 'ssl/prod-server_cert.pem',
+    httpCacheTTLSeconds: 300,
     ...(await config())
 };
 
@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 
 app.use(
     express.static('../../../client/dist/public', {
-        maxAge: conf.http_cache_ttl_seconds * 1000
+        maxAge: conf.httpCacheTTLSeconds * 1000
     })
 );
 
@@ -45,14 +45,14 @@ try {
     https
         .createServer(
             {
-                key: fs.readFileSync(conf['tls_key']),
-                cert: fs.readFileSync(conf['tls_cert'])
+                key: fs.readFileSync(conf['tlsKey']),
+                cert: fs.readFileSync(conf['tlsCert'])
             },
             app
         )
         .listen(conf.port);
 
-    log.info(`${conf.app_name} ${conf.app_version} server listening on port ${conf.port}`);
+    log.info(`${conf.appName} ${conf.appVersion} server listening on port ${conf.port}`);
 } catch (err) {
     if (err instanceof Error) {
         const formattedError = await prettyFsNotFound(err);

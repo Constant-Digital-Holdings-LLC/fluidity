@@ -1,8 +1,8 @@
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-export const levelsArr = ['debug', 'info', 'warn', 'error'] as const;
-export type LogLevel = typeof levelsArr[number] & keyof typeof console;
+export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'] as const;
+export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
 export type Runtime = 'nodejs' | 'browser';
@@ -105,7 +105,7 @@ class JSONFormatter implements LogFormatter {
 
 class ConsoleTransport implements LogTransport {
     send(level: LogLevel, line: string) {
-        console[level](line);
+        if (level !== 'none') console[level](line);
     }
 }
 
@@ -163,7 +163,8 @@ class LoggerUtil implements Logger {
                 );
             };
 
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'debug')) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'none')) {
+                //warning - setting locLevel to any level other than 'none' can cause delayed logging
                 this.getStackLocation().then(snd);
             } else {
                 snd();
@@ -187,6 +188,8 @@ class LoggerUtil implements Logger {
         this.log('error', data);
     }
 
+    none<T>(data: T): void {}
+
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(
             levelSettings,
@@ -206,7 +209,7 @@ class LoggerUtil implements Logger {
 }
 
 export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
-    const { log_level: logLevel, loc_level: locLevel } = conf || {};
+    const { logLevel, locLevel } = conf || {};
 
     if (inBrowser()) {
         return LoggerUtil.browserConsole({ logLevel, locLevel });

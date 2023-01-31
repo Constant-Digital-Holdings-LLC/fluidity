@@ -1,2 +1,2 @@
-export const pubSafeProps = ['app_name', 'log_level', 'app_version', 'loc_level', 'node_env'];
+export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'];
 //# sourceMappingURL=my_config.js.map

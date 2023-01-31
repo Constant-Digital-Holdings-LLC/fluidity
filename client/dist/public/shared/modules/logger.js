@@ -1,5 +1,5 @@
 import { inBrowser } from '#@shared/modules/utils.js';
-export const levelsArr = ['debug', 'info', 'warn', 'error'];
+export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'];
 class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
@@ -68,7 +68,8 @@ class JSONFormatter {
 }
 class ConsoleTransport {
     send(level, line) {
-        console[level](line);
+        if (level !== 'none')
+            console[level](line);
     }
 }
 class LoggerUtil {
@@ -122,7 +123,7 @@ class LoggerUtil {
                     location
                 }));
             };
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'debug')) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'none')) {
                 this.getStackLocation().then(snd);
             }
             else {
@@ -142,6 +143,7 @@ class LoggerUtil {
     error(data) {
         this.log('error', data);
     }
+    none(data) { }
     static browserConsole(levelSettings) {
         return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
@@ -153,7 +155,7 @@ class LoggerUtil {
     }
 }
 export const fetchLogger = (conf) => {
-    const { log_level: logLevel, loc_level: locLevel } = conf || {};
+    const { logLevel, locLevel } = conf || {};
     if (inBrowser()) {
         return LoggerUtil.browserConsole({ logLevel, locLevel });
     }

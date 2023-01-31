@@ -1,7 +1,8 @@
 {
     "port": 3000,
-    "tls_key": "ssl/dev-server_key.pem",
-    "tls_cert": "ssl/dev-server_cert.pem",
-    "http_cache_ttl_seconds": 5,
-    "log_level": "debug"
+    "tlsKey": "ssl/dev-server_key.pem",
+    "tlsCert": "ssl/dev-server_cert.pem",
+    "httpCacheTTLSeconds": 5,
+    "logLevel": "debug",
+    "locLevel": "none"
 }

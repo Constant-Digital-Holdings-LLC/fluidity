@@ -8,3 +8,5 @@ log.info(`Client Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 
 const fc = new FluidityClient();
 fc.sayHi();
+
+//foo

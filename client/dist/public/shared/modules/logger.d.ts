@@ -1,6 +1,6 @@
 import type { ConfigData } from '#@shared/modules/config.js';
-export declare const levelsArr: readonly ["debug", "info", "warn", "error"];
-export type LogLevel = typeof levelsArr[number] & keyof typeof console;
+export declare const levelsArr: readonly ["debug", "info", "warn", "error", "none"];
+export type LogLevel = typeof levelsArr[number];
 type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
@@ -37,6 +37,7 @@ declare class LoggerUtil implements Logger {
     info<T>(data: T): void;
     warn<T>(data: T): void;
     error<T>(data: T): void;
+    none<T>(data: T): void;
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
