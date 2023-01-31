@@ -78,6 +78,9 @@ class LoggerUtil {
         this.formatter = formatter;
         this.transport = transport;
         this.runtime = runtime;
+        Boolean(levelSettings.locLevel) &&
+            levelSettings.locLevel !== 'none' &&
+            this.log('warn', 'Performance degraded due to location tracing\n');
     }
     getStackLocation() {
         return new Promise((resolve, reject) => {

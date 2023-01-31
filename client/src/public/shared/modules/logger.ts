@@ -115,7 +115,11 @@ class LoggerUtil implements Logger {
         private formatter: LogFormatter,
         private transport: LogTransport,
         private runtime: Runtime
-    ) {}
+    ) {
+        Boolean(levelSettings.locLevel) &&
+            levelSettings.locLevel !== 'none' &&
+            this.log('warn', 'Performance degraded due to location tracing\n');
+    }
 
     private getStackLocation(): Promise<StackLocation> {
         return new Promise((resolve, reject) => {
