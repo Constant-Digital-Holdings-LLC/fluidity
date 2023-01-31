@@ -53,7 +53,8 @@ export class DataCollector {
     addTS(data) {
         return data;
     }
-    sendHttps(fPacket) {
+    sendHttps(target, fPacket) {
+        log.info(`${fPacket.plugin} [${fPacket.description}]:\t\tPOST ${target.location}`);
         log.debug('############### BEGIN ONE HTTP POST ###############');
         log.debug(fPacket);
         log.debug('############### END ONE HTTP POST   ###############');
@@ -66,9 +67,8 @@ export class DataCollector {
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
-                        log.debug(`location: ${t.location}, `);
                         if (formattedData) {
-                            this.sendHttps({
+                            this.sendHttps(t, {
                                 site,
                                 description,
                                 plugin,

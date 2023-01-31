@@ -88,7 +88,8 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
-    private sendHttps(fPacket: FluidityPacket): void {
+    private sendHttps(target: PublishTarget, fPacket: FluidityPacket): void {
+        log.info(`${fPacket.plugin} [${fPacket.description}]:\t\tPOST ${target.location}`);
         log.debug('############### BEGIN ONE HTTP POST ###############');
         log.debug(fPacket);
         log.debug('############### END ONE HTTP POST   ###############');
@@ -104,10 +105,8 @@ export abstract class DataCollector implements DataCollectorPlugin {
             try {
                 targets.forEach(t => {
                     if (new URL(t.location).protocol === 'https:') {
-                        log.debug(`location: ${t.location}, `);
-
                         if (formattedData) {
-                            this.sendHttps({
+                            this.sendHttps(t, {
                                 site,
                                 description,
                                 plugin,
