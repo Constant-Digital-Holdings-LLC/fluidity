@@ -1,7 +1,8 @@
+// Application-specific customizations for config lib:
+
 import type { ConfigData } from '#@shared/modules/config.js';
 import { FluidityPacket, PublishTarget } from '#@shared/types.js';
 
-// Application Specific Config Options / Overrides for config.ts:
 export interface MyConfigData extends ConfigData {
     readonly targets?: PublishTarget[];
     readonly tlsKey?: string;

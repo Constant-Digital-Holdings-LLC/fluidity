@@ -1,4 +1,4 @@
-import { inBrowser } from '#@shared/modules/utils.js';
+import { composer } from '#@shared/modules/my_logger.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -72,7 +72,7 @@ class ConsoleTransport {
             console[level](line);
     }
 }
-class LoggerUtil {
+export class LoggerUtil {
     constructor(levelSettings, formatter, transport, runtime) {
         this.levelSettings = levelSettings;
         this.formatter = formatter;
@@ -156,14 +156,8 @@ class LoggerUtil {
     static JSONEmitter(levelSettings) {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
+    static new(conf) {
+        return composer(conf);
+    }
 }
-export const fetchLogger = (conf) => {
-    const { logLevel, locLevel } = conf || {};
-    if (inBrowser()) {
-        return LoggerUtil.browserConsole({ logLevel, locLevel });
-    }
-    else {
-        return LoggerUtil.nodeConsole({ logLevel, locLevel });
-    }
-};
 //# sourceMappingURL=logger.js.map

@@ -1,8 +1,8 @@
 import { DataCollector } from '#@service/modules/collectors.js';
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 export default class NetAnnounce extends DataCollector {
     pollIntervalMin;
     announceEveryMin;

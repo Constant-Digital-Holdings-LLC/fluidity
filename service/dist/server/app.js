@@ -3,7 +3,7 @@ import fs from 'fs';
 import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 const conf = {
@@ -14,7 +14,7 @@ const conf = {
     httpCacheTTLSeconds: 300,
     ...(await config())
 };
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 log.info(`Server Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 const app = express();
 app.use(await configMiddleware());

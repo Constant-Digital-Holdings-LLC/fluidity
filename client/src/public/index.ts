@@ -1,9 +1,9 @@
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { configFromDOM } from '#@shared/modules/config.js';
 import { FluidityClient } from '#@client/modules/fluidityClient.js';
 
 const conf = configFromDOM();
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 log.info(`Client Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 
 const fc = new FluidityClient();

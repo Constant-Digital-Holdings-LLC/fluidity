@@ -1,6 +1,6 @@
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
-import { inBrowser } from '#@shared/modules/utils.js';
+import { composer } from '#@shared/modules/my_logger.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
@@ -109,7 +109,7 @@ class ConsoleTransport implements LogTransport {
     }
 }
 
-class LoggerUtil implements Logger {
+export class LoggerUtil implements Logger {
     constructor(
         private levelSettings: LevelSettings,
         private formatter: LogFormatter,
@@ -210,14 +210,8 @@ class LoggerUtil implements Logger {
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
-}
 
-export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
-    const { logLevel, locLevel } = conf || {};
-
-    if (inBrowser()) {
-        return LoggerUtil.browserConsole({ logLevel, locLevel });
-    } else {
-        return LoggerUtil.nodeConsole({ logLevel, locLevel });
+    static new(conf?: ConfigData): LoggerUtil {
+        return composer(conf);
     }
-};
+}

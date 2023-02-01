@@ -7,11 +7,11 @@ import {
     FluidityField,
     StringAble
 } from '#@shared/types.js';
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
 const conf = await config();
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 
 type SerialParser = ReadlineParser | RegexParser;
 

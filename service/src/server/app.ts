@@ -4,7 +4,7 @@ import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 import { MyConfigData } from '#@shared/modules/my_config.js';
@@ -19,7 +19,7 @@ const conf: WithRequired<MyConfigData, 'port' | 'tlsKey' | 'tlsCert' | 'httpCach
     ...(await config())
 };
 
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 
 log.info(`Server Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
 

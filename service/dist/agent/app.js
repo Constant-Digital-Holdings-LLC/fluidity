@@ -1,8 +1,8 @@
 import { isDataCollectorParams } from '#@service/modules/collectors.js';
 import { config } from '#@shared/modules/config.js';
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 const conf = await config();
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 if (conf) {
     const { targets, site } = conf;
     let startQueue = [];

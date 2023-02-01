@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
-import { fetchLogger, LogLevel } from '#@shared/modules/logger.js';
+import { LoggerUtil, LogLevel } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 
-const log = fetchLogger();
+const log = LoggerUtil.new();
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 

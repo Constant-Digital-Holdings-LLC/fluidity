@@ -1,9 +1,9 @@
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
-const log = fetchLogger(conf);
+const log = LoggerUtil.new(conf);
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;
     return (isFfluidityPacket(obj, true) &&

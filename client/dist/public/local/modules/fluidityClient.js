@@ -1,7 +1,7 @@
-import { fetchLogger } from '#@shared/modules/logger.js';
+import { LoggerUtil } from '#@shared/modules/logger.js';
 import { configFromDOM } from '#@shared/modules/config.js';
-const c = configFromDOM();
-const log = fetchLogger(c);
+const conf = configFromDOM();
+const log = LoggerUtil.new(conf);
 class FluidityStorage {
 }
 class FluidityNetwork {

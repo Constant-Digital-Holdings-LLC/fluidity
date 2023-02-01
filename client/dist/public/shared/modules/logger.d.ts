@@ -25,7 +25,7 @@ interface LogFormatter {
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
 }
-declare class LoggerUtil implements Logger {
+export declare class LoggerUtil implements Logger {
     private levelSettings;
     private formatter;
     private transport;
@@ -41,7 +41,7 @@ declare class LoggerUtil implements Logger {
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
+    static new(conf?: ConfigData): LoggerUtil;
 }
-export declare const fetchLogger: (conf?: ConfigData) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map
