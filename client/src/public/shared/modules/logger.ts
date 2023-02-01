@@ -38,6 +38,15 @@ abstract class FormatterBase implements LogFormatter {
 
     abstract dateString(date: Date): string;
 
+    protected isJsonString(str: string) {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    }
+
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
         let formattedMesg: string;

@@ -7,8 +7,10 @@ import {
     FluidityField,
     StringAble
 } from '#@shared/types.js';
+import { setIntervalAsync } from 'set-interval-async';
 import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
+import axios from 'axios';
 
 const conf = await config();
 const log = LoggerUtil.new(conf);
@@ -67,7 +69,6 @@ export class FormatHelper {
 
 export interface DataCollectorPlugin {
     start(): void;
-    stop?(): void;
 }
 
 export abstract class DataCollector implements DataCollectorPlugin {
@@ -76,9 +77,6 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 
     abstract start(): void;
-    stop(): void {
-        log.info(`stopped: ${this.params.plugin}`);
-    }
 
     protected format(data: string, fh: FormatHelper): FormattedData[] | null {
         return fh.e(data).done;
@@ -127,13 +125,60 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 }
 
+export interface WebJSONCollectorParams extends DataCollectorParams {
+    url: string;
+    pollIntervalSec: number;
+}
+
+export class WebJSONCollector extends DataCollector {
+    protected url: URL;
+    protected pollIntervalSec: number;
+
+    constructor({ url, pollIntervalSec, ...params }: WebJSONCollectorParams) {
+        super(params);
+
+        if (typeof url !== 'string') {
+            throw new Error(`missing url (string) in config for ${params.plugin}: ${params.description}`);
+        }
+
+        if (typeof pollIntervalSec !== 'number') {
+            throw new Error(`missing pollIntervalSec (number) in config for ${params.plugin}: ${params.description}`);
+        }
+
+        this.url = new URL(url);
+        this.pollIntervalSec = pollIntervalSec;
+    }
+
+    start(): void {
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+
+        setIntervalAsync(async () => {
+            log.info(`${this.params.plugin} [${this.params.description}]: contacting host ${this.url.host}`);
+
+            const myAxios = axios.create({
+                transformResponse: [
+                    function transformResponse(data) {
+                        return data;
+                    }
+                ]
+            });
+
+            try {
+                this.send((await myAxios.get(this.url.href)).data);
+            } catch (err) {
+                log.error(err);
+            }
+        }, this.pollIntervalSec * 1000);
+    }
+}
+
 export interface SerialCollectorPlugin extends DataCollectorPlugin {
     fetchParser(): SerialParser;
 }
 
 export abstract class SerialCollector extends DataCollector implements SerialCollectorPlugin {
-    port: SerialPort;
-    parser: SerialParser;
+    protected port: SerialPort;
+    protected parser: SerialParser;
 
     abstract fetchParser(): SerialParser;
 
@@ -153,6 +198,6 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
 
     start(): void {
         this.parser.on('data', this.send.bind(this));
-        log.info(`${this.params.plugin} started`);
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
     }
 }

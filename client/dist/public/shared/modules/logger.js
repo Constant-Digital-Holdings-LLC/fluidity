@@ -15,6 +15,15 @@ class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
     }
+    isJsonString(str) {
+        try {
+            JSON.parse(str);
+        }
+        catch (e) {
+            return false;
+        }
+        return true;
+    }
     format(data) {
         var _a, _b;
         const { message, timestamp, level } = data;

@@ -1,7 +1,9 @@
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
+import { setIntervalAsync } from 'set-interval-async';
 import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
+import axios from 'axios';
 const conf = await config();
 const log = LoggerUtil.new(conf);
 export const isDataCollectorParams = (obj) => {
@@ -43,9 +45,6 @@ export class DataCollector {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-    }
-    stop() {
-        log.info(`stopped: ${this.params.plugin}`);
     }
     format(data, fh) {
         return fh.e(data).done;
@@ -91,6 +90,40 @@ export class DataCollector {
         }
     }
 }
+export class WebJSONCollector extends DataCollector {
+    url;
+    pollIntervalSec;
+    constructor({ url, pollIntervalSec, ...params }) {
+        super(params);
+        if (typeof url !== 'string') {
+            throw new Error(`missing url (string) in config for ${params.plugin}: ${params.description}`);
+        }
+        if (typeof pollIntervalSec !== 'number') {
+            throw new Error(`missing pollIntervalSec (number) in config for ${params.plugin}: ${params.description}`);
+        }
+        this.url = new URL(url);
+        this.pollIntervalSec = pollIntervalSec;
+    }
+    start() {
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+        setIntervalAsync(async () => {
+            log.info(`${this.params.plugin} [${this.params.description}]: contacting host ${this.url.host}`);
+            const myAxios = axios.create({
+                transformResponse: [
+                    function transformResponse(data) {
+                        return data;
+                    }
+                ]
+            });
+            try {
+                this.send((await myAxios.get(this.url.href)).data);
+            }
+            catch (err) {
+                log.error(err);
+            }
+        }, this.pollIntervalSec * 1000);
+    }
+}
 export class SerialCollector extends DataCollector {
     port;
     parser;
@@ -105,6 +138,6 @@ export class SerialCollector extends DataCollector {
     }
     start() {
         this.parser.on('data', this.send.bind(this));
-        log.info(`${this.params.plugin} started`);
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
     }
 }

@@ -14,10 +14,10 @@
             "omitTS": true
         },
         {
-            "description": "Ham.Live",
-            "plugin": "netAnnounce",
-            "pollIntervalMin": 1,
-            "announceEveryMin": 5,
+            "description": "Generic Test",
+            "plugin": "genericWeb",
+            "url": "https://google.com",
+            "pollIntervalSec": 10,
             "omitTS": true
         },
         {
