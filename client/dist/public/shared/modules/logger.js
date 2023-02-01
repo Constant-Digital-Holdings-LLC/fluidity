@@ -1,5 +1,16 @@
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 import { composer } from '#@shared/modules/my_logger.js';
-export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'];
+export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'];
 class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
@@ -63,12 +74,17 @@ class JSONFormatter {
         this.levelSettings = levelSettings;
     }
     format(data) {
+        const { message: m } = data, rest = __rest(data, ["message"]);
+        if (typeof m === 'string') {
+            const message = m.replace(/[\t\n]/g, ' ');
+            return JSON.stringify(Object.assign({ message }, rest));
+        }
         return JSON.stringify(data);
     }
 }
 class ConsoleTransport {
     send(level, line) {
-        if (level !== 'none')
+        if (level !== 'never')
             console[level](line);
     }
 }
@@ -79,7 +95,7 @@ export class LoggerUtil {
         this.transport = transport;
         this.runtime = runtime;
         Boolean(levelSettings.locLevel) &&
-            levelSettings.locLevel !== 'none' &&
+            levelSettings.locLevel !== 'never' &&
             this.log('warn', 'Performance degraded due to location tracing\n');
     }
     getStackLocation() {
@@ -126,7 +142,7 @@ export class LoggerUtil {
                     location
                 }));
             };
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'none')) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'never')) {
                 this.getStackLocation().then(snd);
             }
             else {
@@ -146,7 +162,7 @@ export class LoggerUtil {
     error(data) {
         this.log('error', data);
     }
-    none(data) { }
+    never(data) { }
     static browserConsole(levelSettings) {
         return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
@@ -160,4 +176,34 @@ export class LoggerUtil {
         return composer(conf);
     }
 }
+export const httpLogger = (conf) => {
+    const log = composer(conf);
+    let requests = 0;
+    let timeSum = 0;
+    const getDurationInMilliseconds = (start) => {
+        const NS_PER_SEC = 1e9;
+        const NS_TO_MS = 1e6;
+        const diff = process.hrtime(start);
+        return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
+    };
+    return (req, res, next) => {
+        const start = process.hrtime();
+        res.on('finish', () => {
+            const durationInMilliseconds = getDurationInMilliseconds(start);
+            requests++;
+            timeSum += durationInMilliseconds;
+            const averageReqTime = timeSum / requests;
+            if (res.statusCode >= 500 && res.statusCode <= 599) {
+                log.error(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            }
+            else if (durationInMilliseconds > averageReqTime * 4) {
+                log.warn(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            }
+            else {
+                log.info(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            }
+        });
+        next();
+    };
+};
 //# sourceMappingURL=logger.js.map

@@ -1,7 +1,8 @@
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
+import type { Request, Response, NextFunction } from 'express';
 import { composer } from '#@shared/modules/my_logger.js';
-export const levelsArr = ['debug', 'info', 'warn', 'error', 'none'] as const;
+export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
@@ -99,13 +100,19 @@ class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatte
 class JSONFormatter implements LogFormatter {
     constructor(protected levelSettings: LevelSettings) {}
     format<T>(data: LogData<T>): string {
+        const { message: m, ...rest } = data;
+
+        if (typeof m === 'string') {
+            const message = m.replace(/[\t\n]/g, ' ');
+            return JSON.stringify({ message, ...rest });
+        }
         return JSON.stringify(data);
     }
 }
 
 class ConsoleTransport implements LogTransport {
     send(level: LogLevel, line: string) {
-        if (level !== 'none') console[level](line);
+        if (level !== 'never') console[level](line);
     }
 }
 
@@ -117,7 +124,7 @@ export class LoggerUtil implements Logger {
         private runtime: Runtime
     ) {
         Boolean(levelSettings.locLevel) &&
-            levelSettings.locLevel !== 'none' &&
+            levelSettings.locLevel !== 'never' &&
             this.log('warn', 'Performance degraded due to location tracing\n');
     }
 
@@ -167,8 +174,8 @@ export class LoggerUtil implements Logger {
                 );
             };
 
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'none')) {
-                //warning - setting locLevel to any level other than 'none' can cause delayed logging
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'never')) {
+                //warning - setting locLevel to any level other than 'never' can cause delayed logging
                 this.getStackLocation().then(snd);
             } else {
                 snd();
@@ -192,7 +199,7 @@ export class LoggerUtil implements Logger {
         this.log('error', data);
     }
 
-    none<T>(data: T): void {}
+    never<T>(data: T): void {}
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(
@@ -215,3 +222,39 @@ export class LoggerUtil implements Logger {
         return composer(conf);
     }
 }
+
+export const httpLogger = (conf?: ConfigData) => {
+    const log = composer(conf);
+
+    let requests = 0;
+    let timeSum = 0;
+
+    const getDurationInMilliseconds = (start: [number, number]) => {
+        const NS_PER_SEC = 1e9;
+        const NS_TO_MS = 1e6;
+        const diff = process.hrtime(start);
+
+        return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
+    };
+
+    return (req: Request, res: Response, next: NextFunction) => {
+        const start = process.hrtime();
+
+        res.on('finish', () => {
+            const durationInMilliseconds = getDurationInMilliseconds(start);
+            requests++;
+            timeSum += durationInMilliseconds;
+            const averageReqTime = timeSum / requests;
+
+            if (res.statusCode >= 500 && res.statusCode <= 599) {
+                log.error(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            } else if (durationInMilliseconds > averageReqTime * 4) {
+                log.warn(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            } else {
+                log.info(`${req.method} ${req.url}\t${res.statusCode}\t${durationInMilliseconds.toLocaleString()} ms`);
+            }
+        });
+
+        next();
+    };
+};

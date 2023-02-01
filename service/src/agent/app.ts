@@ -3,6 +3,7 @@ import { config } from '#@shared/modules/config.js';
 import { LoggerUtil } from '#@shared/modules/logger.js';
 const conf = await config();
 const log = LoggerUtil.new(conf);
+log.debug(conf);
 
 if (conf) {
     const { targets, site } = conf;

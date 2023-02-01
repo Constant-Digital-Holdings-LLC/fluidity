@@ -5,7 +5,6 @@
     ],
     "site": "office",
     "logLevel": "debug",
-    "locLevel": "none",
     "collectors": [
         {
             "description": "TNC",

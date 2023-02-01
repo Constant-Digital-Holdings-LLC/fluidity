@@ -1,5 +1,6 @@
 import type { ConfigData } from '#@shared/modules/config.js';
-export declare const levelsArr: readonly ["debug", "info", "warn", "error", "none"];
+import type { Request, Response, NextFunction } from 'express';
+export declare const levelsArr: readonly ["debug", "info", "warn", "error", "never"];
 export type LogLevel = typeof levelsArr[number];
 type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
@@ -37,11 +38,12 @@ export declare class LoggerUtil implements Logger {
     info<T>(data: T): void;
     warn<T>(data: T): void;
     error<T>(data: T): void;
-    none<T>(data: T): void;
+    never<T>(data: T): void;
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
     static new(conf?: ConfigData): LoggerUtil;
 }
+export declare const httpLogger: (conf?: ConfigData) => (req: Request, res: Response, next: NextFunction) => void;
 export {};
 //# sourceMappingURL=logger.d.ts.map

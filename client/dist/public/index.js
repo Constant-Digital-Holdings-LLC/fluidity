@@ -3,7 +3,7 @@ import { configFromDOM } from '#@shared/modules/config.js';
 import { FluidityClient } from '#@client/modules/fluidityClient.js';
 const conf = configFromDOM();
 const log = LoggerUtil.new(conf);
-log.info(`Client Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
+log.debug(conf);
 const fc = new FluidityClient();
 fc.sayHi();
 //# sourceMappingURL=index.js.map

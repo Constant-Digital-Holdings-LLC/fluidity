@@ -4,7 +4,7 @@ import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { LoggerUtil } from '#@shared/modules/logger.js';
+import { LoggerUtil, httpLogger } from '#@shared/modules/logger.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 import { MyConfigData } from '#@shared/modules/my_config.js';
@@ -18,12 +18,11 @@ const conf: WithRequired<MyConfigData, 'port' | 'tlsKey' | 'tlsCert' | 'httpCach
     httpCacheTTLSeconds: 300,
     ...(await config())
 };
-
 const log = LoggerUtil.new(conf);
-
-log.info(`Server Configuration:\n${JSON.stringify(conf, undefined, '\t')}`);
+log.debug(conf);
 
 const app = express();
+app.use(httpLogger(conf));
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
 app.use(express.json());
@@ -32,7 +31,6 @@ app.use(express.urlencoded({ extended: true }));
 app.set('views', '../../../client/dist/views');
 
 app.get('/', (req, res) => {
-    log.info(`${req.method} ${req.url}\t${res.statusCode} `);
     res.render('index');
 });
 
