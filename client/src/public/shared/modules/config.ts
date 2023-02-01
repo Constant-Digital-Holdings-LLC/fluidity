@@ -134,12 +134,9 @@ class FSConfigUtil extends ConfigBase {
             typeof this.cachedConfig !== 'object' ||
             (typeof this.cachedConfig === 'object' && !('appName' in this.cachedConfig))
         ) {
-            log.error(
-                `fatal: no config or config missing required 'appName' property. config: ${JSON.stringify(
-                    this.cachedConfig
-                )}`
+            throw new Error(
+                `No config or config missing required 'appName' property. config: ${JSON.stringify(this.cachedConfig)}`
             );
-            process.exit();
         }
 
         return this.cachedConfig;
@@ -176,6 +173,8 @@ class DOMConfigUtil extends ConfigBase {
 
         res.locals['configData'] = this.pubConf;
         res.locals['NODE_ENV'] = NODE_ENV;
+        res.locals['camelCaseToDashDelim'] = (prop: string) => prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+
         next();
     }
 }

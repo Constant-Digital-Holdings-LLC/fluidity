@@ -32,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.set('views', '../../../client/dist/views');
 
 app.get('/', (req, res) => {
+    log.info(`${req.method} ${req.url}\t${res.statusCode} `);
     res.render('index');
 });
 

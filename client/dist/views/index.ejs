@@ -9,8 +9,9 @@
         <link href="/css/solid.css" rel="stylesheet" />
         <link rel="stylesheet" href="/css/fluidity.css" />
 
-        <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%= pair[0]
-        %>="<%= pair[1] %>" <% }) %> />
+        <!-- camelCaseToDashDelim(pair[0]) - inverse of how HTML dataset props are converted -->
+        <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%=
+        camelCaseToDashDelim(pair[0]) %>="<%= pair[1] %>" <% }) %> />
 
         <title><%=configData.appName%> <%=NODE_ENV%></title>
 

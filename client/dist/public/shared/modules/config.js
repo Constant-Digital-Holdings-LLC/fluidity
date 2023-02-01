@@ -102,8 +102,7 @@ class FSConfigUtil extends ConfigBase {
             }
             if (typeof this.cachedConfig !== 'object' ||
                 (typeof this.cachedConfig === 'object' && !('appName' in this.cachedConfig))) {
-                log.error(`fatal: no config or config missing required 'appName' property. config: ${JSON.stringify(this.cachedConfig)}`);
-                process.exit();
+                throw new Error(`No config or config missing required 'appName' property. config: ${JSON.stringify(this.cachedConfig)}`);
             }
             return this.cachedConfig;
         });
@@ -133,6 +132,7 @@ class DOMConfigUtil extends ConfigBase {
             throw new Error('addLocals() middleware requires config data for req.locals');
         res.locals['configData'] = this.pubConf;
         res.locals['NODE_ENV'] = NODE_ENV;
+        res.locals['camelCaseToDashDelim'] = (prop) => prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
         next();
     }
 }
