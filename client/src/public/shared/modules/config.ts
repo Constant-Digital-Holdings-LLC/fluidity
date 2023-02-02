@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
-import { LoggerUtil, LogLevel } from '#@shared/modules/logger.js';
-import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { LogLevel } from '#@shared/modules/logger.js';
+import { inBrowser, prettyFsNotFound, fetchLogger } from '#@shared/modules/utils.js';
 
-const log = LoggerUtil.new();
+const log = fetchLogger();
+
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
@@ -16,6 +17,7 @@ export interface ConfigData {
     readonly appVersion?: string;
     readonly logLevel?: LogLevel;
     readonly locLevel?: LogLevel;
+    readonly logFormat?: 'JSON' | 'unstructured';
     readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }

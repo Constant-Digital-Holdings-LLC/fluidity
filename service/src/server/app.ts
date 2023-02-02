@@ -4,8 +4,8 @@ import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { LoggerUtil, httpLogger } from '#@shared/modules/logger.js';
-import { prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { httpLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 import { MyConfigData } from '#@shared/modules/my_config.js';
 import { WithRequired } from '#@shared/modules/utils.js';
@@ -18,11 +18,11 @@ const conf: WithRequired<MyConfigData, 'port' | 'tlsKey' | 'tlsCert' | 'httpCach
     httpCacheTTLSeconds: 300,
     ...(await config())
 };
-const log = LoggerUtil.new(conf);
+const log = fetchLogger(conf);
 log.debug(conf);
 
 const app = express();
-app.use(httpLogger(conf));
+app.use(httpLogger(log));
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
 app.use(express.json());

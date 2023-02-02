@@ -6,6 +6,7 @@ export interface ConfigData {
     readonly appVersion?: string;
     readonly logLevel?: LogLevel;
     readonly locLevel?: LogLevel;
+    readonly logFormat?: 'JSON' | 'unstructured';
     readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }

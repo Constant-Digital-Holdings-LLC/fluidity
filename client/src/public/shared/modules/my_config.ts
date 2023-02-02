@@ -4,7 +4,6 @@ import type { ConfigData } from '#@shared/modules/config.js';
 import { FluidityPacket, PublishTarget } from '#@shared/types.js';
 
 export interface MyConfigData extends ConfigData {
-    readonly logFormat?: 'JSON' | 'unstructured';
     readonly targets?: PublishTarget[];
     readonly tlsKey?: string;
     readonly tlsCert?: string;

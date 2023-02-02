@@ -3,8 +3,8 @@ import fs from 'fs';
 import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { LoggerUtil, httpLogger } from '#@shared/modules/logger.js';
-import { prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { httpLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 const conf = {
     appName: 'Fluidity',
@@ -14,10 +14,10 @@ const conf = {
     httpCacheTTLSeconds: 300,
     ...(await config())
 };
-const log = LoggerUtil.new(conf);
+const log = fetchLogger(conf);
 log.debug(conf);
 const app = express();
-app.use(httpLogger(conf));
+app.use(httpLogger(log));
 app.use(await configMiddleware());
 app.set('view engine', 'ejs');
 app.use(express.json());

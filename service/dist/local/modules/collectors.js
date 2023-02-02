@@ -1,11 +1,11 @@
+import { fetchLogger } from '#@shared/modules/utils.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
-import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 import axios from 'axios';
 const conf = await config();
-const log = LoggerUtil.new(conf);
+const log = fetchLogger(conf);
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;
     return (isFfluidityPacket(obj, true) &&

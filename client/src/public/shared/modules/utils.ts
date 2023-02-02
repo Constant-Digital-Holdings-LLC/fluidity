@@ -1,3 +1,6 @@
+import { LoggerUtil, levelsArr } from '#@shared/modules/logger.js';
+import { ConfigData } from '#@shared/modules/config.js';
+
 export const inBrowser = (): Boolean => {
     return typeof window === 'object' && typeof process === 'undefined';
 };
@@ -37,4 +40,21 @@ export const isJSONString = (str: string) => {
         return false;
     }
     return true;
+};
+
+//Customize log behaviour for this app:
+export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
+    return LoggerUtil.new(conf => {
+        const { logLevel, locLevel, logFormat } = conf || {};
+
+        if (inBrowser()) {
+            return LoggerUtil.browserConsole({ logLevel, locLevel });
+        } else {
+            if (levelsArr.indexOf(logLevel || 'debug') >= levelsArr.indexOf('info') && logFormat === 'JSON') {
+                return LoggerUtil.JSONEmitter({ logLevel, locLevel });
+            } else {
+                return LoggerUtil.nodeConsole({ logLevel, locLevel });
+            }
+        }
+    });
 };

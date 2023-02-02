@@ -9,7 +9,6 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-import { composer } from '#@shared/modules/my_logger.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -168,12 +167,11 @@ export class LoggerUtil {
     static JSONEmitter(levelSettings) {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
-    static new(conf) {
-        return composer(conf);
+    static new(composer) {
+        return composer();
     }
 }
-export const httpLogger = (conf) => {
-    const log = composer(conf);
+export const httpLogger = (log) => {
     let requests = 0;
     let timeSum = 0;
     const getDurationInMilliseconds = (start) => {

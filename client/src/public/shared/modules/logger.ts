@@ -1,12 +1,12 @@
 import type { StackFrame } from 'stacktrace-js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import type { Request, Response, NextFunction } from 'express';
-import { composer } from '#@shared/modules/my_logger.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
 export type Runtime = 'nodejs' | 'browser';
+export type Composer = (conf?: ConfigData) => LoggerUtil;
 
 interface StackLocation {
     line: number | undefined;
@@ -215,14 +215,12 @@ export class LoggerUtil implements Logger {
         return new LoggerUtil(levelSettings, new JSONFormatter(levelSettings), new ConsoleTransport(), 'nodejs');
     }
 
-    static new(conf?: ConfigData): LoggerUtil {
-        return composer(conf);
+    static new(composer: Composer): LoggerUtil {
+        return composer();
     }
 }
 
-export const httpLogger = (conf?: ConfigData) => {
-    const log = composer(conf);
-
+export const httpLogger = (log: LoggerUtil) => {
     let requests = 0;
     let timeSum = 0;
 

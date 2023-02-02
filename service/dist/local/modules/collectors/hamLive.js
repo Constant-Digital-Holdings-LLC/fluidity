@@ -1,8 +1,8 @@
+import { fetchLogger } from '#@shared/modules/utils.js';
 import { WebJSONCollector } from '#@service/modules/collectors.js';
-import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 const conf = await config();
-const log = LoggerUtil.new(conf);
+const log = fetchLogger(conf);
 export default class HamLiveCollector extends WebJSONCollector {
     constructor({ url = 'https://www.ham.live/api/data/livenets', ...params }) {
         super({ url, ...params });

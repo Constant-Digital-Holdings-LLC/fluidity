@@ -1,3 +1,4 @@
+import { fetchLogger } from '#@shared/modules/utils.js';
 import { FormattedData } from '#@shared/types.js';
 import {
     SerialCollector,
@@ -6,11 +7,10 @@ import {
     FormatHelper
 } from '#@service/modules/collectors.js';
 import { ReadlineParser } from 'serialport';
-import { LoggerUtil } from '#@shared/modules/logger.js';
 import { config } from '#@shared/modules/config.js';
 
 const conf = await config();
-const log = LoggerUtil.new(conf);
+const log = fetchLogger(conf);
 
 interface SRSPortMap {
     [key: number]: string | undefined;
