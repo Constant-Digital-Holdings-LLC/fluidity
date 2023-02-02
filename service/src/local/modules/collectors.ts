@@ -69,6 +69,7 @@ export class FormatHelper {
 
 export interface DataCollectorPlugin {
     start(): void;
+    format(data: string, fh: FormatHelper): FormattedData[] | null;
 }
 
 export abstract class DataCollector implements DataCollectorPlugin {
@@ -78,9 +79,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
     abstract start(): void;
 
-    protected format(data: string, fh: FormatHelper): FormattedData[] | null {
-        return fh.e(data).done;
-    }
+    abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
 
     private addTS(data: FormattedData[]): FormattedData[] {
         return data;
@@ -130,7 +129,7 @@ export interface WebJSONCollectorParams extends DataCollectorParams {
     pollIntervalSec: number;
 }
 
-export class WebJSONCollector extends DataCollector {
+export abstract class WebJSONCollector extends DataCollector implements DataCollectorPlugin {
     protected url: URL;
     protected pollIntervalSec: number;
 
@@ -182,6 +181,10 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
     protected parser: SerialParser;
 
     abstract fetchParser(): SerialParser;
+
+    override format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
+    }
 
     constructor({ path, baudRate, ...params }: SerialCollectorParams) {
         super(params);

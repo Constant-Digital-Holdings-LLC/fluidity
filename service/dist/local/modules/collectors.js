@@ -46,9 +46,6 @@ export class DataCollector {
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
     }
-    format(data, fh) {
-        return fh.e(data).done;
-    }
     addTS(data) {
         return data;
     }
@@ -127,6 +124,9 @@ export class WebJSONCollector extends DataCollector {
 export class SerialCollector extends DataCollector {
     port;
     parser;
+    format(data, fh) {
+        return fh.e(data).done;
+    }
     constructor({ path, baudRate, ...params }) {
         super(params);
         if (typeof path !== 'string')
