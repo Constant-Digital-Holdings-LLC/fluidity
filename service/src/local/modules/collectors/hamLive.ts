@@ -8,8 +8,8 @@ const conf = await config();
 const log = LoggerUtil.new(conf);
 
 export default class HamLiveCollector extends WebJSONCollector {
-    constructor({ url, ...params }: WebJSONCollectorParams) {
-        super({ url: 'https://www.ham.live/api/data/livenets', ...params });
+    constructor({ url = 'https://www.ham.live/api/data/livenets', ...params }: WebJSONCollectorParams) {
+        super({ url, ...params });
     }
 
     override format(data: string, fh: FormatHelper): FormattedData[] | null {
