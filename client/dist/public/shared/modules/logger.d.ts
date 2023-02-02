@@ -10,9 +10,9 @@ interface StackLocation {
     line: number | undefined;
     file: string | undefined;
 }
-interface LogData<T> {
+interface LogData {
     level: LogLevel;
-    message: T;
+    message: unknown;
     timestamp: Date;
     location?: StackLocation | undefined;
 }
@@ -21,7 +21,7 @@ interface LevelSettings {
     logLevel: LogLevel | undefined | null;
 }
 interface LogFormatter {
-    format<T>(data: LogData<T>): string;
+    format(data: LogData): string;
 }
 interface LogTransport {
     send(loglevel: LogLevel, logline: string): void;
@@ -34,11 +34,11 @@ export declare class LoggerUtil implements Logger {
     constructor(levelSettings: LevelSettings, formatter: LogFormatter, transport: LogTransport, runtime: Runtime);
     private getStackLocation;
     private log;
-    debug<T>(data: T): void;
-    info<T>(data: T): void;
-    warn<T>(data: T): void;
-    error<T>(data: T): void;
-    never<T>(data: T): void;
+    debug(data: unknown): void;
+    info(data: unknown): void;
+    warn(data: unknown): void;
+    error(data: unknown): void;
+    never(data: unknown): void;
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;

@@ -28,8 +28,6 @@ class FormatterBase {
         else {
             formattedMesg = JSON.stringify(message);
         }
-        if (message instanceof Object)
-            formattedMesg !== null && formattedMesg !== void 0 ? formattedMesg : (formattedMesg = message.toString());
         if (message instanceof Error) {
             formattedMesg += `\nstack-->\n${message.stack} <--stack`;
         }

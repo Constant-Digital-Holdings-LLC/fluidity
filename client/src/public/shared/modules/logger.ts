@@ -13,9 +13,9 @@ interface StackLocation {
     file: string | undefined;
 }
 
-interface LogData<T> {
+interface LogData {
     level: LogLevel;
-    message: T;
+    message: unknown;
     timestamp: Date;
     location?: StackLocation | undefined;
 }
@@ -26,7 +26,7 @@ interface LevelSettings {
 }
 
 interface LogFormatter {
-    format<T>(data: LogData<T>): string;
+    format(data: LogData): string;
 }
 
 interface LogTransport {
@@ -38,7 +38,7 @@ abstract class FormatterBase implements LogFormatter {
 
     abstract dateString(date: Date): string;
 
-    format<T>(data: LogData<T>): string {
+    format(data: LogData): string {
         const { message, timestamp, level } = data;
         let formattedMesg: string = '';
 
@@ -49,8 +49,6 @@ abstract class FormatterBase implements LogFormatter {
         } else {
             formattedMesg = JSON.stringify(message);
         }
-
-        if (message instanceof Object) formattedMesg ??= message.toString();
 
         if (message instanceof Error) {
             formattedMesg += `\nstack-->\n${message.stack} <--stack`;
@@ -85,7 +83,7 @@ class BrowserConsoleFormatter extends FormatterBase implements LogFormatter {
 }
 
 class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatter {
-    override format<T>(data: LogData<T>): string {
+    override format(data: LogData): string {
         const colorLevels: number[] = [94, 97, 33, 91];
 
         return super
@@ -98,7 +96,7 @@ class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatte
 
 class JSONFormatter implements LogFormatter {
     constructor(protected levelSettings: LevelSettings) {}
-    format<T>(data: LogData<T>): string {
+    format(data: LogData): string {
         const { message: m, ...rest } = data;
 
         if (typeof m === 'string') {
@@ -159,7 +157,7 @@ export class LoggerUtil implements Logger {
         });
     }
 
-    private log<T>(level: LogLevel, message: T): void {
+    private log(level: LogLevel, message: unknown): void {
         if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel || 'debug')) {
             const snd = (location?: StackLocation) => {
                 this.transport.send(
@@ -182,23 +180,23 @@ export class LoggerUtil implements Logger {
         }
     }
 
-    debug<T>(data: T): void {
+    debug(data: unknown): void {
         this.log('debug', data);
     }
 
-    info<T>(data: T): void {
+    info(data: unknown): void {
         this.log('info', data);
     }
 
-    warn<T>(data: T): void {
+    warn(data: unknown): void {
         this.log('warn', data);
     }
 
-    error<T>(data: T): void {
+    error(data: unknown): void {
         this.log('error', data);
     }
 
-    never<T>(data: T): void {}
+    never(data: unknown): void {}
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(
