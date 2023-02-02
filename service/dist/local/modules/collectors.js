@@ -107,7 +107,7 @@ export class WebJSONCollector extends DataCollector {
     start() {
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
         setIntervalAsync(async () => {
-            log.info(`${this.params.plugin} [${this.params.description}]: contacting host ${this.url.host}`);
+            log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
             const myAxios = axios.create({
                 transformResponse: [
                     function transformResponse(data) {
