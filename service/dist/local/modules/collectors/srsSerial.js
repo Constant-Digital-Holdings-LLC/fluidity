@@ -1,4 +1,4 @@
-import { fetchLogger } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/application.js';
 import { SerialCollector } from '#@service/modules/collectors.js';
 import { ReadlineParser } from 'serialport';
 import { config } from '#@shared/modules/config.js';

@@ -1,4 +1,3 @@
-import { LoggerUtil, levelsArr } from '#@shared/modules/logger.js';
 export const inBrowser = () => {
     return typeof window === 'object' && typeof process === 'undefined';
 };
@@ -35,21 +34,5 @@ export const isJSONString = (str) => {
         return false;
     }
     return true;
-};
-export const fetchLogger = (conf) => {
-    return LoggerUtil.new(conf => {
-        const { logLevel, locLevel, logFormat } = conf || {};
-        if (inBrowser()) {
-            return LoggerUtil.browserConsole({ logLevel, locLevel });
-        }
-        else {
-            if (levelsArr.indexOf(logLevel || 'debug') >= levelsArr.indexOf('info') && logFormat === 'JSON') {
-                return LoggerUtil.JSONEmitter({ logLevel, locLevel });
-            }
-            else {
-                return LoggerUtil.nodeConsole({ logLevel, locLevel });
-            }
-        }
-    });
 };
 //# sourceMappingURL=utils.js.map

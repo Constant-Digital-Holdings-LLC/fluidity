@@ -1,4 +1,4 @@
-import { fetchLogger } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/application.js';
 import { FormattedData } from '#@shared/types.js';
 import {
     SerialCollector,

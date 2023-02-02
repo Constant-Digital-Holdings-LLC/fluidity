@@ -1,4 +1,4 @@
-import { fetchLogger } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/application.js';
 import { configFromDOM } from '#@shared/modules/config.js';
 
 const conf = configFromDOM();

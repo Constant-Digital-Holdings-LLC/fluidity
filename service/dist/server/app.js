@@ -3,7 +3,8 @@ import fs from 'fs';
 import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { fetchLogger, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/application.js';
+import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { httpLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
 const conf = {

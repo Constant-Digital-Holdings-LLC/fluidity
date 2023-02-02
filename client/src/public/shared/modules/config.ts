@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { MyConfigData } from '#@shared/modules/application.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 
 const log = fetchLogger();
@@ -20,8 +21,6 @@ const isMyConfigData = (obj: any): obj is MyConfigData =>
 const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['appName']);
 
 export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'] as const;
-
-import { MyConfigData } from '#@shared/modules/my_config.js';
 
 interface ConfigParser {
     parse(src: string): unknown;

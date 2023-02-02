@@ -1,6 +1,6 @@
 import { DataCollector, DataCollectorParams, isDataCollectorParams } from '#@service/modules/collectors.js';
 import { config } from '#@shared/modules/config.js';
-import { fetchLogger } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/application.js';
 const conf = await config();
 const log = fetchLogger(conf);
 log.debug(conf);

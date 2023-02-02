@@ -4,10 +4,10 @@ import express from 'express';
 // import { RingBuffer } from 'ring-buffer-ts';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { fetchLogger, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger, MyConfigData } from '#@shared/modules/application.js';
+import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { httpLogger } from '#@shared/modules/logger.js';
 import { config, configMiddleware } from '#@shared/modules/config.js';
-import { MyConfigData } from '#@shared/modules/my_config.js';
 import { WithRequired } from '#@shared/modules/utils.js';
 
 const conf: WithRequired<MyConfigData, 'port' | 'tlsKey' | 'tlsCert' | 'httpCacheTTLSeconds'> = {
