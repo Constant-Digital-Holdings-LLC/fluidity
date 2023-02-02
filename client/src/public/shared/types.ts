@@ -41,5 +41,3 @@ export interface PublishTarget {
 export type StringAble = {
     toString(): string;
 };
-
-//foo

@@ -1,28 +1,27 @@
 import type { Request, Response, NextFunction } from 'express';
-import { LogLevel } from '#@shared/modules/logger.js';
-import { inBrowser, prettyFsNotFound, fetchLogger } from '#@shared/modules/utils.js';
+import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
 
 const log = fetchLogger();
 
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
+export interface ConfigData {
+    readonly appName: string;
+    readonly appVersion?: string;
+    readonly nodeEnv?: NodeEnv;
+    readonly [index: string]: unknown;
+}
+
 const isMyConfigData = (obj: any): obj is MyConfigData =>
     obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
 const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['appName']);
 
-export interface ConfigData {
-    readonly appName: string;
-    readonly appVersion?: string;
-    readonly logLevel?: LogLevel;
-    readonly locLevel?: LogLevel;
-    readonly logFormat?: 'JSON' | 'unstructured';
-    readonly nodeEnv?: NodeEnv;
-    readonly [index: string]: unknown;
-}
+export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'] as const;
 
-import { MyConfigData, pubSafeProps } from '#@shared/modules/my_config.js';
+import { MyConfigData } from '#@shared/modules/my_config.js';
 
 interface ConfigParser {
     parse(src: string): unknown;

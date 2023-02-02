@@ -7,12 +7,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { inBrowser, prettyFsNotFound, fetchLogger } from '#@shared/modules/utils.js';
+import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
 const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 const isMyConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 const isMyConfigDataPopulated = (obj) => isMyConfigData(obj) && Boolean(obj['appName']);
-import { pubSafeProps } from '#@shared/modules/my_config.js';
+export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'];
 class ConfigBase {
     get pubConf() {
         const handler = {

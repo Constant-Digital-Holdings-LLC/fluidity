@@ -1,9 +1,9 @@
 // Application-specific customizations for config lib:
-
+import { LoggerConfig } from '#@shared/modules/logger.js';
 import type { ConfigData } from '#@shared/modules/config.js';
 import { FluidityPacket, PublishTarget } from '#@shared/types.js';
 
-export interface MyConfigData extends ConfigData {
+export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly targets?: PublishTarget[];
     readonly tlsKey?: string;
     readonly tlsCert?: string;
@@ -11,5 +11,3 @@ export interface MyConfigData extends ConfigData {
     readonly port?: number;
     readonly site?: Pick<FluidityPacket, 'site'>;
 }
-//These config options can be exposed to the browser
-export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'] as const;

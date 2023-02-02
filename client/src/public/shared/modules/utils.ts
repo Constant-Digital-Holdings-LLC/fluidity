@@ -1,5 +1,4 @@
-import { LoggerUtil, levelsArr } from '#@shared/modules/logger.js';
-import { ConfigData } from '#@shared/modules/config.js';
+import { LoggerUtil, LoggerConfig, levelsArr } from '#@shared/modules/logger.js';
 
 export const inBrowser = (): Boolean => {
     return typeof window === 'object' && typeof process === 'undefined';
@@ -42,8 +41,8 @@ export const isJSONString = (str: string) => {
     return true;
 };
 
-//Customize log behaviour for this app:
-export const fetchLogger = (conf?: ConfigData): LoggerUtil => {
+//Application Specific Customizations of logger:
+export const fetchLogger = (conf?: LoggerConfig): LoggerUtil => {
     return LoggerUtil.new(conf => {
         const { logLevel, locLevel, logFormat } = conf || {};
 

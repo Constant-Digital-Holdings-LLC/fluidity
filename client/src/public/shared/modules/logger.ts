@@ -1,12 +1,18 @@
 import type { StackFrame } from 'stacktrace-js';
-import type { ConfigData } from '#@shared/modules/config.js';
 import type { Request, Response, NextFunction } from 'express';
+import { inBrowser } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
+export interface LoggerConfig {
+    readonly logLevel?: LogLevel;
+    readonly locLevel?: LogLevel;
+    readonly logFormat?: 'JSON' | 'unstructured';
+}
+
 export type Runtime = 'nodejs' | 'browser';
-export type Composer = (conf?: ConfigData) => LoggerUtil;
+export type Composer = (conf?: LoggerConfig) => LoggerUtil;
 
 interface StackLocation {
     line: number | undefined;
@@ -252,4 +258,21 @@ export const httpLogger = (log: LoggerUtil) => {
 
         next();
     };
+};
+
+//Generic fetcher, here for convenience. Apps should implement their own:
+export const fetchLogger = (conf?: LoggerConfig): LoggerUtil => {
+    return LoggerUtil.new(conf => {
+        const { logLevel, locLevel, logFormat } = conf || {};
+
+        if (inBrowser()) {
+            return LoggerUtil.browserConsole({ logLevel, locLevel });
+        } else {
+            if (levelsArr.indexOf(logLevel || 'debug') >= levelsArr.indexOf('info') && logFormat === 'JSON') {
+                return LoggerUtil.JSONEmitter({ logLevel, locLevel });
+            } else {
+                return LoggerUtil.nodeConsole({ logLevel, locLevel });
+            }
+        }
+    });
 };

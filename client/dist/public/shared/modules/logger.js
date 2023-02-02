@@ -9,6 +9,7 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
+import { inBrowser } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -199,5 +200,21 @@ export const httpLogger = (log) => {
         });
         next();
     };
+};
+export const fetchLogger = (conf) => {
+    return LoggerUtil.new(conf => {
+        const { logLevel, locLevel, logFormat } = conf || {};
+        if (inBrowser()) {
+            return LoggerUtil.browserConsole({ logLevel, locLevel });
+        }
+        else {
+            if (levelsArr.indexOf(logLevel || 'debug') >= levelsArr.indexOf('info') && logFormat === 'JSON') {
+                return LoggerUtil.JSONEmitter({ logLevel, locLevel });
+            }
+            else {
+                return LoggerUtil.nodeConsole({ logLevel, locLevel });
+            }
+        }
+    });
 };
 //# sourceMappingURL=logger.js.map

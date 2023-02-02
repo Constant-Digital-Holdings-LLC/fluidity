@@ -1,12 +1,16 @@
-import type { ConfigData } from '#@shared/modules/config.js';
 import type { Request, Response, NextFunction } from 'express';
 export declare const levelsArr: readonly ["debug", "info", "warn", "error", "never"];
 export type LogLevel = typeof levelsArr[number];
 type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
+export interface LoggerConfig {
+    readonly logLevel?: LogLevel;
+    readonly locLevel?: LogLevel;
+    readonly logFormat?: 'JSON' | 'unstructured';
+}
 export type Runtime = 'nodejs' | 'browser';
-export type Composer = (conf?: ConfigData) => LoggerUtil;
+export type Composer = (conf?: LoggerConfig) => LoggerUtil;
 interface StackLocation {
     line: number | undefined;
     file: string | undefined;
@@ -46,5 +50,6 @@ export declare class LoggerUtil implements Logger {
     static new(composer: Composer): LoggerUtil;
 }
 export declare const httpLogger: (log: LoggerUtil) => (req: Request, res: Response, next: NextFunction) => void;
+export declare const fetchLogger: (conf?: LoggerConfig) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map
