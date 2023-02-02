@@ -4,4 +4,5 @@ export declare const prettyFsNotFound: (err: Error) => Promise<string | undefine
 export type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
 };
+export declare const isJSONString: (str: string) => boolean;
 //# sourceMappingURL=utils.d.ts.map

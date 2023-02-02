@@ -14,10 +14,9 @@
             "omitTS": true
         },
         {
-            "description": "Generic Test",
-            "plugin": "genericWeb",
-            "url": "https://google.com",
-            "pollIntervalSec": 10,
+            "description": "Net Watcher",
+            "plugin": "hamLive",
+            "pollIntervalSec": 5,
             "omitTS": true
         },
         {

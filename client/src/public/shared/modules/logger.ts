@@ -38,33 +38,23 @@ abstract class FormatterBase implements LogFormatter {
 
     abstract dateString(date: Date): string;
 
-    protected isJsonString(str: string) {
-        try {
-            JSON.parse(str);
-        } catch (e) {
-            return false;
-        }
-        return true;
-    }
-
     format<T>(data: LogData<T>): string {
         const { message, timestamp, level } = data;
-        let formattedMesg: string;
+        let formattedMesg: string = '';
 
-        if (typeof message !== 'string' && !(message instanceof Error)) {
-            if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
-                formattedMesg = JSON.stringify(message, undefined, '\t');
-            } else {
-                formattedMesg = JSON.stringify(message);
-            }
+        if (typeof message === 'string') {
+            formattedMesg = message;
+        } else if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
+            formattedMesg = JSON.stringify(message, undefined, '\t');
         } else {
-            formattedMesg = message.toString();
-            if (message instanceof Error) {
-                formattedMesg += `\nstack-->\n${message.stack} <--stack`;
-            }
+            formattedMesg = JSON.stringify(message);
         }
 
         if (message instanceof Object) formattedMesg ??= message.toString();
+
+        if (message instanceof Error) {
+            formattedMesg += `\nstack-->\n${message.stack} <--stack`;
+        }
 
         if (data.location?.file && data.location?.line) {
             const {

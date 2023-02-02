@@ -15,35 +15,24 @@ class FormatterBase {
     constructor(levelSettings) {
         this.levelSettings = levelSettings;
     }
-    isJsonString(str) {
-        try {
-            JSON.parse(str);
-        }
-        catch (e) {
-            return false;
-        }
-        return true;
-    }
     format(data) {
         var _a, _b;
         const { message, timestamp, level } = data;
-        let formattedMesg;
-        if (typeof message !== 'string' && !(message instanceof Error)) {
-            if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
-                formattedMesg = JSON.stringify(message, undefined, '\t');
-            }
-            else {
-                formattedMesg = JSON.stringify(message);
-            }
+        let formattedMesg = '';
+        if (typeof message === 'string') {
+            formattedMesg = message;
+        }
+        else if (level === 'debug' || this.levelSettings.logLevel === 'debug') {
+            formattedMesg = JSON.stringify(message, undefined, '\t');
         }
         else {
-            formattedMesg = message.toString();
-            if (message instanceof Error) {
-                formattedMesg += `\nstack-->\n${message.stack} <--stack`;
-            }
+            formattedMesg = JSON.stringify(message);
         }
         if (message instanceof Object)
             formattedMesg !== null && formattedMesg !== void 0 ? formattedMesg : (formattedMesg = message.toString());
+        if (message instanceof Error) {
+            formattedMesg += `\nstack-->\n${message.stack} <--stack`;
+        }
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
             const { location: { file, line } } = data;
             return `[${this.dateString(timestamp)}]: ${formattedMesg} (${file}:${line})`;

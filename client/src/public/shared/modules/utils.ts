@@ -30,4 +30,11 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
 
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
-//foo
+export const isJSONString = (str: string) => {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+};

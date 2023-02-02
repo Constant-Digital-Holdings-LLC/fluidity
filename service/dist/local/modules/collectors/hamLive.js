@@ -7,4 +7,11 @@ export default class HamLiveCollector extends WebJSONCollector {
     constructor({ url, ...params }) {
         super({ url: 'https://www.ham.live/api/data/livenets', ...params });
     }
+    format(data, fh) {
+        const netData = JSON.parse(data);
+        netData.netlist.forEach((net) => {
+            fh.e(net.title);
+        });
+        return fh.done;
+    }
 }
