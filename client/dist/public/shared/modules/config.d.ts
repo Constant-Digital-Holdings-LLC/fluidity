@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 type NodeEnv = 'development' | 'production' | null;
-export interface ConfigData extends Object {
+export interface ConfigData {
     readonly appName: string;
     readonly appVersion?: string;
     readonly nodeEnv?: NodeEnv;
@@ -15,22 +15,23 @@ interface ConfigFiles {
     readonly production: [string, ConfigParser] | null;
 }
 declare abstract class ConfigBase<C extends ConfigData> {
-    abstract get conf(): C | undefined;
-    protected configCache: C | undefined;
+    abstract get conf(): C | null;
+    protected configCache: C | null;
+    constructor();
 }
 export declare class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     readonly nodeEnv: NodeEnv;
     static asyncNew<C extends ConfigData>(): Promise<FSConfigUtil<C>>;
-    get conf(): C | undefined;
+    get conf(): C | null;
     load(): Promise<C | undefined>;
     loadFiles(cFiles: ConfigFiles): Promise<C | undefined>;
 }
 export declare class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     protected pubSafe: readonly string[];
     constructor(conf?: C, pubSafe?: readonly string[]);
-    get conf(): C | undefined;
+    get conf(): C | null;
     protected get pubConf(): C | undefined;
-    protected extract<C extends ConfigData>(): C | undefined;
+    protected extract<C extends ConfigData>(): C | null;
     populateDOM(req: Request, res: Response, next: NextFunction): void;
 }
 export {};

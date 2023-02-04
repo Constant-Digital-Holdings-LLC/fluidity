@@ -14,6 +14,9 @@ const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' 
 const isConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);
 class ConfigBase {
+    constructor() {
+        this.configCache = null;
+    }
 }
 export class FSConfigUtil extends ConfigBase {
     constructor() {
@@ -55,7 +58,7 @@ export class FSConfigUtil extends ConfigBase {
                 if (nodeEnvConfPath) {
                     eObj = (_c = cFiles[NODE_ENV]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
                     if (!isConfigData(eObj)) {
-                        this.configCache = undefined;
+                        this.configCache = null;
                         log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     }
@@ -83,8 +86,7 @@ export class FSConfigUtil extends ConfigBase {
                     log.error(err);
                 }
             }
-            if (typeof this.configCache !== 'object' ||
-                (typeof this.configCache === 'object' && !('appName' in this.configCache))) {
+            if (!(this.configCache instanceof Object && 'appName' in this.configCache)) {
                 throw new Error(`No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`);
             }
             return this.configCache;
@@ -142,7 +144,7 @@ export class DOMConfigUtil extends ConfigBase {
         if (isConfigDataPopulated(conf)) {
             return conf;
         }
-        return undefined;
+        return null;
     }
     populateDOM(req, res, next) {
         if (!this.configCache)

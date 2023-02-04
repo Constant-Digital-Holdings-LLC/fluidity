@@ -7,7 +7,7 @@ const log = fetchLogger();
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
-export interface ConfigData extends Object {
+export interface ConfigData {
     readonly appName: string;
     readonly appVersion?: string;
     readonly nodeEnv?: NodeEnv;
@@ -31,8 +31,12 @@ interface ConfigFiles {
 }
 
 abstract class ConfigBase<C extends ConfigData> {
-    abstract get conf(): C | undefined;
-    protected configCache: C | undefined;
+    abstract get conf(): C | null;
+    protected configCache: C | null;
+
+    constructor() {
+        this.configCache = null;
+    }
 }
 
 export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
@@ -46,7 +50,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         return fsc;
     }
 
-    get conf(): C | undefined {
+    get conf(): C | null {
         return this.configCache;
     }
 
@@ -77,7 +81,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
                 eObj = cFiles[NODE_ENV]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
 
                 if (!isConfigData<C>(eObj)) {
-                    this.configCache = undefined;
+                    this.configCache = null;
                     log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                 }
@@ -110,10 +114,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
             }
         }
 
-        if (
-            typeof this.configCache !== 'object' ||
-            (typeof this.configCache === 'object' && !('appName' in this.configCache))
-        ) {
+        if (!(this.configCache instanceof Object && 'appName' in this.configCache)) {
             throw new Error(
                 `No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`
             );
@@ -173,14 +174,14 @@ export class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         }
     }
 
-    protected extract<C extends ConfigData>(): C | undefined {
+    protected extract<C extends ConfigData>(): C | null {
         const conf = document.getElementById('configData')?.dataset;
 
         if (isConfigDataPopulated<C>(conf)) {
             return conf;
         }
 
-        return undefined;
+        return null;
     }
 
     public populateDOM(req: Request, res: Response, next: NextFunction) {

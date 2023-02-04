@@ -10,6 +10,6 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly site?: Pick<FluidityPacket, 'site'>;
 }
 export declare const pubSafe: readonly ["appName", "logLevel", "appVersion", "locLevel", "nodeEnv"];
-export declare const confFromDOM: () => MyConfigData | undefined;
-export declare const confFromFS: () => Promise<MyConfigData | undefined>;
+export declare const confFromDOM: () => MyConfigData | null;
+export declare const confFromFS: () => Promise<MyConfigData | null>;
 //# sourceMappingURL=fluidityConfig.d.ts.map

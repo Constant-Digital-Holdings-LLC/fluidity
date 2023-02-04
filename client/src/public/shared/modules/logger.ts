@@ -255,7 +255,7 @@ export const httpLogger = (log: LoggerUtil) => {
     };
 };
 
-export const fetchLogger = <C extends LoggerConfig>(conf?: C): LoggerUtil => {
+export const fetchLogger = <C extends LoggerConfig>(conf?: C | null): LoggerUtil => {
     const { logLevel, locLevel, logFormat } = conf || {};
 
     if (inBrowser()) {
