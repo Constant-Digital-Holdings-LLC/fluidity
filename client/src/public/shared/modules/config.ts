@@ -47,6 +47,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         if (!fsc.conf) {
             await fsc.load();
         }
+
         return fsc;
     }
 
