@@ -242,9 +242,9 @@ export const httpLogger = (log: LoggerUtil) => {
             timeSum += durationInMilliseconds;
             const averageReqTime = timeSum / requests;
 
-            const logMesg = `${req.method} ${req.url}\t(${
+            const logMesg = `${req.method} ${req.url}\t[${
                 res.statusCode
-            })\t${durationInMilliseconds.toLocaleString()} ms`;
+            }]\t${durationInMilliseconds.toLocaleString()} ms`;
 
             if (res.statusCode >= 500 && res.statusCode <= 599) {
                 log.error(logMesg);
