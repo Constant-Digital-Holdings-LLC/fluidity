@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 type NodeEnv = 'development' | 'production' | null;
-export interface ConfigData {
+export interface ConfigData extends Object {
     readonly appName: string;
     readonly appVersion?: string;
     readonly nodeEnv?: NodeEnv;
@@ -22,8 +22,8 @@ export declare class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     readonly nodeEnv: NodeEnv;
     static asyncNew<C extends ConfigData>(): Promise<FSConfigUtil<C>>;
     get conf(): C | undefined;
-    load<C extends ConfigData>(): Promise<C | undefined>;
-    loadFiles<C extends ConfigData>(cFiles: ConfigFiles): Promise<C | undefined>;
+    load(): Promise<C | undefined>;
+    loadFiles(cFiles: ConfigFiles): Promise<C | undefined>;
 }
 export declare class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     protected pubSafe: readonly string[];

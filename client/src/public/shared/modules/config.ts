@@ -7,7 +7,7 @@ const log = fetchLogger();
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
-export interface ConfigData {
+export interface ConfigData extends Object {
     readonly appName: string;
     readonly appVersion?: string;
     readonly nodeEnv?: NodeEnv;
@@ -50,7 +50,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         return this.configCache;
     }
 
-    load<C extends ConfigData>(): Promise<C | undefined> {
+    load(): Promise<C | undefined> {
         return this.loadFiles({
             development: ['./conf/dev_conf.json', JSON],
             production: ['./conf/prod_conf.json', JSON],
@@ -58,7 +58,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         });
     }
 
-    async loadFiles<C extends ConfigData>(cFiles: ConfigFiles): Promise<C | undefined> {
+    async loadFiles(cFiles: ConfigFiles): Promise<C | undefined> {
         if (!NODE_ENV) {
             throw new Error('loadFiles() not applicable outside of node');
         }
@@ -86,7 +86,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
                     cObj = cFiles['common']?.[1].parse(readFileSync(commonConfPath, 'utf8'));
 
                     if (isConfigData<C>(cObj)) {
-                        this.configCache = { ...eObj, ...cObj } as any;
+                        this.configCache = { ...eObj, ...cObj };
                     } else {
                         console.warn(
                             `loadFiles(): contents of ${path.join(
@@ -94,7 +94,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
                                 commonConfPath
                             )} ignored due to impropper format`
                         );
-                        this.configCache = eObj as any;
+                        this.configCache = eObj;
                     }
                 } else {
                     console.debug('loadFiles(): common config not provided');
@@ -119,7 +119,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
             );
         }
 
-        return this.configCache as any;
+        return this.configCache;
     }
 }
 
