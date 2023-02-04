@@ -1,7 +1,7 @@
-import { fetchLogger } from '#@shared/modules/appResources.js';
-import { DOMConfigUtil } from '#@shared/modules/config.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { FluidityClient } from '#@client/modules/fluidityClient.js';
-const { conf } = new DOMConfigUtil();
+const conf = confFromDOM();
 if (!conf)
     throw new Error('Missing Fluidity Client Config');
 const log = fetchLogger(conf);

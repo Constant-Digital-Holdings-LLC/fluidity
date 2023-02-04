@@ -1,4 +1,5 @@
-import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import {
     FormattedData,
@@ -11,7 +12,7 @@ import {
 import { setIntervalAsync } from 'set-interval-async';
 import axios from 'axios';
 
-const { conf } = await confFromFS();
+const conf = await confFromFS();
 const log = fetchLogger(conf);
 
 type SerialParser = ReadlineParser | RegexParser;

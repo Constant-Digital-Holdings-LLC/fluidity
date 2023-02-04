@@ -48,5 +48,6 @@ export declare class LoggerUtil implements Logger {
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
 }
 export declare const httpLogger: (log: LoggerUtil) => (req: Request, res: Response, next: NextFunction) => void;
+export declare const fetchLogger: <C extends LoggerConfig>(conf?: C | undefined) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map

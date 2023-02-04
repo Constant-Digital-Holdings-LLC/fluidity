@@ -1,9 +1,10 @@
-import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
 import axios from 'axios';
-const { conf } = await confFromFS();
+const conf = await confFromFS();
 const log = fetchLogger(conf);
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;

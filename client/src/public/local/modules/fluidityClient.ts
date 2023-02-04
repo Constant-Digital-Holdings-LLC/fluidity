@@ -1,13 +1,11 @@
-import { fetchLogger, confFromDOM } from '#@shared/modules/appResources.js';
+import { fetchLogger } from '#@shared/modules/logger.js';
+import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 
-const { conf } = confFromDOM();
-
+const conf = confFromDOM();
 const log = fetchLogger(conf);
 
 class FluidityStorage {}
-
 class FluidityNetwork {}
-
 class FluidityUI {}
 
 export class FluidityClient {

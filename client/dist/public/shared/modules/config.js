@@ -7,8 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
-const log = console;
+const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 const isConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);

@@ -1,13 +1,14 @@
+import { fetchLogger } from '#@shared/modules/logger.js';
 import https from 'https';
 import fs from 'fs';
 import express from 'express';
 import rb_pgk from 'ring-buffer-ts';
 const { RingBuffer } = rb_pgk;
-import { confFromFS, fetchLogger, pubSafe } from '#@shared/modules/appResources.js';
+import { confFromFS, pubSafe } from '#@shared/modules/fluidityConfig.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { httpLogger } from '#@shared/modules/logger.js';
 import { DOMConfigUtil } from '#@shared/modules/config.js';
-const { conf } = await confFromFS();
+const conf = await confFromFS();
 if (!conf)
     throw new Error('Missing Fluidity Service Config');
 const log = fetchLogger(conf);
