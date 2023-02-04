@@ -1,4 +1,4 @@
-import { fetchLogger } from '#@shared/modules/application.js';
+import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
 import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
 import {
     FormattedData,
@@ -9,10 +9,9 @@ import {
     StringAble
 } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
-import { config } from '#@shared/modules/config.js';
 import axios from 'axios';
 
-const conf = await config();
+const { conf } = await confFromFS();
 const log = fetchLogger(conf);
 
 type SerialParser = ReadlineParser | RegexParser;

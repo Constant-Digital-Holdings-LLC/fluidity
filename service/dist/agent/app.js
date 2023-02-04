@@ -1,8 +1,9 @@
 import { isDataCollectorParams } from '#@service/modules/collectors.js';
-import { config } from '#@shared/modules/config.js';
-import { fetchLogger } from '#@shared/modules/application.js';
-const conf = await config();
-const log = fetchLogger(conf);
+import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
+const { conf } = await confFromFS();
+if (!conf)
+    throw new Error('Missing Fluidity Agent Config');
+const log = fetchLogger();
 log.debug(conf);
 if (conf) {
     const { targets, site } = conf;

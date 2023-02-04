@@ -10,7 +10,6 @@ export interface LoggerConfig {
     readonly logFormat?: 'JSON' | 'unstructured';
 }
 export type Runtime = 'nodejs' | 'browser';
-export type Composer = (conf?: LoggerConfig) => LoggerUtil;
 interface StackLocation {
     line: number | undefined;
     file: string | undefined;
@@ -47,9 +46,7 @@ export declare class LoggerUtil implements Logger {
     static browserConsole(levelSettings: LevelSettings): LoggerUtil;
     static nodeConsole(levelSettings: LevelSettings): LoggerUtil;
     static JSONEmitter(levelSettings: LevelSettings): LoggerUtil;
-    static new(composer: Composer): LoggerUtil;
 }
 export declare const httpLogger: (log: LoggerUtil) => (req: Request, res: Response, next: NextFunction) => void;
-export declare const fetchLogger: (conf?: LoggerConfig) => LoggerUtil;
 export {};
 //# sourceMappingURL=logger.d.ts.map

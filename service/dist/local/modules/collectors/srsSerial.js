@@ -1,8 +1,7 @@
-import { fetchLogger } from '#@shared/modules/application.js';
+import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
 import { SerialCollector } from '#@service/modules/collectors.js';
 import { ReadlineParser } from 'serialport';
-import { config } from '#@shared/modules/config.js';
-const conf = await config();
+const { conf } = await confFromFS();
 const log = fetchLogger(conf);
 const isSRSportMap = (obj) => {
     return Array.isArray(obj) && typeof obj[0] === 'string';

@@ -1,9 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
-import { MyConfigData } from '#@shared/modules/application.js';
-import { fetchLogger } from '#@shared/modules/logger.js';
 
-const log = fetchLogger();
+const log = console;
 
 type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
@@ -15,12 +13,11 @@ export interface ConfigData {
     readonly [index: string]: unknown;
 }
 
-const isMyConfigData = (obj: any): obj is MyConfigData =>
+const isConfigData = <C extends ConfigData>(obj: any): obj is C =>
     obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
-const isMyConfigDataPopulated = (obj: any): obj is MyConfigData => isMyConfigData(obj) && Boolean(obj['appName']);
-
-export const pubSafeProps = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'] as const;
+const isConfigDataPopulated = <C extends ConfigData>(obj: any): obj is C =>
+    isConfigData(obj) && Boolean(obj['appName']);
 
 interface ConfigParser {
     parse(src: string): unknown;
@@ -32,45 +29,27 @@ interface ConfigFiles {
     readonly production: [string, ConfigParser] | null;
 }
 
-abstract class ConfigBase {
-    abstract get allConf(): MyConfigData | undefined;
-    protected cachedConfig: MyConfigData | undefined;
-
-    protected get pubConf(): MyConfigData | undefined {
-        const handler = {
-            get(target: object, prop: PropertyKey, receiver: any) {
-                if (typeof prop === 'string')
-                    if (pubSafeProps.includes(prop as any)) {
-                        return Reflect.get(target, prop, receiver);
-                    } else {
-                        return undefined;
-                    }
-            },
-            ownKeys(target: object) {
-                return Object.keys(target).filter(prop => pubSafeProps.includes(prop as any));
-            },
-            set() {
-                throw new Error('pubConf is immutable.');
-            }
-        };
-        if (this.cachedConfig) {
-            return new Proxy(this.cachedConfig, handler) as MyConfigData;
-        } else {
-            return undefined;
-        }
-    }
+abstract class ConfigBase<C extends ConfigData> {
+    abstract get conf(): C | undefined;
+    protected configCache: C | undefined;
 }
 
-class FSConfigUtil extends ConfigBase {
+export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     readonly nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-    get allConf(): MyConfigData | undefined {
-        return this.cachedConfig;
+
+    static async asyncNew<C extends ConfigData>(): Promise<FSConfigUtil<C>> {
+        const fsc = new FSConfigUtil<C>();
+        if (!fsc.conf) {
+            await fsc.load();
+        }
+        return fsc;
     }
 
-    load(): Promise<MyConfigData | undefined> {
-        // const YAML = await import('yaml');
-        // moving from YAML to JSON, loadFiles() is fine with either
+    get conf(): C | undefined {
+        return this.configCache;
+    }
 
+    load<C extends ConfigData>(): Promise<C | undefined> {
         return this.loadFiles({
             development: ['./conf/dev_conf.json', JSON],
             production: ['./conf/prod_conf.json', JSON],
@@ -78,7 +57,7 @@ class FSConfigUtil extends ConfigBase {
         });
     }
 
-    async loadFiles(cFiles: ConfigFiles): Promise<MyConfigData | undefined> {
+    async loadFiles<C extends ConfigData>(cFiles: ConfigFiles): Promise<C | undefined> {
         if (!NODE_ENV) {
             throw new Error('loadFiles() not applicable outside of node');
         }
@@ -96,8 +75,8 @@ class FSConfigUtil extends ConfigBase {
             if (nodeEnvConfPath) {
                 eObj = cFiles[NODE_ENV]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
 
-                if (!isMyConfigData(eObj)) {
-                    this.cachedConfig = undefined;
+                if (!isConfigData<C>(eObj)) {
+                    this.configCache = undefined;
                     log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                 }
@@ -105,8 +84,8 @@ class FSConfigUtil extends ConfigBase {
                 if (commonConfPath) {
                     cObj = cFiles['common']?.[1].parse(readFileSync(commonConfPath, 'utf8'));
 
-                    if (isMyConfigData(cObj)) {
-                        this.cachedConfig = { ...eObj, ...cObj };
+                    if (isConfigData<C>(cObj)) {
+                        this.configCache = { ...eObj, ...cObj } as any;
                     } else {
                         console.warn(
                             `loadFiles(): contents of ${path.join(
@@ -114,7 +93,7 @@ class FSConfigUtil extends ConfigBase {
                                 commonConfPath
                             )} ignored due to impropper format`
                         );
-                        this.cachedConfig = eObj;
+                        this.configCache = eObj as any;
                     }
                 } else {
                     console.debug('loadFiles(): common config not provided');
@@ -131,45 +110,80 @@ class FSConfigUtil extends ConfigBase {
         }
 
         if (
-            typeof this.cachedConfig !== 'object' ||
-            (typeof this.cachedConfig === 'object' && !('appName' in this.cachedConfig))
+            typeof this.configCache !== 'object' ||
+            (typeof this.configCache === 'object' && !('appName' in this.configCache))
         ) {
             throw new Error(
-                `No config or config missing required 'appName' property. config: ${JSON.stringify(this.cachedConfig)}`
+                `No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`
             );
         }
 
-        return this.cachedConfig;
+        return this.configCache as any;
     }
 }
 
-class DOMConfigUtil extends ConfigBase {
-    constructor(conf?: MyConfigData) {
+export class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
+    protected pubSafe: readonly string[];
+    constructor(conf?: C, pubSafe?: readonly string[]) {
         super();
 
-        conf && (this.cachedConfig = conf);
+        this.pubSafe = pubSafe ?? ([] as const);
+
+        if (!inBrowser()) {
+            if (!conf) {
+                throw new Error(`please provide conf param to constructor`);
+            } else {
+                this.configCache = conf;
+            }
+        }
     }
 
-    get allConf() {
-        if (!this.cachedConfig) {
-            this.cachedConfig = this.extract();
+    public get conf() {
+        if (!this.configCache) {
+            this.configCache = this.extract();
         }
 
-        return this.cachedConfig;
+        return this.configCache;
     }
 
-    private extract(): MyConfigData | undefined {
+    protected get pubConf(): C | undefined {
+        const self = this;
+
+        const handler = {
+            get(target: object, prop: PropertyKey, receiver: any) {
+                if (typeof prop === 'string')
+                    if (self.pubSafe.includes(prop)) {
+                        return Reflect.get(target, prop, receiver);
+                    } else {
+                        return undefined;
+                    }
+            },
+            ownKeys(target: object) {
+                return Object.keys(target).filter(prop => self.pubSafe.includes(prop));
+            },
+            set() {
+                throw new Error('pubConf is immutable.');
+            }
+        };
+        if (this.configCache) {
+            return new Proxy(this.configCache, handler) as C;
+        } else {
+            return undefined;
+        }
+    }
+
+    protected extract<C extends ConfigData>(): C | undefined {
         const conf = document.getElementById('configData')?.dataset;
 
-        if (isMyConfigDataPopulated(conf)) {
+        if (isConfigDataPopulated<C>(conf)) {
             return conf;
         }
 
         return undefined;
     }
 
-    addLocals(req: Request, res: Response, next: NextFunction): void {
-        if (!this.cachedConfig) throw new Error('addLocals() middleware requires config data for req.locals');
+    public populateDOM(req: Request, res: Response, next: NextFunction) {
+        if (!this.configCache) throw new Error('config cache empty - pass in conf to constructor`');
 
         res.locals['configData'] = this.pubConf;
         res.locals['NODE_ENV'] = NODE_ENV;
@@ -178,33 +192,3 @@ class DOMConfigUtil extends ConfigBase {
         next();
     }
 }
-
-export const configFromDOM = (): MyConfigData | undefined => {
-    return new DOMConfigUtil().allConf;
-};
-
-export const configFromFS = async (): Promise<MyConfigData | undefined> => {
-    const fsConf = new FSConfigUtil();
-
-    if (inBrowser()) throw new Error('browser can not access filesystem, use configFromDom()');
-
-    if (!fsConf.allConf) {
-        await fsConf.load();
-    }
-
-    return fsConf.allConf;
-};
-
-export const config = async (): Promise<MyConfigData | undefined> => {
-    if (inBrowser()) {
-        return configFromDOM();
-    } else {
-        return configFromFS();
-    }
-};
-
-export const configMiddleware = async (): Promise<(req: Request, res: Response, next: NextFunction) => void> => {
-    const dcu = new DOMConfigUtil(await new FSConfigUtil().load());
-
-    return dcu.addLocals.bind(dcu);
-};

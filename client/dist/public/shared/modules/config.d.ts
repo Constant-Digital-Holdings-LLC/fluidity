@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from 'express';
-import { MyConfigData } from '#@shared/modules/application.js';
 type NodeEnv = 'development' | 'production' | null;
 export interface ConfigData {
     readonly appName: string;
@@ -7,10 +6,32 @@ export interface ConfigData {
     readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }
-export declare const pubSafeProps: readonly ["appName", "logLevel", "appVersion", "locLevel", "nodeEnv"];
-export declare const configFromDOM: () => MyConfigData | undefined;
-export declare const configFromFS: () => Promise<MyConfigData | undefined>;
-export declare const config: () => Promise<MyConfigData | undefined>;
-export declare const configMiddleware: () => Promise<(req: Request, res: Response, next: NextFunction) => void>;
+interface ConfigParser {
+    parse(src: string): unknown;
+}
+interface ConfigFiles {
+    readonly common: [string, ConfigParser] | null;
+    readonly development: [string, ConfigParser] | null;
+    readonly production: [string, ConfigParser] | null;
+}
+declare abstract class ConfigBase<C extends ConfigData> {
+    abstract get conf(): C | undefined;
+    protected configCache: C | undefined;
+}
+export declare class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
+    readonly nodeEnv: NodeEnv;
+    static asyncNew<C extends ConfigData>(): Promise<FSConfigUtil<C>>;
+    get conf(): C | undefined;
+    load<C extends ConfigData>(): Promise<C | undefined>;
+    loadFiles<C extends ConfigData>(cFiles: ConfigFiles): Promise<C | undefined>;
+}
+export declare class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
+    protected pubSafe: readonly string[];
+    constructor(conf?: C, pubSafe?: readonly string[]);
+    get conf(): C | undefined;
+    protected get pubConf(): C | undefined;
+    protected extract<C extends ConfigData>(): C | undefined;
+    populateDOM(req: Request, res: Response, next: NextFunction): void;
+}
 export {};
 //# sourceMappingURL=config.d.ts.map

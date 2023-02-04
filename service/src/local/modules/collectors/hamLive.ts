@@ -1,10 +1,9 @@
-import { fetchLogger } from '#@shared/modules/application.js';
+import { fetchLogger, confFromFS } from '#@shared/modules/appResources.js';
 import { FormattedData } from '#@shared/types.js';
 import { FormatHelper, DataCollectorPlugin } from '#@service/modules/collectors.js';
 import { WebJSONCollector, WebJSONCollectorParams } from '#@service/modules/collectors.js';
-import { config } from '#@shared/modules/config.js';
 
-const conf = await config();
+const { conf } = await confFromFS();
 const log = fetchLogger(conf);
 
 export default class HamLiveCollector extends WebJSONCollector implements DataCollectorPlugin {

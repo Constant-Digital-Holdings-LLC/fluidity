@@ -1,6 +1,5 @@
-import { fetchLogger } from '#@shared/modules/application.js';
-import { configFromDOM } from '#@shared/modules/config.js';
-const conf = configFromDOM();
+import { fetchLogger, confFromDOM } from '#@shared/modules/appResources.js';
+const { conf } = confFromDOM();
 const log = fetchLogger(conf);
 class FluidityStorage {
 }
