@@ -2,12 +2,11 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import https from 'https';
 import fs from 'fs';
 import express from 'express';
-import rb_pgk from 'ring-buffer-ts';
-const { RingBuffer } = rb_pgk;
 import { confFromFS, pubSafe } from '#@shared/modules/fluidityConfig.js';
 import { prettyFsNotFound } from '#@shared/modules/utils.js';
 import { httpLogger } from '#@shared/modules/logger.js';
 import { DOMConfigUtil } from '#@shared/modules/config.js';
+import { router } from './modules/routes.js';
 const conf = await confFromFS();
 if (!conf)
     throw new Error('Missing Fluidity Service Config');
@@ -16,13 +15,11 @@ const app = express();
 app.use(httpLogger(log));
 const dcu = new DOMConfigUtil(conf, pubSafe);
 app.use(dcu.populateDOM.bind(dcu));
-app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.set('views', '../../../client/dist/views');
-app.get('/', (req, res) => {
-    res.render('index');
-});
+app.set('view engine', 'ejs');
+app.set('views', './views');
+app.use('', router);
 app.use(express.static('../../../client/dist/public', {
     maxAge: (conf.httpCacheTTLSeconds ?? 5) * 1000
 }));
@@ -49,7 +46,3 @@ catch (err) {
         log.error(err);
     }
 }
-const ringBuffer = new RingBuffer(5);
-ringBuffer.add(1);
-ringBuffer.add(2, 3);
-ringBuffer.add(4, 5, 6);

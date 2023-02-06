@@ -1,4 +1,4 @@
-import { DataCollector, DataCollectorParams, isDataCollectorParams } from '#@service/modules/collectors.js';
+import { DataCollector, DataCollectorParams, isDataCollectorParams } from './modules/collectors.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 
@@ -20,7 +20,7 @@ if (conf) {
                     if (isDataCollectorParams(pluginParams)) {
                         const { plugin, description } = pluginParams;
 
-                        const { default: Plugin } = (await import(`#@service/modules/collectors/${plugin}.js`)) as {
+                        const { default: Plugin } = (await import(`./modules/collectors/${plugin}.js`)) as {
                             default: { new (n: DataCollectorParams): DataCollector };
                         };
                         return new Plugin(pluginParams);

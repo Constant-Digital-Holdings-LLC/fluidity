@@ -1,12 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { FormattedData } from '#@shared/types.js';
-import {
-    SerialCollector,
-    SerialCollectorParams,
-    SerialCollectorPlugin,
-    FormatHelper
-} from '#@service/modules/collectors.js';
+import { SerialCollector, SerialCollectorParams, SerialCollectorPlugin, FormatHelper } from '../collectors.js';
 import { ReadlineParser } from 'serialport';
 
 const conf = await confFromFS();

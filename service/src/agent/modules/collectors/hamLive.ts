@@ -1,8 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { FormattedData } from '#@shared/types.js';
-import { FormatHelper, DataCollectorPlugin } from '#@service/modules/collectors.js';
-import { WebJSONCollector, WebJSONCollectorParams } from '#@service/modules/collectors.js';
+import { FormatHelper, DataCollectorPlugin, WebJSONCollector, WebJSONCollectorParams } from '../collectors.js';
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
