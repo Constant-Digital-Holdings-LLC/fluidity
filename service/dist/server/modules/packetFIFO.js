@@ -10,7 +10,7 @@ export class PacketFIFO {
     }
     push(fPacket) {
         if (this.buffer.length >= this.maxSize)
-            this.buffer.pop();
+            this.buffer.shift();
         log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
         return this.buffer.push(fPacket);
     }
