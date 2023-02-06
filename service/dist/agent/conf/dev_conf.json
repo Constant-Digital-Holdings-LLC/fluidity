@@ -1,8 +1,5 @@
 {
-    "targets": [
-        { "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" },
-        { "location": "https://f-y.io:443/FIFO", "key": "zfdfd" }
-    ],
+    "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
     "site": "office",
     "logLevel": "debug",
     "collectors": [

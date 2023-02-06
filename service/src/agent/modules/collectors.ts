@@ -7,10 +7,20 @@ import {
     isFfluidityPacket,
     PublishTarget,
     FluidityField,
-    StringAble
+    StringAble,
+    NodeEnv
 } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
+
+import https from 'https';
 import axios from 'axios';
+const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+if (NODE_ENV === 'development') {
+    const httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+    });
+    axios.defaults.httpsAgent = httpsAgent;
+}
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -88,22 +98,41 @@ export abstract class DataCollector implements DataCollectorPlugin {
     private sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): void {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
+
+        if (NODE_ENV === 'development') {
+            const httpsAgent = new https.Agent({
+                rejectUnauthorized: false
+            });
+            axios.defaults.httpsAgent = httpsAgent;
+        }
+
+        Promise.all(
+            targets.map(({ location, key }) => {
+                return axios.post(location, fPacket, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent':
+                            conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
+                        'X-API-Key': key ?? null
+                    }
+                });
+            })
+        ).catch(err => {
+            log.error(`sendHttps(): ${err}`);
+        });
+
         log.debug('-------------------------------------------------');
     }
 
     protected send(data: string): void {
-        const { targets, keepRaw, ...rest } = this.params;
+        const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
 
         let formattedData = this.format(data, new FormatHelper());
 
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
 
-            try {
-                this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
-            } catch (err) {
-                log.error(err);
-            }
+            this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
         } else {
             log.warn(`DataCollector: ignoring unkown string: ${data}`);
         }

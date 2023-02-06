@@ -41,3 +41,5 @@ export interface PublishTarget {
 export type StringAble = {
     toString(): string;
 };
+
+export type NodeEnv = 'development' | 'production' | null;

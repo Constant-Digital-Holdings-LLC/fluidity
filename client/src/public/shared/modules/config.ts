@@ -1,10 +1,10 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import type { Request, Response, NextFunction } from 'express';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { NodeEnv } from '#@shared/types.js';
 
 const log = fetchLogger();
 
-type NodeEnv = 'development' | 'production' | null;
 const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
 export interface ConfigData {

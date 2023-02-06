@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-type NodeEnv = 'development' | 'production' | null;
+import { NodeEnv } from '#@shared/types.js';
 export interface ConfigData {
     readonly appName: string;
     readonly appVersion?: string;
