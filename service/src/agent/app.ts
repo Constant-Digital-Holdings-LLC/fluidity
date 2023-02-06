@@ -10,9 +10,22 @@ log.debug(conf);
 
 if (conf) {
     const { targets, site } = conf;
+
     let startQueue: DataCollector[] = [];
 
     try {
+        if (!targets) {
+            throw new Error('no targets defined');
+        }
+
+        if (
+            !targets.every(({ location }) => {
+                return new URL(location).protocol === 'https:' || new URL(location).protocol === 'http:';
+            })
+        ) {
+            throw new Error(`only https/http protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`);
+        }
+
         if (Array.isArray(conf['collectors']) && conf['collectors'].length) {
             startQueue = await Promise.all(
                 conf['collectors'].map(async collectorConfig => {

@@ -85,41 +85,27 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
-    private sendHttps(target: PublishTarget, fPacket: FluidityPacket): void {
-        log.info(`${fPacket.plugin} [${fPacket.description}]:\t\tPOST ${target.location}`);
-        log.debug('############### BEGIN ONE HTTP POST ###############');
+    private sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): void {
+        log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
-        log.debug('############### END ONE HTTP POST   ###############');
+        log.debug('-------------------------------------------------');
     }
 
     protected send(data: string): void {
-        const { site, description, plugin, targets, keepRaw } = this.params;
+        const { targets, keepRaw, ...rest } = this.params;
 
         let formattedData = this.format(data, new FormatHelper());
 
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
+
             try {
-                targets.forEach(t => {
-                    if (new URL(t.location).protocol === 'https:') {
-                        if (formattedData) {
-                            this.sendHttps(t, {
-                                site,
-                                description,
-                                plugin,
-                                formattedData: formattedData,
-                                rawData: keepRaw ? data : null
-                            });
-                        }
-                    } else {
-                        throw new Error(`unsupported protocol in target location: ${t.location}`);
-                    }
-                });
+                this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
             } catch (err) {
                 log.error(err);
             }
         } else {
-            log.debug(`DataCollector: ignoring unkown string: ${data}`);
+            log.warn(`DataCollector: ignoring unkown string: ${data}`);
         }
     }
 }

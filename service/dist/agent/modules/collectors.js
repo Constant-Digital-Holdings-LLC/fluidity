@@ -49,41 +49,25 @@ export class DataCollector {
     addTS(data) {
         return data;
     }
-    sendHttps(target, fPacket) {
-        log.info(`${fPacket.plugin} [${fPacket.description}]:\t\tPOST ${target.location}`);
-        log.debug('############### BEGIN ONE HTTP POST ###############');
+    sendHttps(targets, fPacket) {
+        log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
-        log.debug('############### END ONE HTTP POST   ###############');
+        log.debug('-------------------------------------------------');
     }
     send(data) {
-        const { site, description, plugin, targets, keepRaw } = this.params;
+        const { targets, keepRaw, ...rest } = this.params;
         let formattedData = this.format(data, new FormatHelper());
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
             try {
-                targets.forEach(t => {
-                    if (new URL(t.location).protocol === 'https:') {
-                        if (formattedData) {
-                            this.sendHttps(t, {
-                                site,
-                                description,
-                                plugin,
-                                formattedData: formattedData,
-                                rawData: keepRaw ? data : null
-                            });
-                        }
-                    }
-                    else {
-                        throw new Error(`unsupported protocol in target location: ${t.location}`);
-                    }
-                });
+                this.sendHttps(targets, { ...rest, formattedData, rawData: keepRaw ? data : null });
             }
             catch (err) {
                 log.error(err);
             }
         }
         else {
-            log.debug(`DataCollector: ignoring unkown string: ${data}`);
+            log.warn(`DataCollector: ignoring unkown string: ${data}`);
         }
     }
 }
