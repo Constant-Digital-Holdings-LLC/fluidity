@@ -12,7 +12,7 @@ export class PacketFIFO {
     }
 
     push(fPacket: FluidityPacket): number {
-        if (this.buffer.length > this.maxSize) this.buffer.pop();
+        if (this.buffer.length >= this.maxSize) this.buffer.pop();
         log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
         return this.buffer.push(fPacket);
     }
