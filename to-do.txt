@@ -1,9 +1,8 @@
-- Fix Arduino SRS simulator so that test output mirrors SRS *raw data (not from configurator log)
+- Client: Full text search is overkill
+- Clinet: Filter on site (left panel) and/or collector name
 
-- Implement timestamp addition to DelimitedData
+Since I'm just doing filtering, I can do the DOM hide track on
+elements which do not contain location or collector
 
-- Start decoding hex values to human redable in SRSserialCollector's format() method
-
-- Write a simple api key permissions middleware 
-
-- If the thing I'm loggin is javascript code, I think I want to call .toString() on it rather than JSON.strinify...
+- Agent: Make sure protocol is https if a key is specified 
+- Agent: If a connection error occurs, be sure to log the host name
