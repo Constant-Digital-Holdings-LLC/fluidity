@@ -3,17 +3,11 @@ import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
+const conf = await confFromFS();
+const log = fetchLogger(conf);
 import https from 'https';
 import axios from 'axios';
 const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-if (NODE_ENV === 'development') {
-    const httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-    });
-    axios.defaults.httpsAgent = httpsAgent;
-}
-const conf = await confFromFS();
-const log = fetchLogger(conf);
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;
     return (isFfluidityPacket(obj, true) &&
@@ -65,6 +59,7 @@ export class DataCollector {
                 rejectUnauthorized: false
             });
             axios.defaults.httpsAgent = httpsAgent;
+            log.warn(`Disabling TLS cert verification while NODE_ENV = development`);
         }
         Promise.all(targets.map(({ location, key }) => {
             return axios.post(location, fPacket, {
@@ -75,7 +70,18 @@ export class DataCollector {
                 }
             });
         })).catch(err => {
-            log.error(`sendHttps(): ${err}`);
+            if (err instanceof Error) {
+                const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
+                if (res && res[1] === 'ECONNREFUSED') {
+                    log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
+                }
+                else {
+                    log.error(`sendHttps() POST: ${err.message}`);
+                }
+            }
+            else {
+                log.error(`sendHttps() POST: ${err}`);
+            }
         });
         log.debug('-------------------------------------------------');
     }

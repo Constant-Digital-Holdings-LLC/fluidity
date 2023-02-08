@@ -12,19 +12,13 @@ import {
 } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
 
-import https from 'https';
-import axios from 'axios';
-const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-if (NODE_ENV === 'development') {
-    const httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-    });
-    axios.defaults.httpsAgent = httpsAgent;
-}
-
 const conf = await confFromFS();
 const log = fetchLogger(conf);
 
+import https from 'https';
+import axios from 'axios';
+
+const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
 
 export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData'> {
@@ -104,6 +98,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 rejectUnauthorized: false
             });
             axios.defaults.httpsAgent = httpsAgent;
+            log.warn(`Disabling TLS cert verification while NODE_ENV = development`);
         }
 
         Promise.all(
@@ -118,7 +113,17 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 });
             })
         ).catch(err => {
-            log.error(`sendHttps(): ${err}`);
+            if (err instanceof Error) {
+                const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
+
+                if (res && res[1] === 'ECONNREFUSED') {
+                    log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
+                } else {
+                    log.error(`sendHttps() POST: ${err.message}`);
+                }
+            } else {
+                log.error(`sendHttps() POST: ${err}`);
+            }
         });
 
         log.debug('-------------------------------------------------');

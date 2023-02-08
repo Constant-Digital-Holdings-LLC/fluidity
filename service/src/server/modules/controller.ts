@@ -6,7 +6,7 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 
 const log = fetchLogger(await confFromFS());
 
-const fifo = new PacketFIFO(15);
+const fifo = new PacketFIFO(20);
 
 export const GET = (req: Request, res: Response) => {
     return res.status(200).json(fifo.toArray());
