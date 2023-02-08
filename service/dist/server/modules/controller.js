@@ -3,7 +3,7 @@ import { PacketFIFO } from './packetFIFO.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 const log = fetchLogger(await confFromFS());
-const fifo = new PacketFIFO(20);
+const fifo = new PacketFIFO(2000);
 export const GET = (req, res) => {
     return res.status(200).json(fifo.toArray());
 };

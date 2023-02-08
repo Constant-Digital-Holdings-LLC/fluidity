@@ -89,7 +89,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
-    private sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): void {
+    private async sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): Promise<void> {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
 
@@ -101,18 +101,20 @@ export abstract class DataCollector implements DataCollectorPlugin {
             log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
         }
 
-        Promise.all(
-            targets.map(({ location, key }) => {
-                return axios.post(location, fPacket, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'User-Agent':
-                            conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
-                        'X-API-Key': key ?? null
-                    }
-                });
-            })
-        ).catch(err => {
+        try {
+            await Promise.all(
+                targets.map(({ location, key }) => {
+                    return axios.post(location, fPacket, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'User-Agent':
+                                conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
+                            'X-API-Key': key ?? null
+                        }
+                    });
+                })
+            );
+        } catch (err) {
             if (err instanceof Error) {
                 const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
 
@@ -124,7 +126,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
             } else {
                 log.error(`sendHttps() POST: ${err}`);
             }
-        });
+        }
 
         log.debug('-------------------------------------------------');
     }

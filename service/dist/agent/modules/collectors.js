@@ -51,7 +51,7 @@ export class DataCollector {
     addTS(data) {
         return data;
     }
-    sendHttps(targets, fPacket) {
+    async sendHttps(targets, fPacket) {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
         if (NODE_ENV === 'development') {
@@ -61,15 +61,18 @@ export class DataCollector {
             axios.defaults.httpsAgent = httpsAgent;
             log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
         }
-        Promise.all(targets.map(({ location, key }) => {
-            return axios.post(location, fPacket, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
-                    'X-API-Key': key ?? null
-                }
-            });
-        })).catch(err => {
+        try {
+            await Promise.all(targets.map(({ location, key }) => {
+                return axios.post(location, fPacket, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
+                        'X-API-Key': key ?? null
+                    }
+                });
+            }));
+        }
+        catch (err) {
             if (err instanceof Error) {
                 const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
                 if (res && res[1] === 'ECONNREFUSED') {
@@ -82,7 +85,7 @@ export class DataCollector {
             else {
                 log.error(`sendHttps() POST: ${err}`);
             }
-        });
+        }
         log.debug('-------------------------------------------------');
     }
     send(data) {
