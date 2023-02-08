@@ -98,7 +98,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 rejectUnauthorized: false
             });
             axios.defaults.httpsAgent = httpsAgent;
-            log.warn(`Disabling TLS cert verification while NODE_ENV = development`);
+            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
         }
 
         Promise.all(

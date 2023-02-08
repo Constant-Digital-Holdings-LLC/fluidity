@@ -59,7 +59,7 @@ export class DataCollector {
                 rejectUnauthorized: false
             });
             axios.defaults.httpsAgent = httpsAgent;
-            log.warn(`Disabling TLS cert verification while NODE_ENV = development`);
+            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
         }
         Promise.all(targets.map(({ location, key }) => {
             return axios.post(location, fPacket, {
