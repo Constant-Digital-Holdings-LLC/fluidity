@@ -10,14 +10,12 @@ import {
     StringAble,
     NodeEnv
 } from '#@shared/types.js';
+import got from 'got';
 import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
-
-import https from 'https';
-import axios from 'axios';
 
 const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
@@ -79,7 +77,6 @@ export interface DataCollectorPlugin {
 
 export abstract class DataCollector implements DataCollectorPlugin {
     private throttle: any;
-    public throttledAxios: any;
 
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
@@ -111,14 +108,17 @@ export abstract class DataCollector implements DataCollectorPlugin {
         targets.map(async ({ location, key }) => {
             try {
                 return await this.throttle(
-                    await axios.post(location, fPacket, {
-                        maxRedirects: 0,
+                    await got.post(location, {
+                        https: {
+                            rejectUnauthorized: NODE_ENV === 'development' ? false : true
+                        },
+
                         headers: {
-                            'Content-Type': 'application/json',
                             'User-Agent':
                                 conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
-                            'X-API-Key': key ?? null
-                        }
+                            'X-API-Key': key
+                        },
+                        json: fPacket
                     })
                 );
             } catch (err) {
@@ -188,17 +188,8 @@ export abstract class WebJSONCollector extends DataCollector implements DataColl
         setIntervalAsync(async () => {
             log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
 
-            //prevent axios from deserializing JSON automatically
-            const myAxios = axios.create({
-                transformResponse: [
-                    function transformResponse(data) {
-                        return data;
-                    }
-                ]
-            });
-
             try {
-                this.send((await myAxios.get(this.url.href)).data);
+                this.send(await got(this.url.href).text());
             } catch (err) {
                 log.error(err);
             }

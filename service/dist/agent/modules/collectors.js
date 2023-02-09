@@ -2,12 +2,11 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
+import got from 'got';
 import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
-import https from 'https';
-import axios from 'axios';
 const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;
@@ -45,17 +44,10 @@ export class FormatHelper {
 export class DataCollector {
     params;
     throttle;
-    throttledAxios;
     constructor(params) {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-        if (NODE_ENV === 'development') {
-            axios.defaults.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
-            });
-            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
-        }
         this.throttle = throttledQueue(1, 1000);
     }
     addTS(data) {
@@ -66,13 +58,15 @@ export class DataCollector {
         log.debug(fPacket);
         targets.map(async ({ location, key }) => {
             try {
-                return await this.throttle(await axios.post(location, fPacket, {
-                    maxRedirects: 0,
+                return await this.throttle(await got.post(location, {
+                    https: {
+                        rejectUnauthorized: false
+                    },
                     headers: {
-                        'Content-Type': 'application/json',
                         'User-Agent': conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
-                        'X-API-Key': key ?? null
-                    }
+                        'X-API-Key': key
+                    },
+                    json: fPacket
                 }));
             }
             catch (err) {
@@ -125,15 +119,8 @@ export class WebJSONCollector extends DataCollector {
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
         setIntervalAsync(async () => {
             log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
-            const myAxios = axios.create({
-                transformResponse: [
-                    function transformResponse(data) {
-                        return data;
-                    }
-                ]
-            });
             try {
-                this.send((await myAxios.get(this.url.href)).data);
+                this.send(await got(this.url.href).text());
             }
             catch (err) {
                 log.error(err);
