@@ -81,16 +81,9 @@ export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
 
-        if (NODE_ENV === 'development') {
-            axios.defaults.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
-            });
-            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
-        }
-
         //throttledQueue() missing TS call sig in lib
         //@ts-ignore
-        this.throttle = throttledQueue(1, 1000);
+        this.throttle = throttledQueue(500, 1000);
     }
 
     abstract start(): void;
@@ -101,7 +94,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
-    private sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): void {
+    private async sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): Promise<void> {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
 
@@ -135,16 +128,16 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 }
             }
         });
-
-        log.debug('-------------------------------------------------');
-
-        for (const [key, value] of Object.entries(process.memoryUsage())) {
-            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
-        }
     }
 
     protected send(data: string): void {
         const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
+
+        log.debug('in send():');
+
+        for (const [key, value] of Object.entries(process.memoryUsage())) {
+            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
+        }
 
         let formattedData = this.format(data, new FormatHelper());
 

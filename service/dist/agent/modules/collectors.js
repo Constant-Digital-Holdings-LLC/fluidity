@@ -48,22 +48,24 @@ export class DataCollector {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-        this.throttle = throttledQueue(1, 1000);
+        this.throttle = throttledQueue(500, 1000);
     }
     addTS(data) {
         return data;
     }
-    sendHttps(targets, fPacket) {
+    async sendHttps(targets, fPacket) {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
-        targets.map(async ({ location, key }) => {
+        await Promise.all(targets.map(async ({ location, key }) => {
             try {
                 return await this.throttle(await got.post(location, {
                     https: {
-                        rejectUnauthorized: false
+                        rejectUnauthorized: NODE_ENV === 'development' ? false : true
                     },
                     headers: {
-                        'User-Agent': conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
+                        'User-Agent': conf?.appName && conf.appVersion
+                            ? `${conf.appName} ${conf.appVersion}`
+                            : 'Fluidity',
                         'X-API-Key': key
                     },
                     json: fPacket
@@ -83,14 +85,14 @@ export class DataCollector {
                     log.error(`sendHttps() POST: ${err}`);
                 }
             }
-        });
-        log.debug('-------------------------------------------------');
-        for (const [key, value] of Object.entries(process.memoryUsage())) {
-            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
-        }
+        }));
     }
     send(data) {
         const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
+        log.debug('in send():');
+        for (const [key, value] of Object.entries(process.memoryUsage())) {
+            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
+        }
         let formattedData = this.format(data, new FormatHelper());
         if (formattedData) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
