@@ -11,6 +11,7 @@ import {
     NodeEnv
 } from '#@shared/types.js';
 import { setIntervalAsync } from 'set-interval-async';
+import throttledQueue from 'throttled-queue';
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -77,8 +78,22 @@ export interface DataCollectorPlugin {
 }
 
 export abstract class DataCollector implements DataCollectorPlugin {
+    private throttle: any;
+    public throttledAxios: any;
+
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
+
+        if (NODE_ENV === 'development') {
+            axios.defaults.httpsAgent = new https.Agent({
+                rejectUnauthorized: false
+            });
+            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
+        }
+
+        //throttledQueue() missing TS call sig in lib
+        //@ts-ignore
+        this.throttle = throttledQueue(1, 1000);
     }
 
     abstract start(): void;
@@ -89,46 +104,43 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
-    private async sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): Promise<void> {
+    private sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): void {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
 
-        if (NODE_ENV === 'development') {
-            const httpsAgent = new https.Agent({
-                rejectUnauthorized: false
-            });
-            axios.defaults.httpsAgent = httpsAgent;
-            log.warn(`collectors: Disabling TLS cert verification while NODE_ENV = development`);
-        }
-
-        try {
-            await Promise.all(
-                targets.map(({ location, key }) => {
-                    return axios.post(location, fPacket, {
+        targets.map(async ({ location, key }) => {
+            try {
+                return await this.throttle(
+                    await axios.post(location, fPacket, {
+                        maxRedirects: 0,
                         headers: {
                             'Content-Type': 'application/json',
                             'User-Agent':
                                 conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
                             'X-API-Key': key ?? null
                         }
-                    });
-                })
-            );
-        } catch (err) {
-            if (err instanceof Error) {
-                const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
+                    })
+                );
+            } catch (err) {
+                if (err instanceof Error) {
+                    const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
 
-                if (res && res[1] === 'ECONNREFUSED') {
-                    log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
+                    if (res && res[1] === 'ECONNREFUSED') {
+                        log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
+                    } else {
+                        log.error(`sendHttps() POST: ${err.message}`);
+                    }
                 } else {
-                    log.error(`sendHttps() POST: ${err.message}`);
+                    log.error(`sendHttps() POST: ${err}`);
                 }
-            } else {
-                log.error(`sendHttps() POST: ${err}`);
             }
-        }
+        });
 
         log.debug('-------------------------------------------------');
+
+        for (const [key, value] of Object.entries(process.memoryUsage())) {
+            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
+        }
     }
 
     protected send(data: string): void {
