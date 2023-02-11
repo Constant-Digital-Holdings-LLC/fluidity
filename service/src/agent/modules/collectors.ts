@@ -78,26 +78,31 @@ export interface DataCollectorPlugin {
     format(data: string, fh: FormatHelper): FormattedData[] | null;
 }
 
-interface HttpError extends Error {
+interface SysError {
     errno: number;
     code: string;
     syscall: string;
+}
+
+interface HttpError extends SysError {
     address: string;
     port: number;
 }
 
-const isHttpError = (e: Error): e is HttpError => {
+const isSysError = (e: any): e is SysError => {
     return (
         'errno' in e &&
         typeof e.errno === 'number' &&
         'code' in e &&
         typeof e.code === 'string' &&
         'syscall' in e &&
-        typeof e.syscall === 'string' &&
-        'address' in e &&
-        typeof e.address === 'string' &&
-        'port' in e &&
-        typeof e.port === 'number'
+        typeof e.syscall === 'string'
+    );
+};
+
+const isHttpError = (e: any): e is HttpError => {
+    return (
+        isSysError(e) && 'address' in e && typeof e.address === 'string' && 'port' in e && typeof e.port === 'number'
     );
 };
 
@@ -107,7 +112,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
 
-        const { maxHttpsReqPerCollectorPerSec = 1 } = params;
+        const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
 
         //@ts-ignore
@@ -127,6 +132,10 @@ export abstract class DataCollector implements DataCollectorPlugin {
         const { protocol, hostname, port, pathname } = uo;
 
         return new Promise((resolve, reject) => {
+            if (method === 'POST' && !key) {
+                reject('DataCollector: POST method requires API Key');
+            }
+
             const req = https.request(
                 {
                     protocol,
@@ -135,7 +144,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
                     port,
                     method: method,
                     path: pathname,
-                    headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined
+                    headers: method === 'POST' ? { 'Content-Type': 'application/json', 'X-Api-Key': key } : undefined
                 },
                 (res: IncomingMessage) => {
                     let data = '';
@@ -158,10 +167,19 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 }
             );
 
+            //If you are wondering why all the effort to keep 'keep-alive' off: On Win10, RSS was growing from ~50MB to 1GB over a few hours. Eventually process would crash
+            //due to ENOBUFS. This was likely due to stale socket buffers sticking around.
+
+            req.shouldKeepAlive = false;
+
             req.on('error', e => {
-                if (e instanceof Error && isHttpError(e)) {
+                if (isHttpError(e)) {
                     if (e.code === 'ECONNREFUSED') {
-                        log.error(`Connection refused connecting to host ${e.address} on port ${e.port}`);
+                        log.error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
+                    }
+                } else if (isSysError(e)) {
+                    if (e.code === 'ECONNRESET') {
+                        log.warn(`Connection RESET during ${e.syscall}`);
                     }
                 } else {
                     log.error(e);

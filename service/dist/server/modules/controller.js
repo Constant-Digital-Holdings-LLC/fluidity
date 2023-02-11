@@ -3,12 +3,12 @@ import { PacketFIFO } from './packetFIFO.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 const log = fetchLogger(await confFromFS());
-const fifo = new PacketFIFO(500);
+const fifo = new PacketFIFO(10);
 export const GET = (req, res) => {
-    res.set('Connection', 'close');
-    return res.end().status(200).json(fifo.toArray());
+    return res.status(200).json(fifo.toArray());
 };
 export const POST = (req, res) => {
+    log.debug(`in FIFO Controller, CLIENT headers on POST: ${JSON.stringify(req.headers)}`);
     if (req?.body) {
         if (isFfluidityPacket(req.body)) {
             fifo.push(req.body);

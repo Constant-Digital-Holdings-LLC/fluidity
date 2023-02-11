@@ -6,14 +6,14 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 
 const log = fetchLogger(await confFromFS());
 
-const fifo = new PacketFIFO(500);
+const fifo = new PacketFIFO(10);
 
 export const GET = (req: Request, res: Response) => {
-    res.set('Connection', 'close'); // Note: this is an HTTP header.
-    return res.end().status(200).json(fifo.toArray());
+    return res.status(200).json(fifo.toArray());
 };
 
 export const POST = (req: Request, res: Response) => {
+    log.debug(`in FIFO Controller, CLIENT headers on POST: ${JSON.stringify(req.headers)}`);
     if (req?.body) {
         if (isFfluidityPacket(req.body)) {
             fifo.push(req.body);

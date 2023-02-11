@@ -19,7 +19,7 @@ if (conf) {
         if (!targets.every(({ location, key }) => {
             return new URL(location).protocol === 'https:' && key;
         })) {
-            throw new Error(`in main config: only https protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`);
+            throw new Error(`in main config: targets must be HTTPS and an Api Key needs to be specified: ${JSON.stringify(targets.map(t => t.location))}`);
         }
         if (Array.isArray(conf['collectors']) && conf['collectors'].length) {
             startQueue = await Promise.all(conf['collectors'].map(async (collectorConfig) => {

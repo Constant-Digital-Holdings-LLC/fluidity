@@ -41,17 +41,16 @@ export class FormatHelper {
         return clone;
     }
 }
-const isHttpError = (e) => {
+const isSysError = (e) => {
     return ('errno' in e &&
         typeof e.errno === 'number' &&
         'code' in e &&
         typeof e.code === 'string' &&
         'syscall' in e &&
-        typeof e.syscall === 'string' &&
-        'address' in e &&
-        typeof e.address === 'string' &&
-        'port' in e &&
-        typeof e.port === 'number');
+        typeof e.syscall === 'string');
+};
+const isHttpError = (e) => {
+    return (isSysError(e) && 'address' in e && typeof e.address === 'string' && 'port' in e && typeof e.port === 'number');
 };
 export class DataCollector {
     params;
@@ -60,7 +59,7 @@ export class DataCollector {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-        const { maxHttpsReqPerCollectorPerSec = 1 } = params;
+        const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
     }
@@ -70,6 +69,9 @@ export class DataCollector {
     _reqJSON(method, uo, data, key) {
         const { protocol, hostname, port, pathname } = uo;
         return new Promise((resolve, reject) => {
+            if (method === 'POST' && !key) {
+                reject('DataCollector: POST method requires API Key');
+            }
             const req = https.request({
                 protocol,
                 rejectUnauthorized: NODE_ENV === 'development' ? false : true,
@@ -77,7 +79,7 @@ export class DataCollector {
                 port,
                 method: method,
                 path: pathname,
-                headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined
+                headers: method === 'POST' ? { 'Content-Type': 'application/json', 'X-Api-Key': key } : undefined
             }, (res) => {
                 let data = '';
                 res.on('data', (chunk) => {
@@ -97,10 +99,16 @@ export class DataCollector {
                     reject(`makeReq() request error`);
                 });
             });
+            req.shouldKeepAlive = false;
             req.on('error', e => {
-                if (e instanceof Error && isHttpError(e)) {
+                if (isHttpError(e)) {
                     if (e.code === 'ECONNREFUSED') {
-                        log.error(`Connection refused connecting to host ${e.address} on port ${e.port}`);
+                        log.error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
+                    }
+                }
+                else if (isSysError(e)) {
+                    if (e.code === 'ECONNRESET') {
+                        log.warn(`Connection RESET during ${e.syscall}`);
                     }
                 }
                 else {

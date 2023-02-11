@@ -28,7 +28,9 @@ if (conf) {
             })
         ) {
             throw new Error(
-                `in main config: only https protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`
+                `in main config: targets must be HTTPS and an Api Key needs to be specified: ${JSON.stringify(
+                    targets.map(t => t.location)
+                )}`
             );
         }
 
