@@ -18,7 +18,7 @@ export interface FluidityPacket {
 export declare const isFfluidityPacket: (obj: any, omitFormattedData?: boolean) => obj is FluidityPacket;
 export interface PublishTarget {
     location: string;
-    key?: string;
+    key: string;
 }
 export type StringAble = {
     toString(): string;

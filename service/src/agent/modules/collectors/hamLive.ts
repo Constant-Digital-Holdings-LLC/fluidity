@@ -7,7 +7,7 @@ const conf = await confFromFS();
 const log = fetchLogger(conf);
 
 export default class HamLiveCollector extends WebJSONCollector implements DataCollectorPlugin {
-    //url can be overridden by config:
+    //default url can be overridden by config:
     constructor({ url = 'https://www.ham.live/api/data/livenets', ...params }: WebJSONCollectorParams) {
         super({ url, ...params });
     }

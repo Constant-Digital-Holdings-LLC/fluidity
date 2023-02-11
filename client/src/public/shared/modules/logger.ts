@@ -259,6 +259,8 @@ export const httpLogger = (log: LoggerUtil) => {
     };
 };
 
+const foo = console;
+
 export const fetchLogger = <C extends LoggerConfig>(conf?: C | null): LoggerUtil => {
     const { logLevel, locLevel, logFormat } = conf || {};
 

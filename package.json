@@ -10,7 +10,7 @@
     "scripts": {
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
-        "dev:server": "cd service/dist/server && set NODE_OPTIONS= --enable-source-maps&& set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
+        "dev:server": "cd service/dist/server && set NODE_OPTIONS=--enable-source-maps&& set NODE_ENV=development&& concurrently -k --handle-input -n tsc-srv,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\"",
         "dev:agent": "cd service/dist/agent && set NODE_OPTIONS=--inspect --enable-source-maps&& set NODE_ENV=development&& concurrently -k --handle-input -n tsc-agn,nm \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2.5 app.js\""
     },
     "author": "Sean Lynch - KK6BEB",
@@ -29,7 +29,6 @@
         "ejs": "^3.1.8",
         "es-module-shims": "^1.5.18",
         "express": "^4.18.1",
-        "got": "^12.5.3",
         "serialport": "^10.5.0",
         "set-interval-async": "^3.0.3",
         "stack-trace": "^1.0.0-pre1",

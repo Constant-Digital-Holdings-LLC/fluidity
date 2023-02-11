@@ -2,11 +2,11 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
-import got from 'got';
 import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
+import https from 'https';
 const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 export const isDataCollectorParams = (obj) => {
     const { targets, omitTS, keepRaw, extendedOptions } = obj;
@@ -41,6 +41,18 @@ export class FormatHelper {
         return clone;
     }
 }
+const isHttpError = (e) => {
+    return ('errno' in e &&
+        typeof e.errno === 'number' &&
+        'code' in e &&
+        typeof e.code === 'string' &&
+        'syscall' in e &&
+        typeof e.syscall === 'string' &&
+        'address' in e &&
+        typeof e.address === 'string' &&
+        'port' in e &&
+        typeof e.port === 'number');
+};
 export class DataCollector {
     params;
     throttle;
@@ -48,48 +60,79 @@ export class DataCollector {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-        this.throttle = throttledQueue(500, 1000);
+        this.throttle = throttledQueue(params?.maxHttpsReqPerSec ?? 2, 1000);
     }
     addTS(data) {
         return data;
     }
-    async sendHttps(targets, fPacket) {
-        log.debug(`to: ${JSON.stringify(targets)}`);
-        log.debug(fPacket);
-        await Promise.all(targets.map(async ({ location, key }) => {
-            try {
-                return await this.throttle(await got.post(location, {
-                    https: {
-                        rejectUnauthorized: NODE_ENV === 'development' ? false : true
-                    },
-                    headers: {
-                        'User-Agent': conf?.appName && conf.appVersion
-                            ? `${conf.appName} ${conf.appVersion}`
-                            : 'Fluidity',
-                        'X-API-Key': key
-                    },
-                    json: fPacket
-                }));
-            }
-            catch (err) {
-                if (err instanceof Error) {
-                    const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
-                    if (res && res[1] === 'ECONNREFUSED') {
-                        log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
+    _reqJSON(method, uo, data, key) {
+        const { protocol, hostname, port, pathname } = uo;
+        return new Promise((resolve, reject) => {
+            const req = https.request({
+                protocol,
+                rejectUnauthorized: NODE_ENV === 'development' ? false : true,
+                hostname,
+                port,
+                method: method,
+                path: pathname,
+                headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined
+            }, (res) => {
+                let data = '';
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode && res.statusCode / 2 === 100) {
+                        resolve(data);
                     }
                     else {
-                        log.error(`sendHttps() POST: ${err.message}`);
+                        req.end();
+                        reject(`makeReq() non 200 series response`);
+                    }
+                });
+                res.on('error', () => {
+                    req.end();
+                    reject(`makeReq() request error`);
+                });
+            });
+            req.on('error', e => {
+                if (e instanceof Error && isHttpError(e)) {
+                    if (e.code === 'ECONNREFUSED') {
+                        log.error(`Connection refused connecting to host ${e.address} on port ${e.port}`);
                     }
                 }
                 else {
-                    log.error(`sendHttps() POST: ${err}`);
+                    log.error(e);
                 }
+            });
+            method === 'POST' && req.write(JSON.stringify(data));
+            req.end();
+        });
+    }
+    async get(location) {
+        return await this.throttle(async () => {
+            return await this._reqJSON('GET', new URL(location));
+        });
+    }
+    async post(location, data, key) {
+        return await this.throttle(async () => {
+            return await this._reqJSON('POST', new URL(location), data, key);
+        });
+    }
+    async sendHttps(targets, fPacket) {
+        log.debug(`to: ${JSON.stringify(targets)}`);
+        log.debug(fPacket);
+        for await (const { location, key } of targets) {
+            try {
+                await this.post(location, fPacket, key);
             }
-        }));
+            catch (err) {
+                log.error(err);
+            }
+        }
     }
     send(data) {
         const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
-        log.debug('in send():');
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
@@ -122,7 +165,7 @@ export class WebJSONCollector extends DataCollector {
         setIntervalAsync(async () => {
             log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
             try {
-                this.send(await got(this.url.href).text());
+                this.send(await this.get(this.url.href));
             }
             catch (err) {
                 log.error(err);

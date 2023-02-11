@@ -199,6 +199,7 @@ export const httpLogger = (log) => {
         next();
     };
 };
+const foo = console;
 export const fetchLogger = (conf) => {
     const { logLevel, locLevel, logFormat } = conf || {};
     if (inBrowser()) {

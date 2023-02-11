@@ -16,10 +16,10 @@ if (conf) {
         if (!targets) {
             throw new Error(`in main config: no targets defined to publish to (targets: ${JSON.stringify(targets)})`);
         }
-        if (!targets.every(({ location }) => {
-            return new URL(location).protocol === 'https:' || new URL(location).protocol === 'http:';
+        if (!targets.every(({ location, key }) => {
+            return new URL(location).protocol === 'https:' && key;
         })) {
-            throw new Error(`in main config: only https/http protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`);
+            throw new Error(`in main config: only https protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`);
         }
         if (Array.isArray(conf['collectors']) && conf['collectors'].length) {
             startQueue = await Promise.all(conf['collectors'].map(async (collectorConfig) => {

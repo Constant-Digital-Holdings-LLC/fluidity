@@ -10,12 +10,14 @@ import {
     StringAble,
     NodeEnv
 } from '#@shared/types.js';
-import got from 'got';
+
 import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
+import { IncomingMessage } from 'node:http';
+import https from 'https';
 
 const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
@@ -25,6 +27,7 @@ export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData
     omitTS?: boolean;
     keepRaw?: boolean;
     extendedOptions?: object;
+    maxHttpsReqPerSec?: number;
 }
 
 export const isDataCollectorParams = (obj: any): obj is DataCollectorParams => {
@@ -75,15 +78,37 @@ export interface DataCollectorPlugin {
     format(data: string, fh: FormatHelper): FormattedData[] | null;
 }
 
+interface HttpError extends Error {
+    errno: number;
+    code: string;
+    syscall: string;
+    address: string;
+    port: number;
+}
+
+const isHttpError = (e: Error): e is HttpError => {
+    return (
+        'errno' in e &&
+        typeof e.errno === 'number' &&
+        'code' in e &&
+        typeof e.code === 'string' &&
+        'syscall' in e &&
+        typeof e.syscall === 'string' &&
+        'address' in e &&
+        typeof e.address === 'string' &&
+        'port' in e &&
+        typeof e.port === 'number'
+    );
+};
+
 export abstract class DataCollector implements DataCollectorPlugin {
-    private throttle: any;
+    private throttle: <T = unknown>(fn: () => T | Promise<T>) => Promise<T>;
 
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
 
-        //throttledQueue() missing TS call sig in lib
         //@ts-ignore
-        this.throttle = throttledQueue(500, 1000);
+        this.throttle = throttledQueue(params?.maxHttpsReqPerSec ?? 2, 1000);
     }
 
     abstract start(): void;
@@ -94,46 +119,84 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return data;
     }
 
+    private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: any, key?: string): Promise<string> {
+        const { protocol, hostname, port, pathname } = uo;
+
+        return new Promise((resolve, reject) => {
+            const req = https.request(
+                {
+                    protocol,
+                    rejectUnauthorized: NODE_ENV === 'development' ? false : true,
+                    hostname,
+                    port,
+                    method: method,
+                    path: pathname,
+                    headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined
+                },
+                (res: IncomingMessage) => {
+                    let data = '';
+                    res.on('data', (chunk: string) => {
+                        data += chunk;
+                    });
+
+                    res.on('end', () => {
+                        if (res.statusCode && res.statusCode / 2 === 100) {
+                            resolve(data);
+                        } else {
+                            req.end();
+                            reject(`makeReq() non 200 series response`);
+                        }
+                    });
+                    res.on('error', () => {
+                        req.end();
+                        reject(`makeReq() request error`);
+                    });
+                }
+            );
+
+            req.on('error', e => {
+                if (e instanceof Error && isHttpError(e)) {
+                    if (e.code === 'ECONNREFUSED') {
+                        log.error(`Connection refused connecting to host ${e.address} on port ${e.port}`);
+                    }
+                } else {
+                    log.error(e);
+                }
+            });
+
+            method === 'POST' && req.write(JSON.stringify(data));
+
+            req.end();
+        });
+    }
+
+    protected async get(location: string): Promise<string> {
+        return await this.throttle<string>(async () => {
+            return await this._reqJSON('GET', new URL(location));
+        });
+    }
+
+    private async post(location: string, data: any, key: string): Promise<string> {
+        return await this.throttle<string>(async () => {
+            return await this._reqJSON('POST', new URL(location), data, key);
+        });
+    }
+
     private async sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): Promise<void> {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
 
-        targets.map(async ({ location, key }) => {
+        for await (const { location, key } of targets) {
             try {
-                return await this.throttle(
-                    await got.post(location, {
-                        https: {
-                            rejectUnauthorized: NODE_ENV === 'development' ? false : true
-                        },
-
-                        headers: {
-                            'User-Agent':
-                                conf?.appName && conf.appVersion ? `${conf.appName} ${conf.appVersion}` : 'Fluidity',
-                            'X-API-Key': key
-                        },
-                        json: fPacket
-                    })
-                );
+                await this.post(location, fPacket, key);
             } catch (err) {
-                if (err instanceof Error) {
-                    const res = err.message.match(/.*\s+([A-Z]+)\s+(.*)/);
-
-                    if (res && res[1] === 'ECONNREFUSED') {
-                        log.error(`sendHttps() POST: Connection refused connecting to ${res[2]}`);
-                    } else {
-                        log.error(`sendHttps() POST: ${err.message}`);
-                    }
-                } else {
-                    log.error(`sendHttps() POST: ${err}`);
-                }
+                log.error(err);
             }
-        });
+        }
     }
 
     protected send(data: string): void {
         const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
-
-        log.debug('in send():');
 
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
@@ -182,7 +245,7 @@ export abstract class WebJSONCollector extends DataCollector implements DataColl
             log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
 
             try {
-                this.send(await got(this.url.href).text());
+                this.send(await this.get(this.url.href));
             } catch (err) {
                 log.error(err);
             }

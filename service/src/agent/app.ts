@@ -23,14 +23,12 @@ if (conf) {
         }
 
         if (
-            !targets.every(({ location }) => {
-                return new URL(location).protocol === 'https:' || new URL(location).protocol === 'http:';
+            !targets.every(({ location, key }) => {
+                return new URL(location).protocol === 'https:' && key;
             })
         ) {
             throw new Error(
-                `in main config: only https/http protocols are supported: ${JSON.stringify(
-                    targets.map(t => t.location)
-                )}`
+                `in main config: only https protocols are supported: ${JSON.stringify(targets.map(t => t.location))}`
             );
         }
 
