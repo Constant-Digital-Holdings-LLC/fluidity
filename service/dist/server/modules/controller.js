@@ -12,6 +12,7 @@ export const POST = (req, res) => {
     if (req?.body) {
         if (isFfluidityPacket(req.body)) {
             fifo.push(req.body);
+            res.setHeader('Connection', 'close');
             res.end();
         }
         else {
