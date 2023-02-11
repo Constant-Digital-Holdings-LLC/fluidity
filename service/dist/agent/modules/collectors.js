@@ -99,20 +99,22 @@ export class DataCollector {
                     reject(`makeReq() request error`);
                 });
             });
-            req.shouldKeepAlive = false;
             req.on('error', e => {
                 if (isHttpError(e)) {
                     if (e.code === 'ECONNREFUSED') {
-                        log.error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
+                        req.end();
+                        reject(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
                     }
                 }
                 else if (isSysError(e)) {
                     if (e.code === 'ECONNRESET') {
-                        log.warn(`Connection RESET during ${e.syscall}`);
+                        req.end();
+                        reject(`Connection RESET during ${e.syscall}`);
                     }
                 }
                 else {
-                    log.error(e);
+                    req.end();
+                    reject(e);
                 }
             });
             method === 'POST' && req.write(JSON.stringify(data));

@@ -167,22 +167,20 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 }
             );
 
-            //If you are wondering why all the effort to keep 'keep-alive' off: On Win10, RSS was growing from ~50MB to 1GB over a few hours. Eventually process would crash
-            //due to ENOBUFS. This was likely due to stale socket buffers sticking around.
-
-            req.shouldKeepAlive = false;
-
             req.on('error', e => {
                 if (isHttpError(e)) {
                     if (e.code === 'ECONNREFUSED') {
-                        log.error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
+                        req.end();
+                        reject(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
                     }
                 } else if (isSysError(e)) {
                     if (e.code === 'ECONNRESET') {
-                        log.warn(`Connection RESET during ${e.syscall}`);
+                        req.end();
+                        reject(`Connection RESET during ${e.syscall}`);
                     }
                 } else {
-                    log.error(e);
+                    req.end();
+                    reject(e);
                 }
             });
 
