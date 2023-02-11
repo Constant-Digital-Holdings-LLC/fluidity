@@ -17,7 +17,6 @@ export const POST = (req: Request, res: Response) => {
     if (req?.body) {
         if (isFfluidityPacket(req.body)) {
             fifo.push(req.body);
-            res.setHeader('Connection', 'close');
             res.end();
         } else {
             log.warn(`No Fluidity Packet in Req Body: ${JSON.stringify(req.body)}`);
