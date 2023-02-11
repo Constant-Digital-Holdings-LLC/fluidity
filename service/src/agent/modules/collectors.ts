@@ -27,7 +27,7 @@ export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData
     omitTS?: boolean;
     keepRaw?: boolean;
     extendedOptions?: object;
-    maxHttpsReqPerSec?: number;
+    maxHttpsReqPerCollectorPerSec?: number;
 }
 
 export const isDataCollectorParams = (obj: any): obj is DataCollectorParams => {
@@ -107,8 +107,12 @@ export abstract class DataCollector implements DataCollectorPlugin {
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
 
+        const { maxHttpsReqPerCollectorPerSec = 1 } = params;
+        log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
+
         //@ts-ignore
-        this.throttle = throttledQueue(params?.maxHttpsReqPerSec ?? 2, 1000);
+
+        this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
     }
 
     abstract start(): void;

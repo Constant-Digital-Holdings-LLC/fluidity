@@ -60,7 +60,9 @@ export class DataCollector {
         this.params = params;
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
-        this.throttle = throttledQueue(params?.maxHttpsReqPerSec ?? 2, 1000);
+        const { maxHttpsReqPerCollectorPerSec = 1 } = params;
+        log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
+        this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
     }
     addTS(data) {
         return data;
