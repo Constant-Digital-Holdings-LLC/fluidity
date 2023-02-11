@@ -12,7 +12,7 @@ export default class HamLiveCollector extends WebJSONCollector implements DataCo
         super({ url, ...params });
     }
 
-    format(data: string, fh: FormatHelper): FormattedData[] | null {
+    override format(data: string, fh: FormatHelper): FormattedData[] | null {
         const netData = JSON.parse(data);
 
         netData.netlist.forEach((net: any) => {

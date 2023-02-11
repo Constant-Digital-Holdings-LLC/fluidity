@@ -11,7 +11,6 @@ import {
     NodeEnv
 } from '#@shared/types.js';
 
-import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 
 const conf = await confFromFS();
@@ -234,42 +233,70 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 }
 
-export interface WebJSONCollectorParams extends DataCollectorParams {
-    url: string;
+export interface PollingCollectorParams extends DataCollectorParams {
     pollIntervalSec: number;
 }
 
-export abstract class WebJSONCollector extends DataCollector implements DataCollectorPlugin {
-    protected url: URL;
+export interface WebJSONCollectorParams extends PollingCollectorParams {
+    url: string;
+}
+
+export abstract class PollingCollector extends DataCollector implements DataCollectorPlugin {
     protected pollIntervalSec: number;
 
-    constructor({ url, pollIntervalSec, ...params }: WebJSONCollectorParams) {
+    constructor({ pollIntervalSec, ...params }: PollingCollectorParams) {
+        super(params);
+
+        if (typeof pollIntervalSec !== 'number') {
+            throw new Error(
+                `polling collectors require pollIntervalSec in constructor ${params.plugin}: ${params.description}`
+            );
+        }
+
+        this.pollIntervalSec = pollIntervalSec;
+    }
+
+    format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
+    }
+
+    abstract execPerInterval(): void;
+
+    start(): void {
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+
+        setInterval(() => {
+            try {
+                this.execPerInterval();
+            } catch (err) {
+                log.error(err);
+            }
+        }, this.pollIntervalSec * 1000);
+    }
+}
+
+export abstract class WebJSONCollector extends PollingCollector implements DataCollectorPlugin {
+    protected url: URL;
+
+    constructor({ url, ...params }: WebJSONCollectorParams) {
         super(params);
 
         if (typeof url !== 'string') {
             throw new Error(`missing url (string) in config for ${params.plugin}: ${params.description}`);
         }
 
-        if (typeof pollIntervalSec !== 'number') {
-            throw new Error(`missing pollIntervalSec (number) in config for ${params.plugin}: ${params.description}`);
-        }
-
         this.url = new URL(url);
-        this.pollIntervalSec = pollIntervalSec;
     }
 
-    start(): void {
-        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
-
-        setIntervalAsync(async () => {
-            log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
-
-            try {
-                this.send(await this.get(this.url.href));
-            } catch (err) {
+    execPerInterval(): void {
+        this.get(this.url.href)
+            .then(data => {
+                log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
+                this.send(data);
+            })
+            .catch(err => {
                 log.error(err);
-            }
-        }, this.pollIntervalSec * 1000);
+            });
     }
 }
 
@@ -283,7 +310,7 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
 
     abstract fetchParser(): SerialParser;
 
-    override format(data: string, fh: FormatHelper): FormattedData[] | null {
+    format(data: string, fh: FormatHelper): FormattedData[] | null {
         return fh.e(data).done;
     }
 

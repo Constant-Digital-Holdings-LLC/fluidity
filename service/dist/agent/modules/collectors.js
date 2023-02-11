@@ -2,7 +2,6 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
 import { isFfluidityPacket } from '#@shared/types.js';
-import { setIntervalAsync } from 'set-interval-async';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -158,31 +157,48 @@ export class DataCollector {
         }
     }
 }
-export class WebJSONCollector extends DataCollector {
-    url;
+export class PollingCollector extends DataCollector {
     pollIntervalSec;
-    constructor({ url, pollIntervalSec, ...params }) {
+    constructor({ pollIntervalSec, ...params }) {
         super(params);
-        if (typeof url !== 'string') {
-            throw new Error(`missing url (string) in config for ${params.plugin}: ${params.description}`);
-        }
         if (typeof pollIntervalSec !== 'number') {
-            throw new Error(`missing pollIntervalSec (number) in config for ${params.plugin}: ${params.description}`);
+            throw new Error(`polling collectors require pollIntervalSec in constructor ${params.plugin}: ${params.description}`);
         }
-        this.url = new URL(url);
         this.pollIntervalSec = pollIntervalSec;
+    }
+    format(data, fh) {
+        return fh.e(data).done;
     }
     start() {
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
-        setIntervalAsync(async () => {
-            log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
+        setInterval(() => {
             try {
-                this.send(await this.get(this.url.href));
+                this.execPerInterval();
             }
             catch (err) {
                 log.error(err);
             }
         }, this.pollIntervalSec * 1000);
+    }
+}
+export class WebJSONCollector extends PollingCollector {
+    url;
+    constructor({ url, ...params }) {
+        super(params);
+        if (typeof url !== 'string') {
+            throw new Error(`missing url (string) in config for ${params.plugin}: ${params.description}`);
+        }
+        this.url = new URL(url);
+    }
+    execPerInterval() {
+        this.get(this.url.href)
+            .then(data => {
+            log.info(`${this.params.plugin} [${this.params.description}]: contacting host...(${this.url.host})`);
+            this.send(data);
+        })
+            .catch(err => {
+            log.error(err);
+        });
     }
 }
 export class SerialCollector extends DataCollector {
