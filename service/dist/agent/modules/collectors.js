@@ -170,15 +170,14 @@ export class PollingCollector extends DataCollector {
         return fh.e(data).done;
     }
     start() {
-        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
-        setInterval(() => {
-            try {
-                this.execPerInterval();
-            }
-            catch (err) {
-                log.error(err);
-            }
-        }, this.pollIntervalSec * 1000);
+        try {
+            log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+            this.execPerInterval();
+            setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
+        }
+        catch (err) {
+            log.error(err);
+        }
     }
 }
 export class WebJSONCollector extends PollingCollector {

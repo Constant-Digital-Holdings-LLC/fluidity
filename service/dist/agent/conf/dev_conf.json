@@ -11,10 +11,9 @@
             "omitTS": true
         },
         {
-            "description": "Heartbeat",
-            "plugin": "heartbeat",
-            "pollIntervalSec": 600,
-            "omitTS": true
+            "description": "Agent Report",
+            "plugin": "vRep",
+            "pollIntervalSec": 3600
         },
         {
             "description": "Net Watcher",

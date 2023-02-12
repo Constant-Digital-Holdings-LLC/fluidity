@@ -263,15 +263,13 @@ export abstract class PollingCollector extends DataCollector implements DataColl
     abstract execPerInterval(): void;
 
     start(): void {
-        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
-
-        setInterval(() => {
-            try {
-                this.execPerInterval();
-            } catch (err) {
-                log.error(err);
-            }
-        }, this.pollIntervalSec * 1000);
+        try {
+            log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+            this.execPerInterval();
+            setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
+        } catch (err) {
+            log.error(err);
+        }
     }
 }
 
