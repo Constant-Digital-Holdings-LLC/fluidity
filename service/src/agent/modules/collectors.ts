@@ -21,7 +21,7 @@ import https from 'https';
 const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
 
-export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData'> {
+export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData' | 'seq'> {
     targets: PublishTarget[];
     omitTS?: boolean;
     keepRaw?: boolean;

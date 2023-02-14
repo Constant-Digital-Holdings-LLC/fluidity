@@ -8,6 +8,14 @@ export const isErrnoException = (object: Error): object is NodeJS.ErrnoException
     );
 };
 
+export function* counter(): IterableIterator<number> {
+    let c = 1;
+    while (true) {
+        yield c;
+        c++;
+    }
+}
+
 export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
     return new Promise((resolve, reject) => {
         if (inBrowser()) {

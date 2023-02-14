@@ -1,6 +1,6 @@
 import type { StackFrame } from 'stacktrace-js';
 import type { Request, Response, NextFunction } from 'express';
-import { inBrowser } from '#@shared/modules/utils.js';
+import { inBrowser, counter } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
@@ -222,8 +222,8 @@ export class LoggerUtil implements Logger {
 }
 
 export const httpLogger = (log: LoggerUtil) => {
-    let requests = 0;
     let timeSum = 0;
+    let reqCount = counter();
 
     const getDurationInMilliseconds = (start: [number, number]) => {
         const NS_PER_SEC = 1e9;
@@ -238,9 +238,10 @@ export const httpLogger = (log: LoggerUtil) => {
 
         res.on('finish', () => {
             const durationInMilliseconds = getDurationInMilliseconds(start);
-            requests++;
+
             timeSum += durationInMilliseconds;
-            const averageReqTime = timeSum / requests;
+
+            const averageReqTime = timeSum / reqCount.next().value;
 
             const logMesg = `${req.method} ${req.url}\t[${
                 res.statusCode

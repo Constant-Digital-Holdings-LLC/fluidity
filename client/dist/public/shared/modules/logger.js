@@ -9,7 +9,7 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-import { inBrowser } from '#@shared/modules/utils.js';
+import { inBrowser, counter } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'];
 class FormatterBase {
     constructor(levelSettings) {
@@ -170,8 +170,8 @@ export class LoggerUtil {
     }
 }
 export const httpLogger = (log) => {
-    let requests = 0;
     let timeSum = 0;
+    let reqCount = counter();
     const getDurationInMilliseconds = (start) => {
         const NS_PER_SEC = 1e9;
         const NS_TO_MS = 1e6;
@@ -182,9 +182,8 @@ export const httpLogger = (log) => {
         const start = process.hrtime();
         res.on('finish', () => {
             const durationInMilliseconds = getDurationInMilliseconds(start);
-            requests++;
             timeSum += durationInMilliseconds;
-            const averageReqTime = timeSum / requests;
+            const averageReqTime = timeSum / reqCount.next().value;
             const logMesg = `${req.method} ${req.url}\t[${res.statusCode}]\t${durationInMilliseconds.toLocaleString()} ms`;
             if (res.statusCode >= 500 && res.statusCode <= 599) {
                 log.error(logMesg);

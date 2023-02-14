@@ -12,6 +12,7 @@ export interface FormattedData {
 }
 
 export interface FluidityPacket {
+    seq?: number;
     site: string;
     description: string;
     plugin: string;

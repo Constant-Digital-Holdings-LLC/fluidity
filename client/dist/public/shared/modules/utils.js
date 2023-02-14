@@ -4,6 +4,13 @@ export const inBrowser = () => {
 export const isErrnoException = (object) => {
     return (Object.prototype.hasOwnProperty.call(object, 'code') || Object.prototype.hasOwnProperty.call(object, 'errno'));
 };
+export function* counter() {
+    let c = 1;
+    while (true) {
+        yield c;
+        c++;
+    }
+}
 export const prettyFsNotFound = (err) => {
     return new Promise((resolve, reject) => {
         if (inBrowser()) {
