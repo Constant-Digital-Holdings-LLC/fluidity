@@ -15,8 +15,8 @@ export class PacketFIFO {
 
     push(fPacket: FluidityPacket): number {
         if (this.buffer.length >= this.maxSize) this.buffer.shift();
-        log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
         fPacket.seq = count.next().value;
+        log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
         return this.buffer.push(fPacket);
     }
 
