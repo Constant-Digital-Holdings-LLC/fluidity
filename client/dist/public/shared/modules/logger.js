@@ -129,7 +129,8 @@ export class LoggerUtil {
         });
     }
     log(level, message) {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel || 'debug')) {
+        var _a, _b;
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf((_a = this.levelSettings.logLevel) !== null && _a !== void 0 ? _a : 'debug')) {
             const snd = (location) => {
                 this.transport.send(level, this.formatter.format({
                     level,
@@ -138,7 +139,7 @@ export class LoggerUtil {
                     location
                 }));
             };
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'never')) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf((_b = this.levelSettings.locLevel) !== null && _b !== void 0 ? _b : 'never')) {
                 this.getStackLocation().then(snd);
             }
             else {

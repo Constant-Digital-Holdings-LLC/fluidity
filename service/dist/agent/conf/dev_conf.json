@@ -2,6 +2,7 @@
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
     "site": "office",
     "logLevel": "debug",
+    "locLevel": "never",
     "collectors": [
         {
             "description": "TNC",

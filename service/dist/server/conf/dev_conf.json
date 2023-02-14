@@ -3,5 +3,6 @@
     "tlsKey": "ssl/dev-server_key.pem",
     "tlsCert": "ssl/dev-server_cert.pem",
     "httpCacheTTLSeconds": 5,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "locLevel": "debug"
 }

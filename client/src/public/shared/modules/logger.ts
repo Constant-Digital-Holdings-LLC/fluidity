@@ -163,7 +163,7 @@ export class LoggerUtil implements Logger {
     }
 
     private log(level: LogLevel, message: unknown): void {
-        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel || 'debug')) {
+        if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.logLevel ?? 'debug')) {
             const snd = (location?: StackLocation) => {
                 this.transport.send(
                     level,
@@ -176,7 +176,7 @@ export class LoggerUtil implements Logger {
                 );
             };
 
-            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel || 'never')) {
+            if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel ?? 'never')) {
                 //warning - setting locLevel to any level other than 'never' can cause delayed logging
                 this.getStackLocation().then(snd);
             } else {
