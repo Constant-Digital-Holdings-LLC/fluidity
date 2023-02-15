@@ -13,6 +13,7 @@ if (!conf) throw new Error('Missing Fluidity Service Config');
 
 const log = fetchLogger(conf);
 
+
 const app = express();
 app.use(httpLogger(log));
 const dcu = new DOMConfigUtil(conf, pubSafe);
@@ -29,6 +30,7 @@ app.use(
         maxAge: (conf.httpCacheTTLSeconds ?? 5) * 1000
     })
 );
+
 
 try {
     if (conf['tlsKey'] && conf['tlsCert']) {
