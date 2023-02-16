@@ -5,13 +5,6 @@
     "locLevel": "never",
     "collectors": [
         {
-            "description": "TNC",
-            "plugin": "genericSerial",
-            "path": "COM10",
-            "baudRate": 9600,
-            "omitTS": true
-        },
-        {
             "description": "Agent Report",
             "plugin": "vRep",
             "pollIntervalSec": 3600
@@ -26,7 +19,7 @@
         {
             "description": "SRS",
             "plugin": "srsSerial",
-            "path": "COM4",
+            "path": "/dev/tty.usbmodem11101",
             "baudRate": 9600,
             "keepRaw": true,
             "extendedOptions": {

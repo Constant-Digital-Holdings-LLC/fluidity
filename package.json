@@ -10,8 +10,8 @@
     "scripts": {
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
-        "dev:server": "cd service/dist/server && cross-env NODE_ENV=development NODE_OPTIONS=--enable-source-maps concurrently --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2 app.js\" ",
-        "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2 app.js\" "
+        "dev:server": "cd service/dist/server && cross-env NODE_ENV=development NODE_OPTIONS=--enable-source-maps concurrently -n tsc-service,nm-service --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2 app.js\" ",
+        "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently -n tsc-agent,nm-agent --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 2 app.js\" "
     },
     "author": "Sean Lynch - KK6BEB",
     "license": "ISC",
