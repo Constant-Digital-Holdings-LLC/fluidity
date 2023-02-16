@@ -15,7 +15,9 @@ if (conf) {
 
     try {
         if (typeof site !== 'string') {
-            throw new Error(`in main config: a site name (string) must be defined for this agent (site: ${site})`);
+            throw new Error(
+                `in main config: a site name (string) must be defined for this agent (site: ${JSON.stringify(site)})`
+            );
         }
 
         if (!targets) {
@@ -39,7 +41,7 @@ if (conf) {
                 conf['collectors'].map(async collectorConfig => {
                     const pluginParams = { site, targets, ...collectorConfig } as unknown;
                     if (isDataCollectorParams(pluginParams)) {
-                        const { plugin, description } = pluginParams;
+                        const { plugin } = pluginParams;
 
                         const { default: Plugin } = (await import(`./modules/collectors/${plugin}.js`)) as {
                             default: { new (n: DataCollectorParams): DataCollector };

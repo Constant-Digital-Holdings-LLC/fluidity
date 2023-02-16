@@ -24,6 +24,9 @@ app.use(express.static('../../../client/dist/public', {
     maxAge: (conf.httpCacheTTLSeconds ?? 5) * 1000
 }));
 try {
+    if (typeof conf.appName !== 'string') {
+        throw new Error(`appNaming missing from config`);
+    }
     if (conf['tlsKey'] && conf['tlsCert']) {
         https
             .createServer({
@@ -31,7 +34,7 @@ try {
             cert: fs.readFileSync(conf['tlsCert'])
         }, app)
             .listen(conf.port);
-        log.info(`${conf.appName} ${conf.appVersion} server listening on port ${conf.port}`);
+        log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${conf.port ?? 'not set'}`);
     }
     else {
         throw new Error(`missing tls config`);

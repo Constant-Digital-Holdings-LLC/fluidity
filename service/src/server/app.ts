@@ -13,7 +13,6 @@ if (!conf) throw new Error('Missing Fluidity Service Config');
 
 const log = fetchLogger(conf);
 
-
 const app = express();
 app.use(httpLogger(log));
 const dcu = new DOMConfigUtil(conf, pubSafe);
@@ -31,8 +30,11 @@ app.use(
     })
 );
 
-
 try {
+    if (typeof conf.appName !== 'string') {
+        throw new Error(`appNaming missing from config`);
+    }
+
     if (conf['tlsKey'] && conf['tlsCert']) {
         https
             .createServer(
@@ -44,7 +46,7 @@ try {
             )
             .listen(conf.port);
 
-        log.info(`${conf.appName} ${conf.appVersion} server listening on port ${conf.port}`);
+        log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${conf.port ?? 'not set'}`);
     } else {
         throw new Error(`missing tls config`);
     }

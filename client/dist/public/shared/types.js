@@ -1,5 +1,5 @@
 export const isFfluidityPacket = (obj, omitFormattedData) => {
-    const { site, description, plugin, formattedData, rawData } = obj !== null && obj !== void 0 ? obj : {};
+    const { site, description, plugin, formattedData, rawData } = obj || {};
     return (typeof site === 'string' &&
         Boolean(site) &&
         typeof description === 'string' &&

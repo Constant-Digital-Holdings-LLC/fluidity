@@ -39,7 +39,7 @@
         "noPropertyAccessFromIndexSignature": true /* Enforces using indexed accessors for keys declared using an indexed type */,
         "allowUnusedLabels": false /* Disable error reporting for unused labels. */,
         "allowUnreachableCode": false /* Disable error reporting for unreachable code. */,
-        "skipLibCheck": false /* Skip type checking all .d.ts files. */
+        "skipLibCheck": true /* Skip type checking all .d.ts files. */
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "**/*.spec.ts", "dist/**/*"]

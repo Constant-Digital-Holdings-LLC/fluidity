@@ -20,8 +20,9 @@ export interface FluidityPacket {
     rawData?: string | null;
 }
 
-export const isFfluidityPacket = (obj: any, omitFormattedData?: boolean): obj is FluidityPacket => {
-    const { site, description, plugin, formattedData, rawData } = obj ?? {};
+export const isFfluidityPacket = (obj: object, omitFormattedData?: boolean): obj is FluidityPacket => {
+    const { site, description, plugin, formattedData, rawData } = (obj as Partial<FluidityPacket>) || {};
+
     return (
         typeof site === 'string' &&
         Boolean(site) &&

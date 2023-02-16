@@ -5,6 +5,8 @@ export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = typeof levelsArr[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
+//test
+
 export interface LoggerConfig {
     readonly logLevel?: LogLevel;
     readonly locLevel?: LogLevel;
