@@ -1,4 +1,4 @@
-export const inBrowser = (): Boolean => {
+export const inBrowser = (): boolean => {
     return typeof window === 'object' && typeof process === 'undefined';
 };
 
@@ -22,13 +22,17 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
             return reject('function not suitable for browser execution, no FS');
         } else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
-                import('url').then(({ fileURLToPath }) => {
-                    if (typeof err.path === 'string') {
-                        return resolve(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}`);
-                    } else {
-                        return resolve(undefined);
-                    }
-                });
+                import('url')
+                    .then(({ fileURLToPath }) => {
+                        if (typeof err.path === 'string') {
+                            return resolve(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}`);
+                        } else {
+                            return resolve(undefined);
+                        }
+                    })
+                    .catch(() => {
+                        console.error('Error in dynamic import of url module');
+                    });
             } else {
                 return resolve(undefined);
             }

@@ -114,19 +114,17 @@ export class DOMConfigUtil extends ConfigBase {
         return this.configCache;
     }
     get pubConf() {
-        const self = this;
+        const goodList = this.pubSafe;
         const handler = {
             get(target, prop, receiver) {
                 if (typeof prop === 'string')
-                    if (self.pubSafe.includes(prop)) {
+                    if (goodList.includes(prop)) {
                         return Reflect.get(target, prop, receiver);
                     }
-                    else {
-                        return undefined;
-                    }
+                return undefined;
             },
             ownKeys(target) {
-                return Object.keys(target).filter(prop => self.pubSafe.includes(prop));
+                return Object.keys(target).filter(prop => goodList.includes(prop));
             },
             set() {
                 throw new Error('pubConf is immutable.');

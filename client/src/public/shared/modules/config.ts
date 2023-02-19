@@ -17,7 +17,7 @@ export interface ConfigData {
 const isConfigData = <C extends ConfigData>(item: unknown): item is C =>
     isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
-const isConfigDataPopulated = <C extends ConfigData>(obj: any): obj is C =>
+const isConfigDataPopulated = <C extends ConfigData>(obj: unknown): obj is C =>
     isConfigData(obj) && Boolean(obj['appName']);
 
 interface ConfigParser {
@@ -150,19 +150,18 @@ export class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     }
 
     protected get pubConf(): C | undefined {
-        const self = this;
+        const goodList = this.pubSafe;
 
         const handler = {
-            get(target: object, prop: PropertyKey, receiver: any) {
+            get(target: C, prop: PropertyKey, receiver: unknown) {
                 if (typeof prop === 'string')
-                    if (self.pubSafe.includes(prop)) {
+                    if (goodList.includes(prop)) {
                         return Reflect.get(target, prop, receiver);
-                    } else {
-                        return undefined;
                     }
+                return undefined;
             },
             ownKeys(target: object) {
-                return Object.keys(target).filter(prop => self.pubSafe.includes(prop));
+                return Object.keys(target).filter(prop => goodList.includes(prop));
             },
             set() {
                 throw new Error('pubConf is immutable.');

@@ -2,7 +2,7 @@
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
     "site": "office",
     "logLevel": "debug",
-    "locLevel": "never",
+    "locLevel": "none",
     "collectors": [
         {
             "description": "Agent Report",

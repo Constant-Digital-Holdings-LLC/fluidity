@@ -28,7 +28,7 @@ class FormatterBase {
         else {
             formattedMesg = JSON.stringify(message);
         }
-        if (message instanceof Error) {
+        if (message instanceof Error && typeof message.stack === 'string') {
             formattedMesg += `\nstack-->\n${message.stack} <--stack`;
         }
         if (((_a = data.location) === null || _a === void 0 ? void 0 : _a.file) && ((_b = data.location) === null || _b === void 0 ? void 0 : _b.line)) {
@@ -61,7 +61,7 @@ class NodeConsoleFormatter extends SimpleConsoleFormatter {
         return super
             .format(data)
             .split(/\r?\n/)
-            .map(l => `\x1b[${colorLevels[levelsArr.indexOf(data.level)]}m${l}\x1b[0m`)
+            .map(l => { var _a; return `\x1b[${(_a = colorLevels[levelsArr.indexOf(data.level)]) !== null && _a !== void 0 ? _a : 92}m${l}\x1b[0m`; })
             .join('\n');
     }
 }
@@ -114,7 +114,8 @@ export class LoggerUtil {
                     throw new Error('generate stack');
                 }
                 catch (err) {
-                    import('stack-trace').then(v8Strace => {
+                    import('stack-trace')
+                        .then(v8Strace => {
                         var _a, _b;
                         if (err instanceof Error) {
                             const sf = v8Strace.parse(err);
@@ -122,6 +123,12 @@ export class LoggerUtil {
                                 file: (_a = sf[5]) === null || _a === void 0 ? void 0 : _a.getFileName().split('/').slice(-1).toString(),
                                 line: (_b = sf[5]) === null || _b === void 0 ? void 0 : _b.getLineNumber()
                             });
+                        }
+                    })
+                        .catch(err => {
+                        console.error('Error dynamically importing stack-trace module');
+                        if (typeof err === 'string') {
+                            console.error(err);
                         }
                     });
                 }
@@ -140,7 +147,11 @@ export class LoggerUtil {
                 }));
             };
             if (levelsArr.indexOf(level) >= levelsArr.indexOf((_b = this.levelSettings.locLevel) !== null && _b !== void 0 ? _b : 'never')) {
-                this.getStackLocation().then(snd);
+                this.getStackLocation()
+                    .then(snd)
+                    .catch(err => {
+                    console.error(err);
+                });
             }
             else {
                 snd();
@@ -159,7 +170,9 @@ export class LoggerUtil {
     error(data) {
         this.log('error', data);
     }
-    never(data) { }
+    never(data) {
+        void data;
+    }
     static browserConsole(levelSettings) {
         return new LoggerUtil(levelSettings, new BrowserConsoleFormatter(levelSettings), new ConsoleTransport(), 'browser');
     }
@@ -172,7 +185,7 @@ export class LoggerUtil {
 }
 export const httpLogger = (log) => {
     let timeSum = 0;
-    let reqCount = counter();
+    const reqCount = counter();
     const getDurationInMilliseconds = (start) => {
         const NS_PER_SEC = 1e9;
         const NS_TO_MS = 1e6;
@@ -199,7 +212,6 @@ export const httpLogger = (log) => {
         next();
     };
 };
-const foo = console;
 export const fetchLogger = (conf) => {
     const { logLevel, locLevel, logFormat } = conf || {};
     if (inBrowser()) {

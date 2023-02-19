@@ -18,13 +18,17 @@ export const prettyFsNotFound = (err) => {
         }
         else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
-                import('url').then(({ fileURLToPath }) => {
+                import('url')
+                    .then(({ fileURLToPath }) => {
                     if (typeof err.path === 'string') {
                         return resolve(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}`);
                     }
                     else {
                         return resolve(undefined);
                     }
+                })
+                    .catch(() => {
+                    console.error('Error in dynamic import of url module');
                 });
             }
             else {

@@ -1,4 +1,4 @@
-export declare const inBrowser: () => Boolean;
+export declare const inBrowser: () => boolean;
 export declare const isErrnoException: (object: Error) => object is NodeJS.ErrnoException;
 export declare function counter(): IterableIterator<number>;
 export declare const prettyFsNotFound: (err: Error) => Promise<string | undefined>;

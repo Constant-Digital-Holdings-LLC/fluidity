@@ -2,7 +2,7 @@ import type { StackFrame } from 'stacktrace-js';
 import type { Request, Response, NextFunction } from 'express';
 import { inBrowser, counter } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
-export type LogLevel = typeof levelsArr[number];
+export type LogLevel = (typeof levelsArr)[number];
 type Logger = { [K in LogLevel]: <T>(data: T) => void };
 
 //test
@@ -47,7 +47,7 @@ abstract class FormatterBase implements LogFormatter {
 
     format(data: LogData): string {
         const { message, timestamp, level } = data;
-        let formattedMesg: string = '';
+        let formattedMesg = '';
 
         if (typeof message === 'string') {
             formattedMesg = message;
@@ -57,7 +57,7 @@ abstract class FormatterBase implements LogFormatter {
             formattedMesg = JSON.stringify(message);
         }
 
-        if (message instanceof Error) {
+        if (message instanceof Error && typeof message.stack === 'string') {
             formattedMesg += `\nstack-->\n${message.stack} <--stack`;
         }
 
@@ -91,12 +91,12 @@ class BrowserConsoleFormatter extends FormatterBase implements LogFormatter {
 
 class NodeConsoleFormatter extends SimpleConsoleFormatter implements LogFormatter {
     override format(data: LogData): string {
-        const colorLevels: number[] = [94, 97, 33, 91];
+        const colorLevels = [94, 97, 33, 91];
 
         return super
             .format(data)
             .split(/\r?\n/)
-            .map(l => `\x1b[${colorLevels[levelsArr.indexOf(data.level)]}m${l}\x1b[0m`)
+            .map(l => `\x1b[${colorLevels[levelsArr.indexOf(data.level)] ?? 92}m${l}\x1b[0m`)
             .join('\n');
     }
 }
@@ -149,16 +149,23 @@ export class LoggerUtil implements Logger {
                 try {
                     throw new Error('generate stack');
                 } catch (err) {
-                    import('stack-trace').then(v8Strace => {
-                        if (err instanceof Error) {
-                            const sf = v8Strace.parse(err);
+                    import('stack-trace')
+                        .then(v8Strace => {
+                            if (err instanceof Error) {
+                                const sf = v8Strace.parse(err);
 
-                            resolve({
-                                file: sf[5]?.getFileName().split('/').slice(-1).toString(),
-                                line: sf[5]?.getLineNumber()
-                            });
-                        }
-                    });
+                                resolve({
+                                    file: sf[5]?.getFileName().split('/').slice(-1).toString(),
+                                    line: sf[5]?.getLineNumber()
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error dynamically importing stack-trace module');
+                            if (typeof err === 'string') {
+                                console.error(err);
+                            }
+                        });
                 }
             }
         });
@@ -180,7 +187,11 @@ export class LoggerUtil implements Logger {
 
             if (levelsArr.indexOf(level) >= levelsArr.indexOf(this.levelSettings.locLevel ?? 'never')) {
                 //warning - setting locLevel to any level other than 'never' can cause delayed logging
-                this.getStackLocation().then(snd);
+                this.getStackLocation()
+                    .then(snd)
+                    .catch(err => {
+                        console.error(err);
+                    });
             } else {
                 snd();
             }
@@ -203,7 +214,9 @@ export class LoggerUtil implements Logger {
         this.log('error', data);
     }
 
-    never(data: unknown): void {}
+    never(data: unknown): void {
+        void data;
+    }
 
     static browserConsole(levelSettings: LevelSettings): LoggerUtil {
         return new LoggerUtil(
@@ -225,7 +238,7 @@ export class LoggerUtil implements Logger {
 
 export const httpLogger = (log: LoggerUtil) => {
     let timeSum = 0;
-    let reqCount = counter();
+    const reqCount = counter();
 
     const getDurationInMilliseconds = (start: [number, number]) => {
         const NS_PER_SEC = 1e9;
@@ -261,8 +274,6 @@ export const httpLogger = (log: LoggerUtil) => {
         next();
     };
 };
-
-const foo = console;
 
 export const fetchLogger = <C extends LoggerConfig>(conf?: C | null): LoggerUtil => {
     const { logLevel, locLevel, logFormat } = conf || {};

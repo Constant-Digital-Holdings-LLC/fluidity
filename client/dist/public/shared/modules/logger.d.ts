@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 export declare const levelsArr: readonly ["debug", "info", "warn", "error", "never"];
-export type LogLevel = typeof levelsArr[number];
+export type LogLevel = (typeof levelsArr)[number];
 type Logger = {
     [K in LogLevel]: <T>(data: T) => void;
 };
