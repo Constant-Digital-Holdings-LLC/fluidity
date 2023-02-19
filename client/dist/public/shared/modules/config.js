@@ -9,9 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { isObject } from '#@shared/types.js';
 const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-const isConfigData = (obj) => obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
+const isConfigData = (item) => isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);
 class ConfigBase {
     constructor() {

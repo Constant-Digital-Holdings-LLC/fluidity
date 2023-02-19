@@ -20,8 +20,16 @@ export interface FluidityPacket {
     rawData?: string | null;
 }
 
-export const isFfluidityPacket = (obj: object, omitFormattedData?: boolean): obj is FluidityPacket => {
-    const { site, description, plugin, formattedData, rawData } = (obj as Partial<FluidityPacket>) || {};
+export const isObject = (value: unknown): value is object => {
+    return typeof value === 'object' && value !== null;
+};
+
+export const isFfluidityPacket = (item: unknown, omitFormattedData?: boolean): item is FluidityPacket => {
+    if (!isObject(item)) {
+        return false;
+    }
+
+    const { site, description, plugin, formattedData, rawData } = item as Partial<FluidityPacket>;
 
     return (
         typeof site === 'string' &&

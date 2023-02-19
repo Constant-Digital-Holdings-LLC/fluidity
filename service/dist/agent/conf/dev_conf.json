@@ -34,6 +34,13 @@
                     "L6-San Pedro"
                 ]
             }
+        },
+        {
+            "description": "TNC",
+            "plugin": "genericSerial",
+            "path": "/dev/tty.usbmodem11401",
+            "baudRate": 9600
         }
+
     ]
 }

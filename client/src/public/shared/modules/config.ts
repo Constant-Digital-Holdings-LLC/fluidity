@@ -1,7 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import type { Request, Response, NextFunction } from 'express';
 import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
-import { NodeEnv } from '#@shared/types.js';
+import { NodeEnv, isObject } from '#@shared/types.js';
 
 const log = fetchLogger();
 
@@ -14,8 +14,8 @@ export interface ConfigData {
     readonly [index: string]: unknown;
 }
 
-const isConfigData = <C extends ConfigData>(obj: any): obj is C =>
-    obj && obj instanceof Object && Object.keys(obj).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
+const isConfigData = <C extends ConfigData>(item: unknown): item is C =>
+    isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
 const isConfigDataPopulated = <C extends ConfigData>(obj: any): obj is C =>
     isConfigData(obj) && Boolean(obj['appName']);

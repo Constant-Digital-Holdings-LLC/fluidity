@@ -16,7 +16,8 @@ export interface FluidityPacket {
     formattedData: FormattedData[];
     rawData?: string | null;
 }
-export declare const isFfluidityPacket: (obj: object, omitFormattedData?: boolean) => obj is FluidityPacket;
+export declare const isObject: (value: unknown) => value is object;
+export declare const isFfluidityPacket: (item: unknown, omitFormattedData?: boolean) => item is FluidityPacket;
 export interface PublishTarget {
     location: string;
     key: string;
