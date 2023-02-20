@@ -15,7 +15,8 @@ export class PacketFIFO {
             this.buffer.shift();
         fPacket.seq = count.next().value;
         log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
-        return this.buffer.push(fPacket);
+        this.buffer.push(fPacket);
+        return fPacket.seq;
     }
     toArray() {
         return this.buffer;
