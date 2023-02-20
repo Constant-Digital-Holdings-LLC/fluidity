@@ -18,6 +18,7 @@ fetch('/FIFO')
     .then(data => {
         if (Array.isArray(data) && data.length)
             if (data.every(() => isFfluidityPacket)) {
+                //initialize with historical data
                 ui = new FluidityUI(data as FluidityPacket[]);
             }
     })
