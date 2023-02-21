@@ -31,11 +31,13 @@ app.use(
 );
 
 try {
+    const PORT = conf.port ?? process.env['PORT'] ?? 80;
+
     if (typeof conf.appName !== 'string') {
         throw new Error(`appNaming missing from config`);
     }
 
-    if (conf['tlsKey'] && conf['tlsCert']) {
+    if (conf['tlsKey'] && conf['tlsCert'] && conf.port) {
         https
             .createServer(
                 {
@@ -45,11 +47,11 @@ try {
                 app
             )
             .listen(conf.port);
-
-        log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${conf.port ?? 'not set'}`);
     } else {
-        throw new Error(`missing tls config`);
+        app.listen(PORT);
     }
+
+    log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${PORT}`);
 } catch (err) {
     if (err instanceof Error) {
         const formattedError = await prettyFsNotFound(err);
