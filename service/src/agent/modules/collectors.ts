@@ -228,7 +228,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
             this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
         } else {
-            log.warn(`DataCollector: ignoring unkown string: ${data}`);
+            log.warn(`DataCollector: ignoring string: ${data}`);
         }
     }
 }
