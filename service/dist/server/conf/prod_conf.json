@@ -1,7 +1,4 @@
 {
-    "port": 443,
-    "tlsKey": "ssl/prod-server_key.pem",
-    "tlsCert": "ssl/prod-server_cert.pem",
     "httpCacheTTLSeconds": 300,
     "logLevel": "info",
     "logFormat": "JSON"
