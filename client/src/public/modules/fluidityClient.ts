@@ -71,7 +71,7 @@ export class FluidityUI {
         div.appendChild(site);
 
         const dash = document.createElement('span');
-        site.classList.add('colon');
+        site.classList.add('dash');
         dash.innerText = '-';
         div.appendChild(dash);
 

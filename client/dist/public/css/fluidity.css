@@ -82,7 +82,7 @@ body {
 #container-main {
     display: grid;
     gap: var(--small-gap);
-    grid-template-columns: auto;
+    grid-template-columns: 99vw;
     /* min-width: 23.4rem; */
 }
 
@@ -166,7 +166,8 @@ li i {
 #cell-data {
     
     overflow: auto;
-    max-height: clamp(67vh, 72vh, 77vh);
+    max-height: clamp(75vh, 72vh, 77vh);
+    
     
 }
 
@@ -206,7 +207,7 @@ li i {
     -webkit-box-shadow: var(--color4);
 }
 
-@media (min-width: 450px) {
+@media (min-width: 550px) {
     body {
         margin: var(--small-gap);
     }
