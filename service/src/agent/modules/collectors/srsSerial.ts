@@ -91,7 +91,7 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                         .done,
                     ...this.decode<RadioStates>(radioStates, 16, result[1].split(' ')).flatMap((s, index) =>
                         s.length ? fh
-                            .e(`${pLookup(index)}:`, 3)
+                            .e(`${pLookup(index)}:`, 7)
                             .e(s, 4)
                             .done : []
                     )
@@ -105,7 +105,7 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                         .done,
                     ...this.decode<PortStates>(portStates, 16, result[1].split(' ')).flatMap((s, index) =>
                         s.length ? fh
-                            .e(`${pLookup(index)}:`, 3)
+                            .e(`${pLookup(index)}:`, 7)
                             .e(s, 4)
                             .done : []
                     )
