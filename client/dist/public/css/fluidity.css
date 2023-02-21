@@ -184,6 +184,30 @@ li i {
 
 }
 
+.fluidity-packet .site {
+
+    text-transform: uppercase;
+
+}
+
+.fluidity-packet .description {
+
+    text-transform: uppercase;
+
+}
+
+.fluidity-packet .bracket {
+
+    color: var(--color6);
+
+}
+
+.fluidity-packet .colon {
+
+    color: var(--color2);
+
+}
+
 .fluidity-packet .fp-formatted {
     display: inline-block;
     margin-left: 0.3rem;

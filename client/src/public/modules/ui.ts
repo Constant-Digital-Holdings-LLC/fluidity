@@ -71,7 +71,7 @@ export class FluidityUI {
         div.appendChild(site);
 
         const dash = document.createElement('span');
-        site.classList.add('dash');
+        dash.classList.add('dash');
         dash.innerText = '-';
         div.appendChild(dash);
 
@@ -86,7 +86,7 @@ export class FluidityUI {
         div.appendChild(cBracket);
 
         const colon = document.createElement('span');
-        site.classList.add('colon');
+        colon.classList.add('colon');
         colon.innerText = ':';
         div.appendChild(colon);
 
