@@ -18,8 +18,8 @@ const isSRSportMap = (obj: unknown): obj is SRSPortMap => {
 
 const radioStates = ['COR', 'PL', 'RCVACT', 'DTMF', 'XMIT_ON'] as const;
 const portStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT_GROUP', 'INTERFACED'] as const;
-type RadioStates = typeof radioStates[number];
-type PortStates = typeof portStates[number];
+type RadioStates = (typeof radioStates)[number];
+type PortStates = (typeof portStates)[number];
 
 export default class SRSserialCollector extends SerialCollector implements SerialCollectorPlugin {
     constructor(params: SerialCollectorParams) {
@@ -91,8 +91,8 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                         .done,
                     ...this.decode<RadioStates>(radioStates, 16, result[1].split(' ')).flatMap((s, index) =>
                         s.length ? fh
-                            .e(`${pLookup(index)}:`)
-                            .e(s, 21)
+                            .e(`${pLookup(index)}:`, 3)
+                            .e(s, 4)
                             .done : []
                     )
                 ];
@@ -105,8 +105,8 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                         .done,
                     ...this.decode<PortStates>(portStates, 16, result[1].split(' ')).flatMap((s, index) =>
                         s.length ? fh
-                            .e(`${pLookup(index)}:`)
-                            .e(s, 22)
+                            .e(`${pLookup(index)}:`, 3)
+                            .e(s, 4)
                             .done : []
                     )
                 ];

@@ -1,6 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
-import { FluidityUI } from './modules/fluidityClient.js';
+import { FluidityUI } from './modules/ui.js';
 import { FluidityPacket, isFfluidityPacket } from '#@shared/types.js';
 
 const conf = confFromDOM();

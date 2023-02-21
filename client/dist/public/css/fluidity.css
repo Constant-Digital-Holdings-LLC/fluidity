@@ -171,27 +171,50 @@ li i {
     
 }
 
-#cell-data p {
-    margin: 0.12rem;
-    padding: 0.12rem;
-}
-
 .cell {
     padding: 0.5rem;
     border-radius: 7px;
     border: 2px groove var(--color3);
 }
 
-.fluidityPacket {
+.fluidity-packet {
     
-    margin: 0.5rem 0;
+    margin-bottom: 1.5rem;
 
 }
 
-.fluidityPacket .FORMATTED {
+.fluidity-packet .fp-formatted {
     display: inline-block;
     margin-left: 0.3rem;
 
+}
+
+.fluidity-packet .fp-stringf-0 {
+    color: var(--light);
+}
+
+.fluidity-packet .fp-stringf-1 {
+    color: var(--color1);
+}
+
+.fluidity-packet .fp-stringf-2 {
+    color: var(--color2);
+}
+
+.fluidity-packet .fp-stringf-3 {
+    color: var(--color3);
+}
+
+.fluidity-packet .fp-stringf-4 {
+    color: var(--color4);
+}
+
+.fluidity-packet .fp-stringf-5 {
+    color: var(--color5);
+}
+
+.fluidity-packet .fp-stringf-6 {
+    color: var(--color6);
 }
 
 
@@ -228,6 +251,12 @@ li i {
         align-items: center;
         justify-content: space-between;
     }
+
+        .fluidity-packet {
+    
+            margin-bottom: 1rem;
+    
+        }
 }
 
 /* Medium devices */
@@ -245,6 +274,13 @@ li i {
         margin: 0.25rem;
         padding: 0.25rem;
     }
+
+    .fluidity-packet {
+
+        margin-bottom: 0.75rem;
+
+    }
+
 }
 
 /*  Large high-res */

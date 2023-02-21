@@ -5,22 +5,22 @@ const log = fetchLogger(conf);
 export class FluidityUI {
     renderFormatted(fArr) {
         const frag = document.createDocumentFragment();
-        const stringF = (field, suggestStyle) => {
+        const stringF = (field, suggestStyle = 0) => {
             const span = document.createElement('span');
             span.innerText = field.toString();
-            span.classList.add('FORMATTED', 'STRINGF', `STRINGF-${suggestStyle !== null && suggestStyle !== void 0 ? suggestStyle : 0}`);
+            span.classList.add('fp-formatted', 'fp-stringf', `fp-stringf-${suggestStyle}`);
             return span;
         };
-        const linkF = (field, suggestStyle) => {
+        const linkF = (field, suggestStyle = 0) => {
             const span = document.createElement('span');
             span.innerText = field.toString();
-            span.classList.add('FORMATTED', 'LINKF', `LINKF-${suggestStyle !== null && suggestStyle !== void 0 ? suggestStyle : 0}`);
+            span.classList.add('fp-formatted', 'fp-linkf', `fp-linkf-${suggestStyle}`);
             return span;
         };
-        const dateF = (field, suggestStyle) => {
+        const dateF = (field, suggestStyle = 0) => {
             const span = document.createElement('span');
             span.innerText = field.toString();
-            span.classList.add('FORMATTED', 'DATEF', `DATEF-${suggestStyle !== null && suggestStyle !== void 0 ? suggestStyle : 0}`);
+            span.classList.add('fp-formatted', 'fp-datef', `fp-datef-${suggestStyle}`);
             return span;
         };
         fArr.forEach(f => {
@@ -43,9 +43,9 @@ export class FluidityUI {
     render(fp) {
         const frag = document.createDocumentFragment();
         const div = document.createElement('div');
-        div.classList.add('fluidityPacket');
+        div.classList.add('fluidity-packet');
         if (fp.seq) {
-            div.id = `fp-${fp.seq}`;
+            div.id = `fp-seq-${fp.seq}`;
         }
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket');
@@ -76,15 +76,15 @@ export class FluidityUI {
         return frag;
     }
     set(pos, fpArr) {
-        const before = document.getElementById('before-data');
-        const after = document.getElementById('after-data');
+        const history = document.getElementById('history-data');
+        const current = document.getElementById('current-data');
         const end = document.getElementById('end-data');
         fpArr.forEach(fp => {
-            if (pos === 'before') {
-                before === null || before === void 0 ? void 0 : before.appendChild(this.render(fp));
+            if (pos === 'history') {
+                history === null || history === void 0 ? void 0 : history.appendChild(this.render(fp));
             }
-            else if (pos === 'after') {
-                after === null || after === void 0 ? void 0 : after.appendChild(this.render(fp));
+            else if (pos === 'current') {
+                current === null || current === void 0 ? void 0 : current.appendChild(this.render(fp));
             }
             end === null || end === void 0 ? void 0 : end.scrollIntoView({ behavior: 'smooth' });
         });
@@ -93,14 +93,14 @@ export class FluidityUI {
         var _a;
         this.history = history;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
-        this.set('before', history);
+        this.set('history', history);
     }
     add(fp) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
-                this.set('after', [fp]);
+                this.set('current', [fp]);
             }
         }
     }
 }
-//# sourceMappingURL=fluidityClient.js.map
+//# sourceMappingURL=ui.js.map

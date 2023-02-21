@@ -4,8 +4,8 @@ export declare class FluidityUI {
     protected demarc: number | undefined;
     protected renderFormatted(fArr: FormattedData[]): DocumentFragment;
     protected render(fp: FluidityPacket): DocumentFragment;
-    protected set(pos: 'before' | 'after', fpArr: FluidityPacket[]): void;
+    protected set(pos: 'history' | 'current', fpArr: FluidityPacket[]): void;
     constructor(history: FluidityPacket[]);
     add(fp: FluidityPacket): void;
 }
-//# sourceMappingURL=fluidityClient.d.ts.map
+//# sourceMappingURL=ui.d.ts.map

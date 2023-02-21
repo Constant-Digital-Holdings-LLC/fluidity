@@ -59,8 +59,8 @@ export default class SRSserialCollector extends SerialCollector {
                         .e('RADIO States->')
                         .done,
                     ...this.decode(radioStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh
-                        .e(`${pLookup(index)}:`)
-                        .e(s, 21)
+                        .e(`${pLookup(index)}:`, 3)
+                        .e(s, 4)
                         .done : [])
                 ];
             }
@@ -70,8 +70,8 @@ export default class SRSserialCollector extends SerialCollector {
                         .e('PORT States->')
                         .done,
                     ...this.decode(portStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh
-                        .e(`${pLookup(index)}:`)
-                        .e(s, 22)
+                        .e(`${pLookup(index)}:`, 3)
+                        .e(s, 4)
                         .done : [])
                 ];
             }
