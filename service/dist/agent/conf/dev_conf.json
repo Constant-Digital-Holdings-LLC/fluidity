@@ -19,7 +19,7 @@
         {
             "description": "SRS",
             "plugin": "srsSerial",
-            "path": "/dev/tty.usbmodem11101",
+            "path": "/dev/tty.usbmodem11201",
             "baudRate": 9600,
             "keepRaw": true,
             "extendedOptions": {

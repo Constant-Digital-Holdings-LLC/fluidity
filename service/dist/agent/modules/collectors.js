@@ -148,7 +148,7 @@ export class DataCollector {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
         let formattedData = this.format(data, new FormatHelper());
-        if (formattedData) {
+        if (Array.isArray(formattedData) && formattedData.length) {
             !this.params.omitTS && (formattedData = this.addTS(formattedData));
             this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
         }
