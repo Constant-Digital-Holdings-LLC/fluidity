@@ -6,7 +6,7 @@ import SSE_pkg from 'express-sse-ts';
 const { default: ServerSideEvents } = SSE_pkg;
 const sse = new ServerSideEvents();
 const log = fetchLogger(await confFromFS());
-const fifo = new PacketFIFO(5);
+const fifo = new PacketFIFO(500);
 export const SSE = (req, res, next) => {
     return sse.init(req, res, next);
 };

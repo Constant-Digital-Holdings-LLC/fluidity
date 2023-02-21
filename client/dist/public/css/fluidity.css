@@ -164,8 +164,10 @@ li i {
 }
 
 #cell-data {
+    
     overflow: auto;
     max-height: clamp(67vh, 72vh, 77vh);
+    
 }
 
 #cell-data p {
@@ -178,6 +180,19 @@ li i {
     border-radius: 7px;
     border: 2px groove var(--color3);
 }
+
+.fluidityPacket {
+    
+    margin: 0.5rem 0;
+
+}
+
+.fluidityPacket .FORMATTED {
+    display: inline-block;
+    margin-left: 0.3rem;
+
+}
+
 
 ::-webkit-scrollbar {
     height: 12px;
