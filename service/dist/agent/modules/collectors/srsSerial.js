@@ -54,18 +54,18 @@ export default class SRSserialCollector extends SerialCollector {
         };
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
             if (data[0] === '[') {
-                const RS = this.decode(radioStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 4).done : []);
+                const RS = this.decode(radioStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 6).done : []);
                 if (RS.length) {
-                    return [...fh.e('Radio States:').done, ...RS];
+                    return [...fh.e('Radio States: ').done, ...RS];
                 }
                 else {
                     return null;
                 }
             }
             if (data[0] === '{') {
-                const PS = this.decode(portStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 4).done : []);
+                const PS = this.decode(portStates, 16, result[1].split(' ')).flatMap((s, index) => s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 7).done : []);
                 if (PS.length) {
-                    return [...fh.e('Port States:').done, ...PS];
+                    return [...fh.e('Port States: ').done, ...PS];
                 }
                 else {
                     return null;

@@ -9,7 +9,7 @@
     --color4: #00fdff;
     --color5: #472e40;
     --color6: #fe95c6;
-    --color7: #888;
+    --color7: #999;
     --color8: #ee4866;
     --light: #ffe5ff;
     --dark: #52423d;
@@ -188,15 +188,15 @@ li i {
 .fluidity-packet .site {
 
     text-transform: uppercase;
-    font-weight: bold;
-    color: var(--color6);
+    color: var(--color4);
+    
 
 }
 
 .fluidity-packet .description {
 
     text-transform: lowercase;
-    font-weight: bold;
+    font-weight: bolder;
     color: var(--color7);
     margin: 0 0.1rem;
 
@@ -255,6 +255,7 @@ li i {
 
 .fluidity-packet .fp-color-6 {
     color: var(--color6);
+    
 }
 
 .fluidity-packet .fp-color-7 {
