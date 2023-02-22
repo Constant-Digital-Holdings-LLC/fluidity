@@ -3,7 +3,7 @@ export interface FluidityLink {
     location: string;
 }
 
-export type FluidityField = string | number | FluidityLink;
+export type FluidityField = string | FluidityLink;
 
 export interface FormattedData {
     suggestStyle: number;
@@ -14,6 +14,7 @@ export interface FormattedData {
 export interface FluidityPacket {
     seq?: number;
     site: string;
+    ts: string;
     description: string;
     plugin: string;
     formattedData: FormattedData[];

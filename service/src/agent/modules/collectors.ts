@@ -6,9 +6,10 @@ import {
     FluidityPacket,
     isFfluidityPacket,
     PublishTarget,
-    FluidityField,
     StringAble,
-    NodeEnv
+    NodeEnv,
+    isFluidityLink,
+    FluidityLink
 } from '#@shared/types.js';
 
 import throttledQueue from 'throttled-queue';
@@ -21,9 +22,8 @@ import https from 'https';
 const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
 
-export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData' | 'seq'> {
+export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData' | 'seq' | 'ts'> {
     targets: PublishTarget[];
-    omitTS?: boolean;
     keepRaw?: boolean;
     extendedOptions?: object;
     maxHttpsReqPerCollectorPerSec?: number;
@@ -50,14 +50,14 @@ export interface SerialCollectorParams extends DataCollectorParams {
 export class FormatHelper {
     private formattedData: FormattedData[] = [];
 
-    e(element: FluidityField | StringAble, suggestStyle?: number): this {
+    e(element: FluidityLink | StringAble | Date, suggestStyle?: number): this {
         suggestStyle ??= 0;
         if (typeof element === 'string') {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'STRING' });
-        } else if (element instanceof Object && 'location' in element && 'name' in element) {
+        } else if (isFluidityLink(element)) {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'LINK' });
-        } else if (typeof element === 'number') {
-            this.formattedData.push({ suggestStyle, field: element, fieldType: 'DATE' });
+        } else if (element instanceof Date) {
+            this.formattedData.push({ suggestStyle, field: element.toISOString(), fieldType: 'DATE' });
         } else {
             this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'STRING' });
         }
@@ -122,11 +122,6 @@ export abstract class DataCollector implements DataCollectorPlugin {
     abstract start(): void;
 
     abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
-
-    private addTS(data: FormattedData[]): FormattedData[] {
-        data.unshift({ suggestStyle: 0, field: Date.now(), fieldType: 'DATE' });
-        return data;
-    }
 
     private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: any, key?: string): Promise<string> {
         const { protocol, hostname, port, pathname } = uo;
@@ -216,7 +211,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 
     protected send(data: string): void {
-        const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
+        const { targets, keepRaw, extendedOptions, ...rest } = this.params;
 
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
@@ -225,9 +220,12 @@ export abstract class DataCollector implements DataCollectorPlugin {
         let formattedData = this.format(data, new FormatHelper());
 
         if (Array.isArray(formattedData) && formattedData.length) {
-            !this.params.omitTS && (formattedData = this.addTS(formattedData));
-
-            this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
+            this.sendHttps(targets, {
+                ts: new Date().toISOString(),
+                formattedData,
+                rawData: keepRaw ? data : null,
+                ...rest
+            });
         } else {
             log.warn(`DataCollector: ignoring string: ${data}`);
         }

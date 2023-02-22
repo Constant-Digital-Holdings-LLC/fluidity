@@ -9,7 +9,7 @@
     --color4: #00fdff;
     --color5: #472e40;
     --color6: #fe95c6;
-    --color7: #ffffff;
+    --color7: #888;
     --color8: #ee4866;
     --light: #ffe5ff;
     --dark: #52423d;
@@ -162,7 +162,7 @@ li i {
 }
 
 .stat-data {
-    color: var(--color6);
+    color: var(--color2);
 }
 
 #cell-data {
@@ -188,18 +188,31 @@ li i {
 .fluidity-packet .site {
 
     text-transform: uppercase;
+    font-weight: bold;
+    color: var(--color6);
 
 }
 
 .fluidity-packet .description {
 
-    text-transform: uppercase;
+    text-transform: lowercase;
+    font-weight: bold;
+    color: var(--color7);
+    margin: 0 0.1rem;
 
 }
 
-.fluidity-packet .bracket {
+.fluidity-packet .bracket-open {
 
-    color: var(--color6);
+    color: var(--color2);
+    margin-right: 0.1rem;
+
+}
+
+.fluidity-packet .bracket-close {
+
+    color: var(--color2);
+    margin-left: 0.1rem;
 
 }
 
@@ -209,48 +222,53 @@ li i {
 
 }
 
-.fluidity-packet .fp-formatted {
+.fluidity-packet .fp-line {
     display: inline-block;
     margin-left: 0.3rem;
 
 }
 
-.fluidity-packet .fp-stringf-0 {
+.fluidity-packet .fp-color-0 {
     color: var(--light);
 }
 
-.fluidity-packet .fp-stringf-1 {
+.fluidity-packet .fp-color-1 {
     color: var(--color1);
 }
 
-.fluidity-packet .fp-stringf-2 {
+.fluidity-packet .fp-color-2 {
     color: var(--color2);
 }
 
-.fluidity-packet .fp-stringf-3 {
+.fluidity-packet .fp-color-3 {
     color: var(--color3);
+    font-weight: bolder;
 }
 
-.fluidity-packet .fp-stringf-4 {
+.fluidity-packet .fp-color-4 {
     color: var(--color4);
 }
 
-.fluidity-packet .fp-stringf-5 {
+.fluidity-packet .fp-color-5 {
     color: var(--color5);
 }
 
-.fluidity-packet .fp-stringf-6 {
+.fluidity-packet .fp-color-6 {
     color: var(--color6);
 }
 
-.fluidity-packet .fp-stringf-7 {
-    color: var(--color3);
-    font-weight: bold;
+.fluidity-packet .fp-color-7 {
+    color: var(--color7);
 }
 
-.fluidity-packet .fp-datef-0 {
-    color: var(--color6);
+.fluidity-packet .fp-color-8 {
+    color: var(--color8);
 }
+
+.fluidity-packet .fp-color-9 {
+    color: var(--dark);
+}
+
 
 ::-webkit-scrollbar {
     height: 12px;

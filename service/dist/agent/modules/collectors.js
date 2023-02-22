@@ -1,7 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
-import { isFfluidityPacket } from '#@shared/types.js';
+import { isFfluidityPacket, isFluidityLink } from '#@shared/types.js';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -23,11 +23,11 @@ export class FormatHelper {
         if (typeof element === 'string') {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'STRING' });
         }
-        else if (element instanceof Object && 'location' in element && 'name' in element) {
+        else if (isFluidityLink(element)) {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'LINK' });
         }
-        else if (typeof element === 'number') {
-            this.formattedData.push({ suggestStyle, field: element, fieldType: 'DATE' });
+        else if (element instanceof Date) {
+            this.formattedData.push({ suggestStyle, field: element.toISOString(), fieldType: 'DATE' });
         }
         else {
             this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'STRING' });
@@ -61,10 +61,6 @@ export class DataCollector {
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
-    }
-    addTS(data) {
-        data.unshift({ suggestStyle: 0, field: Date.now(), fieldType: 'DATE' });
-        return data;
     }
     _reqJSON(method, uo, data, key) {
         const { protocol, hostname, port, pathname } = uo;
@@ -144,14 +140,18 @@ export class DataCollector {
         }
     }
     send(data) {
-        const { targets, keepRaw, extendedOptions, omitTS, ...rest } = this.params;
+        const { targets, keepRaw, extendedOptions, ...rest } = this.params;
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
         let formattedData = this.format(data, new FormatHelper());
         if (Array.isArray(formattedData) && formattedData.length) {
-            !this.params.omitTS && (formattedData = this.addTS(formattedData));
-            this.sendHttps(targets, { formattedData, rawData: keepRaw ? data : null, ...rest });
+            this.sendHttps(targets, {
+                ts: new Date().toISOString(),
+                formattedData,
+                rawData: keepRaw ? data : null,
+                ...rest
+            });
         }
         else {
             log.warn(`DataCollector: ignoring string: ${data}`);

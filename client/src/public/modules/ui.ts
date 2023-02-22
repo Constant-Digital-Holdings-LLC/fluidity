@@ -9,51 +9,57 @@ export class FluidityUI {
     protected demarc: number | undefined;
 
     protected renderFormatted(fArr: FormattedData[]): DocumentFragment {
-        const frag = document.createDocumentFragment();
+        const renderFormattedFrag = document.createDocumentFragment();
 
-        const stringF = (field: string, suggestStyle = 0): HTMLSpanElement => {
+        const markupString = (field: string, suggestStyle = 0): DocumentFragment => {
+            const stringFrag = document.createDocumentFragment();
             const span = document.createElement('span');
-            span.innerText = field.toString();
-            span.classList.add('fp-formatted', 'fp-stringf', `fp-stringf-${suggestStyle}`);
-            return span;
+            span.innerText = field;
+            span.classList.add('fp-line', 'fp-string', `fp-color-${suggestStyle}`);
+            stringFrag.appendChild(span);
+            return stringFrag;
         };
 
-        const linkF = (field: FluidityLink, suggestStyle = 0): HTMLSpanElement => {
-            const span = document.createElement('span');
-            span.innerText = field.toString();
-            span.classList.add('fp-formatted', 'fp-linkf', `fp-linkf-${suggestStyle}`);
-            return span;
+        const markupLink = (field: FluidityLink, suggestStyle = 0): DocumentFragment => {
+            const linkFrag = document.createDocumentFragment();
+            const a = document.createElement('a');
+            a.href = field.location;
+            a.innerText = field.name;
+            a.classList.add('fp-line', 'fp-link');
+            return linkFrag;
         };
 
-        const dateF = (field: number, suggestStyle = 0): HTMLSpanElement => {
+        const markupDate = (field: string, suggestStyle = 0): DocumentFragment => {
+            const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = new Date(field).toLocaleTimeString();
-            span.classList.add('fp-formatted', 'fp-datef', `fp-datef-${suggestStyle}`);
-            return span;
+            span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
+            return dateFrag;
         };
 
         fArr.forEach(f => {
             switch (f.fieldType) {
                 case 'STRING':
-                    typeof f.field === 'string' && frag.appendChild(stringF(f.field, f.suggestStyle));
+                    typeof f.field === 'string' &&
+                        renderFormattedFrag.appendChild(markupString(f.field, f.suggestStyle));
                     break;
                 case 'LINK':
-                    isFluidityLink(f.field) && frag.appendChild(linkF(f.field, f.suggestStyle));
+                    isFluidityLink(f.field) && renderFormattedFrag.appendChild(markupLink(f.field, f.suggestStyle));
                     break;
                 case 'DATE':
-                    typeof f.field === 'number' && frag.appendChild(dateF(f.field, f.suggestStyle));
+                    typeof f.field === 'string' && renderFormattedFrag.appendChild(markupDate(f.field, f.suggestStyle));
                     break;
 
                 default:
-                    frag.appendChild(stringF(JSON.stringify(f.field)));
+                    renderFormattedFrag.appendChild(markupString(JSON.stringify(f.field)));
             }
         });
 
-        return frag;
+        return renderFormattedFrag;
     }
 
     protected render(fp: FluidityPacket): DocumentFragment {
-        const frag = document.createDocumentFragment();
+        const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
         div.classList.add('fluidity-packet');
         if (fp.seq) {
@@ -61,29 +67,44 @@ export class FluidityUI {
         }
 
         const oBracket = document.createElement('span');
-        oBracket.classList.add('bracket');
+        oBracket.classList.add('bracket-open');
         oBracket.innerText = '[';
         div.appendChild(oBracket);
 
-        const site = document.createElement('span');
-        site.classList.add('site');
-        site.innerText = fp.site;
-        div.appendChild(site);
+        const ts = document.createElement('span');
+        ts.classList.add('date');
+        ts.innerText = new Date(fp.ts).toLocaleTimeString();
+        div.appendChild(ts);
 
-        const dash = document.createElement('span');
-        dash.classList.add('dash');
-        dash.innerText = '-';
-        div.appendChild(dash);
+        // const dash = document.createElement('span');
+        // dash.classList.add('dash');
+        // dash.innerText = '-';
+        // div.appendChild(dash);
+
+        // const description = document.createElement('span');
+        // description.classList.add('description');
+        // description.innerText = fp.description;
+        // div.appendChild(description);
+
+        const cBracket = document.createElement('span');
+        cBracket.classList.add('bracket-close');
+        cBracket.innerText = ']';
+        div.appendChild(cBracket);
+
+        const site = document.createElement('span');
+        site.classList.add('fp-line', 'site');
+        site.innerText = fp.site + '(';
+        div.appendChild(site);
 
         const description = document.createElement('span');
         description.classList.add('description');
         description.innerText = fp.description;
         div.appendChild(description);
 
-        const cBracket = document.createElement('span');
-        cBracket.classList.add('bracket');
-        cBracket.innerText = ']';
-        div.appendChild(cBracket);
+        const closeParen = document.createElement('span');
+        closeParen.classList.add('site');
+        closeParen.innerText = ')';
+        div.appendChild(closeParen);
 
         const colon = document.createElement('span');
         colon.classList.add('colon');
@@ -92,8 +113,8 @@ export class FluidityUI {
 
         div.appendChild(this.renderFormatted(fp.formattedData));
 
-        frag.appendChild(div);
-        return frag;
+        mainFrag.appendChild(div);
+        return mainFrag;
     }
 
     protected set(pos: 'history' | 'current', fpArr: FluidityPacket[]) {
