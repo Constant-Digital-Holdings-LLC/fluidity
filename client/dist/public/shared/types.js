@@ -1,5 +1,12 @@
-export const isObject = (value) => {
-    return typeof value === 'object' && value !== null;
+export const isObject = (item) => {
+    return typeof item === 'object' && item !== null;
+};
+export const isFluidityLink = (item) => {
+    if (!isObject(item)) {
+        return false;
+    }
+    const { name, location } = item;
+    return typeof name === 'string' && Boolean(name) && typeof location === 'string' && Boolean(location);
 };
 export const isFfluidityPacket = (item, omitFormattedData) => {
     if (!isObject(item)) {

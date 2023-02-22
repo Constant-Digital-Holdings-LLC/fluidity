@@ -56,7 +56,7 @@ export class FormatHelper {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'STRING' });
         } else if (element instanceof Object && 'location' in element && 'name' in element) {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'LINK' });
-        } else if (element instanceof Date) {
+        } else if (typeof element === 'number') {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'DATE' });
         } else {
             this.formattedData.push({ suggestStyle, field: element.toString(), fieldType: 'STRING' });
@@ -124,6 +124,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
     abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
 
     private addTS(data: FormattedData[]): FormattedData[] {
+        data.unshift({ suggestStyle: 0, field: Date.now(), fieldType: 'DATE' });
         return data;
     }
 

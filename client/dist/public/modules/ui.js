@@ -1,5 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
+import { isFluidityLink } from '#@shared/types.js';
 const conf = confFromDOM();
 const log = fetchLogger(conf);
 export class FluidityUI {
@@ -19,20 +20,20 @@ export class FluidityUI {
         };
         const dateF = (field, suggestStyle = 0) => {
             const span = document.createElement('span');
-            span.innerText = field.toString();
+            span.innerText = new Date(field).toLocaleTimeString();
             span.classList.add('fp-formatted', 'fp-datef', `fp-datef-${suggestStyle}`);
             return span;
         };
         fArr.forEach(f => {
             switch (f.fieldType) {
                 case 'STRING':
-                    frag.appendChild(stringF(f.field, f.suggestStyle));
+                    typeof f.field === 'string' && frag.appendChild(stringF(f.field, f.suggestStyle));
                     break;
                 case 'LINK':
-                    frag.appendChild(linkF(f.field, f.suggestStyle));
+                    isFluidityLink(f.field) && frag.appendChild(linkF(f.field, f.suggestStyle));
                     break;
                 case 'DATE':
-                    frag.appendChild(dateF(f.field, f.suggestStyle));
+                    typeof f.field === 'number' && frag.appendChild(dateF(f.field, f.suggestStyle));
                     break;
                 default:
                     frag.appendChild(stringF(JSON.stringify(f.field)));

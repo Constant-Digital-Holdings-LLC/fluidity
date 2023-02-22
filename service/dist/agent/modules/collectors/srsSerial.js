@@ -50,7 +50,7 @@ export default class SRSserialCollector extends SerialCollector {
                     portName = portmap[p];
                 }
             }
-            return portName ? `port-${p} [${portName}]` : `port-${p}`;
+            return portName ? `${portName}` : `port-${p}`;
         };
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
             if (data[0] === '[') {

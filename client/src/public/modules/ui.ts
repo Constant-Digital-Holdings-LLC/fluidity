@@ -1,6 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
-import { FluidityPacket, FormattedData, FluidityField } from '#@shared/types.js';
+import { FluidityPacket, FormattedData, FluidityField, FluidityLink, isFluidityLink } from '#@shared/types.js';
 
 const conf = confFromDOM();
 const log = fetchLogger(conf);
@@ -11,23 +11,23 @@ export class FluidityUI {
     protected renderFormatted(fArr: FormattedData[]): DocumentFragment {
         const frag = document.createDocumentFragment();
 
-        const stringF = (field: FluidityField, suggestStyle = 0): HTMLSpanElement => {
+        const stringF = (field: string, suggestStyle = 0): HTMLSpanElement => {
             const span = document.createElement('span');
             span.innerText = field.toString();
             span.classList.add('fp-formatted', 'fp-stringf', `fp-stringf-${suggestStyle}`);
             return span;
         };
 
-        const linkF = (field: FluidityField, suggestStyle = 0): HTMLSpanElement => {
+        const linkF = (field: FluidityLink, suggestStyle = 0): HTMLSpanElement => {
             const span = document.createElement('span');
             span.innerText = field.toString();
             span.classList.add('fp-formatted', 'fp-linkf', `fp-linkf-${suggestStyle}`);
             return span;
         };
 
-        const dateF = (field: FluidityField, suggestStyle = 0): HTMLSpanElement => {
+        const dateF = (field: number, suggestStyle = 0): HTMLSpanElement => {
             const span = document.createElement('span');
-            span.innerText = field.toString();
+            span.innerText = new Date(field).toLocaleTimeString();
             span.classList.add('fp-formatted', 'fp-datef', `fp-datef-${suggestStyle}`);
             return span;
         };
@@ -35,13 +35,13 @@ export class FluidityUI {
         fArr.forEach(f => {
             switch (f.fieldType) {
                 case 'STRING':
-                    frag.appendChild(stringF(f.field, f.suggestStyle));
+                    typeof f.field === 'string' && frag.appendChild(stringF(f.field, f.suggestStyle));
                     break;
                 case 'LINK':
-                    frag.appendChild(linkF(f.field, f.suggestStyle));
+                    isFluidityLink(f.field) && frag.appendChild(linkF(f.field, f.suggestStyle));
                     break;
                 case 'DATE':
-                    frag.appendChild(dateF(f.field, f.suggestStyle));
+                    typeof f.field === 'number' && frag.appendChild(dateF(f.field, f.suggestStyle));
                     break;
 
                 default:

@@ -26,7 +26,7 @@ export class FormatHelper {
         else if (element instanceof Object && 'location' in element && 'name' in element) {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'LINK' });
         }
-        else if (element instanceof Date) {
+        else if (typeof element === 'number') {
             this.formattedData.push({ suggestStyle, field: element, fieldType: 'DATE' });
         }
         else {
@@ -63,6 +63,7 @@ export class DataCollector {
         this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
     }
     addTS(data) {
+        data.unshift({ suggestStyle: 0, field: Date.now(), fieldType: 'DATE' });
         return data;
     }
     _reqJSON(method, uo, data, key) {

@@ -2,7 +2,7 @@ export interface FluidityLink {
     name: string;
     location: string;
 }
-export type FluidityField = string | Date | FluidityLink;
+export type FluidityField = string | number | FluidityLink;
 export interface FormattedData {
     suggestStyle: number;
     field: FluidityField;
@@ -16,7 +16,8 @@ export interface FluidityPacket {
     formattedData: FormattedData[];
     rawData?: string | null;
 }
-export declare const isObject: (value: unknown) => value is object;
+export declare const isObject: (item: unknown) => item is object;
+export declare const isFluidityLink: (item: unknown) => item is FluidityLink;
 export declare const isFfluidityPacket: (item: unknown, omitFormattedData?: boolean) => item is FluidityPacket;
 export interface PublishTarget {
     location: string;

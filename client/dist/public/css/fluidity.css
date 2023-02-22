@@ -10,6 +10,7 @@
     --color5: #472e40;
     --color6: #fe95c6;
     --color7: #ffffff;
+    --color8: #ee4866;
     --light: #ffe5ff;
     --dark: #52423d;
     --small-gap: 0.5rem;
@@ -245,6 +246,10 @@ li i {
 .fluidity-packet .fp-stringf-7 {
     color: var(--color3);
     font-weight: bold;
+}
+
+.fluidity-packet .fp-datef-0 {
+    color: var(--color6);
 }
 
 ::-webkit-scrollbar {

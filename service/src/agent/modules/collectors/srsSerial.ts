@@ -79,7 +79,7 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                 }
             }
 
-            return portName ? `port-${p} [${portName}]` : `port-${p}`;
+            return portName ? `${portName}` : `port-${p}`;
         };
 
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {

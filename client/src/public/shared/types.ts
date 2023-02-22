@@ -3,7 +3,7 @@ export interface FluidityLink {
     location: string;
 }
 
-export type FluidityField = string | Date | FluidityLink;
+export type FluidityField = string | number | FluidityLink;
 
 export interface FormattedData {
     suggestStyle: number;
@@ -20,8 +20,17 @@ export interface FluidityPacket {
     rawData?: string | null;
 }
 
-export const isObject = (value: unknown): value is object => {
-    return typeof value === 'object' && value !== null;
+export const isObject = (item: unknown): item is object => {
+    return typeof item === 'object' && item !== null;
+};
+
+export const isFluidityLink = (item: unknown): item is FluidityLink => {
+    if (!isObject(item)) {
+        return false;
+    }
+    const { name, location } = item as Partial<FluidityLink>;
+
+    return typeof name === 'string' && Boolean(name) && typeof location === 'string' && Boolean(location);
 };
 
 export const isFfluidityPacket = (item: unknown, omitFormattedData?: boolean): item is FluidityPacket => {
