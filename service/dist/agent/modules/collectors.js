@@ -1,20 +1,19 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort } from 'serialport';
-import { isFfluidityPacket, isFluidityLink } from '#@shared/types.js';
+import { isFfluidityPacket, isFluidityLink, isObject } from '#@shared/types.js';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
 import https from 'https';
 const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-export const isDataCollectorParams = (obj) => {
-    const { targets, omitTS, keepRaw, extendedOptions } = obj;
-    return (isFfluidityPacket(obj, true) &&
+export const isDataCollectorParams = (item) => {
+    const { targets, keepRaw, extendedOptions } = item;
+    return (isFfluidityPacket(item, true) &&
         Array.isArray(targets) &&
         Boolean(targets.length) &&
-        (typeof omitTS === 'undefined' || typeof omitTS === 'boolean') &&
         (typeof keepRaw === 'undefined' || typeof keepRaw === 'boolean') &&
-        (typeof extendedOptions === 'undefined' || extendedOptions instanceof Object));
+        (typeof extendedOptions === 'undefined' || isObject(extendedOptions)));
 };
 export class FormatHelper {
     formattedData = [];
@@ -41,7 +40,8 @@ export class FormatHelper {
     }
 }
 const isSysError = (e) => {
-    return ('errno' in e &&
+    return (isObject(e) &&
+        'errno' in e &&
         typeof e.errno === 'number' &&
         'code' in e &&
         typeof e.code === 'string' &&
@@ -140,17 +140,19 @@ export class DataCollector {
         }
     }
     send(data) {
-        const { targets, keepRaw, extendedOptions, ...rest } = this.params;
+        const { targets, keepRaw, ...rest } = this.params;
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
-        let formattedData = this.format(data, new FormatHelper());
+        const formattedData = this.format(data, new FormatHelper());
         if (Array.isArray(formattedData) && formattedData.length) {
             this.sendHttps(targets, {
                 ts: new Date().toISOString(),
                 formattedData,
                 rawData: keepRaw ? data : null,
                 ...rest
+            }).catch(err => {
+                log.warn(err);
             });
         }
         else {

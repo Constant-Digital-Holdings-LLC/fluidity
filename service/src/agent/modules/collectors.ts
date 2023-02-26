@@ -9,7 +9,8 @@ import {
     StringAble,
     NodeEnv,
     isFluidityLink,
-    FluidityLink
+    FluidityLink,
+    isObject
 } from '#@shared/types.js';
 
 import throttledQueue from 'throttled-queue';
@@ -29,16 +30,15 @@ export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData
     maxHttpsReqPerCollectorPerSec?: number;
 }
 
-export const isDataCollectorParams = (obj: any): obj is DataCollectorParams => {
-    const { targets, omitTS, keepRaw, extendedOptions } = obj;
+export const isDataCollectorParams = (item: unknown): item is DataCollectorParams => {
+    const { targets, keepRaw, extendedOptions } = item as Partial<DataCollectorParams>;
 
     return (
-        isFfluidityPacket(obj, true) &&
+        isFfluidityPacket(item, true) &&
         Array.isArray(targets) &&
         Boolean(targets.length) &&
-        (typeof omitTS === 'undefined' || typeof omitTS === 'boolean') &&
         (typeof keepRaw === 'undefined' || typeof keepRaw === 'boolean') &&
-        (typeof extendedOptions === 'undefined' || extendedOptions instanceof Object)
+        (typeof extendedOptions === 'undefined' || isObject(extendedOptions))
     );
 };
 
@@ -66,7 +66,7 @@ export class FormatHelper {
     }
 
     get done(): FormattedData[] {
-        const clone: FormattedData[] = JSON.parse(JSON.stringify(this.formattedData));
+        const clone = JSON.parse(JSON.stringify(this.formattedData)) as FormattedData[];
         this.formattedData.length = 0;
         return clone;
     }
@@ -88,8 +88,9 @@ interface HttpError extends SysError {
     port: number;
 }
 
-const isSysError = (e: any): e is SysError => {
+const isSysError = (e: unknown): e is SysError => {
     return (
+        isObject(e) &&
         'errno' in e &&
         typeof e.errno === 'number' &&
         'code' in e &&
@@ -99,7 +100,7 @@ const isSysError = (e: any): e is SysError => {
     );
 };
 
-const isHttpError = (e: any): e is HttpError => {
+const isHttpError = (e: unknown): e is HttpError => {
     return (
         isSysError(e) && 'address' in e && typeof e.address === 'string' && 'port' in e && typeof e.port === 'number'
     );
@@ -114,8 +115,12 @@ export abstract class DataCollector implements DataCollectorPlugin {
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
 
+        //This module isn't working too well with es-iterop
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
     }
 
@@ -211,13 +216,13 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 
     protected send(data: string): void {
-        const { targets, keepRaw, extendedOptions, ...rest } = this.params;
+        const { targets, keepRaw, ...rest } = this.params;
 
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
 
-        let formattedData = this.format(data, new FormatHelper());
+        const formattedData = this.format(data, new FormatHelper());
 
         if (Array.isArray(formattedData) && formattedData.length) {
             this.sendHttps(targets, {
@@ -225,6 +230,8 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 formattedData,
                 rawData: keepRaw ? data : null,
                 ...rest
+            }).catch(err => {
+                log.warn(err);
             });
         } else {
             log.warn(`DataCollector: ignoring string: ${data}`);

@@ -41,9 +41,9 @@ export default class SRSserialCollector extends SerialCollector implements Seria
             if (num) {
                 log.debug('\n\n');
                 log.debug(
-                    `Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex]}) of ${decodeList.map(
-                        v => prefix + v.toUpperCase()
-                    )}\t`
+                    `Decoding:\t${prefix + dc.toUpperCase()} (${
+                        stateList[decodeIndex] ?? 'unkown state'
+                    }) of ${decodeList.map(v => prefix + v.toUpperCase()).toString()}\t`
                 );
 
                 for (let bit = 0; bit < 8 && num; bit++) {

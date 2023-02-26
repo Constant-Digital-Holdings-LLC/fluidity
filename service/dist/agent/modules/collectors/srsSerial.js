@@ -21,7 +21,7 @@ export default class SRSserialCollector extends SerialCollector {
             const prefix = radix === 16 ? '0x' : '';
             if (num) {
                 log.debug('\n\n');
-                log.debug(`Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex]}) of ${decodeList.map(v => prefix + v.toUpperCase())}\t`);
+                log.debug(`Decoding:\t${prefix + dc.toUpperCase()} (${stateList[decodeIndex] ?? 'unkown state'}) of ${decodeList.map(v => prefix + v.toUpperCase()).toString()}\t`);
                 for (let bit = 0; bit < 8 && num; bit++) {
                     if ((num & 1) === 1) {
                         binText.unshift('1');
