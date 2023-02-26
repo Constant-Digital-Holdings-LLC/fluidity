@@ -128,7 +128,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
     abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
 
-    private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: any, key?: string): Promise<string> {
+    private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: unknown, key?: string): Promise<string> {
         const { protocol, hostname, port, pathname } = uo;
 
         return new Promise((resolve, reject) => {
@@ -196,7 +196,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         });
     }
 
-    private async post(location: string, data: any, key: string): Promise<string> {
+    private async post(location: string, data: unknown, key: string): Promise<string> {
         return await this.throttle<string>(async () => {
             return await this._reqJSON('POST', new URL(location), data, key);
         });
