@@ -328,7 +328,11 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
         if (typeof baudRate !== 'number')
             throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
 
-        this.port = new SerialPort({ path, baudRate });
+        this.port = new SerialPort({ path, baudRate }, err => {
+            log.error(path);
+            log.error(err?.stack);
+            throw new Error('Error opneing serial port in SerialCollector class');
+        });
         this.parser = this.port.pipe(this.fetchParser());
     }
 
