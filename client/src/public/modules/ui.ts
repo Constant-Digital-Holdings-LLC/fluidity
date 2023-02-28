@@ -25,7 +25,7 @@ class FuidityFiltering {
     private clickHandler(e: MouseEvent): void {
         e.preventDefault();
         const extractUnique = (type: FilterType, id: string): string | undefined => {
-            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
 
             if (Array.isArray(match) && match.length) {
                 return match[1];
@@ -34,17 +34,31 @@ class FuidityFiltering {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
+                if (e.target.previousElementSibling?.classList.contains('clear-link')) {
+                    e.target.previousElementSibling.classList.remove('hide');
+                }
+            }
+            if (e.target.classList.contains('clear-link')) {
+                e.target.classList.add('hide');
             }
 
             if (e.target.classList.contains('collector-filter-link')) {
                 const collector = extractUnique('COLLECTOR', e.target.id);
                 collector && this.collectorsClicked.add(collector);
             }
+            if (e.target.classList.contains('collector-clear-filter-link')) {
+                const collector = extractUnique('COLLECTOR', e.target.id);
+                collector && this.collectorsClicked.delete(collector);
+            }
 
             if (e.target.classList.contains('site-filter-link')) {
                 const site = extractUnique('SITE', e.target.id);
-                console.log(site);
                 site && this.sitesClicked.add(site);
+            }
+
+            if (e.target.classList.contains('site-clear-filter-link')) {
+                const site = extractUnique('SITE', e.target.id);
+                site && this.sitesClicked.delete(site);
             }
         }
 
@@ -87,7 +101,8 @@ class FuidityFiltering {
             'fa-solid',
             'fa-circle-xmark',
             `${type.toLocaleLowerCase()}-clear-filter-link`,
-            'clear-link'
+            'clear-link',
+            'hide'
         );
 
         a.href = '#0';

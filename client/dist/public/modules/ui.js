@@ -13,9 +13,10 @@ class FuidityFiltering {
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
     clickHandler(e) {
+        var _a;
         e.preventDefault();
         const extractUnique = (type, id) => {
-            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
                 return match[1];
             }
@@ -23,15 +24,28 @@ class FuidityFiltering {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
+                if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
+                    e.target.previousElementSibling.classList.remove('hide');
+                }
+            }
+            if (e.target.classList.contains('clear-link')) {
+                e.target.classList.add('hide');
             }
             if (e.target.classList.contains('collector-filter-link')) {
                 const collector = extractUnique('COLLECTOR', e.target.id);
                 collector && this.collectorsClicked.add(collector);
             }
+            if (e.target.classList.contains('collector-clear-filter-link')) {
+                const collector = extractUnique('COLLECTOR', e.target.id);
+                collector && this.collectorsClicked.delete(collector);
+            }
             if (e.target.classList.contains('site-filter-link')) {
                 const site = extractUnique('SITE', e.target.id);
-                console.log(site);
                 site && this.sitesClicked.add(site);
+            }
+            if (e.target.classList.contains('site-clear-filter-link')) {
+                const site = extractUnique('SITE', e.target.id);
+                site && this.sitesClicked.delete(site);
             }
         }
         console.log(this.collectorsClicked);
@@ -65,7 +79,7 @@ class FuidityFiltering {
         const xIcon = document.createElement('i');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
-        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link');
+        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link', 'hide');
         a.href = '#0';
         a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
         typeIcon.classList.add('fa-solid');

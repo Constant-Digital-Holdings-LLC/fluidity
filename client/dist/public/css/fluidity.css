@@ -67,6 +67,10 @@ body {
     font-weight: 300;
 }
 
+.hide {
+    display: none
+}
+
 /* links:  */
 
 a {
