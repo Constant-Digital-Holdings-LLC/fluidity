@@ -1,6 +1,6 @@
 {
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
-    "site": "office",
+    "site": "My Dev QTH",
     "logLevel": "debug",
 
     "collectors": [
@@ -8,13 +8,6 @@
             "description": "Agent Report",
             "plugin": "vRep",
             "pollIntervalSec": 3600
-        },
-        {
-            "description": "Net Watcher",
-            "plugin": "hamLive",
-            "url": "https://www.ham.live/api/data/livenets",
-            "pollIntervalSec": 5,
-            "omitTS": true
         },
         {
             "description": "SRS",

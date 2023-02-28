@@ -67,6 +67,20 @@ body {
     font-weight: 300;
 }
 
+/* links:  */
+a:link {
+    color: var(--light);
+}
+a:visited {
+    color: var(--light)
+}
+a:hover {
+    color: white;
+}
+a:active {
+    color: var(--color6)
+}
+
 .fa-ul {
     margin-left: 0;
 }

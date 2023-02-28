@@ -3,10 +3,74 @@ import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { isFluidityLink } from '#@shared/types.js';
 const conf = confFromDOM();
 const log = fetchLogger(conf);
+class FuidityFiltering {
+    constructor() {
+        this.siteIndex = new Map();
+        this.collectorIndex = new Map();
+    }
+    index(fp) {
+        if (fp.seq) {
+            if (this.siteIndex.has(fp.site)) {
+                const old = this.siteIndex.get(fp.site);
+                if (old) {
+                    this.siteIndex.set(fp.site, old.add(fp.seq));
+                }
+            }
+            else {
+                this.siteIndex.set(fp.site, new Set([fp.seq]));
+            }
+            if (this.collectorIndex.has(fp.plugin)) {
+                const old = this.collectorIndex.get(fp.plugin);
+                if (old) {
+                    this.collectorIndex.set(fp.plugin, old.add(fp.seq));
+                }
+            }
+            else {
+                this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
+            }
+        }
+    }
+    renderFilterLinks(type, fp) {
+        const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
+        const li = document.createElement('li');
+        const xIcon = document.createElement('i');
+        const a = document.createElement('a');
+        const typeIcon = document.createElement('i');
+        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link');
+        a.href = '#0';
+        a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        typeIcon.classList.add('fa-solid');
+        if (type === 'COLLECTOR') {
+            xIcon.id = `clear-collector-${fp.plugin}`;
+            a.innerText = fp.plugin;
+            a.id = `filter-collector-${fp.plugin}`;
+            typeIcon.classList.add('fa-circle-nodes');
+        }
+        else if (type === 'SITE') {
+            xIcon.id = `clear-site-${fp.site}`;
+            a.innerText = fp.site;
+            a.id = `filter-site-${fp.site}`;
+            typeIcon.classList.add('fa-tower-cell');
+        }
+        li.appendChild(xIcon);
+        li.appendChild(a);
+        li.appendChild(typeIcon);
+        ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
+    }
+    render(fp) {
+        if (!this.collectorIndex.has(fp.plugin)) {
+            this.renderFilterLinks('COLLECTOR', fp);
+        }
+        if (!this.siteIndex.has(fp.site)) {
+            this.renderFilterLinks('SITE', fp);
+        }
+        this.index(fp);
+    }
+}
 export class FluidityUI {
-    renderFormatted(fArr) {
+    renderFormattedData(fArr) {
         const renderFormattedFrag = document.createDocumentFragment();
-        const markupString = (field, suggestStyle = 0) => {
+        const markupStringType = (field, suggestStyle = 0) => {
             const stringFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = field;
@@ -14,7 +78,7 @@ export class FluidityUI {
             stringFrag.appendChild(span);
             return stringFrag;
         };
-        const markupLink = (field, suggestStyle = 0) => {
+        const markupLinkType = (field, suggestStyle = 0) => {
             const linkFrag = document.createDocumentFragment();
             const a = document.createElement('a');
             a.href = field.location;
@@ -22,7 +86,7 @@ export class FluidityUI {
             a.classList.add('fp-line', 'fp-link');
             return linkFrag;
         };
-        const markupDate = (field, suggestStyle = 0) => {
+        const markupDateType = (field, suggestStyle = 0) => {
             const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = new Date(field).toLocaleTimeString();
@@ -33,23 +97,25 @@ export class FluidityUI {
             switch (f.fieldType) {
                 case 'STRING':
                     typeof f.field === 'string' &&
-                        renderFormattedFrag.appendChild(markupString(f.field, f.suggestStyle));
+                        renderFormattedFrag.appendChild(markupStringType(f.field, f.suggestStyle));
                     break;
                 case 'LINK':
-                    isFluidityLink(f.field) && renderFormattedFrag.appendChild(markupLink(f.field, f.suggestStyle));
+                    isFluidityLink(f.field) && renderFormattedFrag.appendChild(markupLinkType(f.field, f.suggestStyle));
                     break;
                 case 'DATE':
-                    typeof f.field === 'string' && renderFormattedFrag.appendChild(markupDate(f.field, f.suggestStyle));
+                    typeof f.field === 'string' &&
+                        renderFormattedFrag.appendChild(markupDateType(f.field, f.suggestStyle));
                     break;
                 default:
-                    renderFormattedFrag.appendChild(markupString(JSON.stringify(f.field)));
+                    renderFormattedFrag.appendChild(markupStringType(JSON.stringify(f.field)));
             }
         });
         return renderFormattedFrag;
     }
-    render(fp) {
+    packetRender(fp) {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
+        this.ff.render(fp);
         div.classList.add('fluidity-packet');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
@@ -82,20 +148,20 @@ export class FluidityUI {
         colon.classList.add('colon');
         colon.innerText = ':';
         div.appendChild(colon);
-        div.appendChild(this.renderFormatted(fp.formattedData));
+        div.appendChild(this.renderFormattedData(fp.formattedData));
         mainFrag.appendChild(div);
         return mainFrag;
     }
-    set(pos, fpArr) {
+    packetSet(pos, fpArr) {
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
         const end = document.getElementById('end-data');
         fpArr.forEach(fp => {
             if (pos === 'history') {
-                history === null || history === void 0 ? void 0 : history.appendChild(this.render(fp));
+                history === null || history === void 0 ? void 0 : history.appendChild(this.packetRender(fp));
             }
             else if (pos === 'current') {
-                current === null || current === void 0 ? void 0 : current.appendChild(this.render(fp));
+                current === null || current === void 0 ? void 0 : current.appendChild(this.packetRender(fp));
             }
             end === null || end === void 0 ? void 0 : end.scrollIntoView({ behavior: 'smooth' });
         });
@@ -104,12 +170,13 @@ export class FluidityUI {
         var _a;
         this.history = history;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
-        this.set('history', history);
+        this.ff = new FuidityFiltering();
+        this.packetSet('history', history);
     }
-    add(fp) {
+    packetAdd(fp) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
-                this.set('current', [fp]);
+                this.packetSet('current', [fp]);
             }
         }
     }

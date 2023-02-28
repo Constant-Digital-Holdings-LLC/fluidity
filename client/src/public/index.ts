@@ -36,7 +36,7 @@ es.onmessage = event => {
 
     if (ui instanceof FluidityUI) {
         rxQ.forEach((item, index, object) => {
-            ui.add(item);
+            ui.packetAdd(item);
             object.splice(index, 1);
         });
     } else {
