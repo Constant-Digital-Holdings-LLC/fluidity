@@ -1,17 +1,52 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
+import { type } from 'os';
 
 const conf = confFromDOM();
 const log = fetchLogger(conf);
 
+type FilterType = 'COLLECTOR' | 'SITE';
+
 class FuidityFiltering {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
+    private sitesClicked: Set<string>;
+    private collectorsClicked: Set<string>;
 
     constructor() {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
+        this.sitesClicked = new Set();
+        this.collectorsClicked = new Set();
+
+        document.getElementById('container-main')?.addEventListener('click', this.clickHandler.bind(this));
+    }
+
+    private clickHandler(e: MouseEvent): void {
+        const extractUnique = (type: FilterType, id: string): string | undefined => {
+            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+
+            if (Array.isArray(match) && match.length) {
+                return match[1];
+            }
+            return;
+        };
+        if (e.target instanceof Element) {
+            if (e.target.classList.contains('filter-link')) {
+                // log.warn('You clicked on a filter link');
+            }
+
+            if (e.target.classList.contains('collector-filter-link')) {
+                log.warn('You clicked on a collector filter link');
+                log.warn(extractUnique('COLLECTOR', e.target.id));
+            }
+
+            if (e.target.classList.contains('site-filter-link')) {
+                log.warn('You clicked on a site filter link');
+                log.warn(extractUnique('SITE', e.target.id));
+            }
+        }
     }
 
     private index(fp: FluidityPacket): void {
@@ -37,7 +72,7 @@ class FuidityFiltering {
         }
     }
 
-    private renderFilterLinks(type: 'COLLECTOR' | 'SITE', fp: FluidityPacket): void {
+    private renderFilterLinks(type: FilterType, fp: FluidityPacket): void {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
 
         const li = document.createElement('li');

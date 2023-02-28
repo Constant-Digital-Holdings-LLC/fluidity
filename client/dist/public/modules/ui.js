@@ -5,8 +5,33 @@ const conf = confFromDOM();
 const log = fetchLogger(conf);
 class FuidityFiltering {
     constructor() {
+        var _a;
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
+        this.sitesClicked = new Set();
+        this.collectorsClicked = new Set();
+        (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
+    }
+    clickHandler(e) {
+        const extractUnique = (type, id) => {
+            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+            if (Array.isArray(match) && match.length) {
+                return match[1];
+            }
+            return;
+        };
+        if (e.target instanceof Element) {
+            if (e.target.classList.contains('filter-link')) {
+            }
+            if (e.target.classList.contains('collector-filter-link')) {
+                log.warn('You clicked on a collector filter link');
+                log.warn(extractUnique('COLLECTOR', e.target.id));
+            }
+            if (e.target.classList.contains('site-filter-link')) {
+                log.warn('You clicked on a site filter link');
+                log.warn(extractUnique('SITE', e.target.id));
+            }
+        }
     }
     index(fp) {
         if (fp.seq) {
