@@ -1,6 +1,6 @@
 {
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
-    "site": "My Dev QTH",
+    "site": "MyQTH",
     "logLevel": "debug",
 
     "collectors": [
