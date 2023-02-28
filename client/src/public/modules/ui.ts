@@ -1,7 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
-import { type } from 'os';
 
 const conf = confFromDOM();
 const log = fetchLogger(conf);
@@ -24,6 +23,7 @@ class FuidityFiltering {
     }
 
     private clickHandler(e: MouseEvent): void {
+        e.preventDefault();
         const extractUnique = (type: FilterType, id: string): string | undefined => {
             const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
 
@@ -34,19 +34,22 @@ class FuidityFiltering {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
-                // log.warn('You clicked on a filter link');
             }
 
             if (e.target.classList.contains('collector-filter-link')) {
-                log.warn('You clicked on a collector filter link');
-                log.warn(extractUnique('COLLECTOR', e.target.id));
+                const collector = extractUnique('COLLECTOR', e.target.id);
+                collector && this.collectorsClicked.add(collector);
             }
 
             if (e.target.classList.contains('site-filter-link')) {
-                log.warn('You clicked on a site filter link');
-                log.warn(extractUnique('SITE', e.target.id));
+                const site = extractUnique('SITE', e.target.id);
+                console.log(site);
+                site && this.sitesClicked.add(site);
             }
         }
+
+        console.log(this.collectorsClicked);
+        console.log(this.sitesClicked);
     }
 
     private index(fp: FluidityPacket): void {

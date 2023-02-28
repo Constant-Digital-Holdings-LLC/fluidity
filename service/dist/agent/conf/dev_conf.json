@@ -1,6 +1,6 @@
 {
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "dkdfjdkfjk" }],
-    "site": "MyQTH",
+    "site": "My QTH",
     "logLevel": "debug",
 
     "collectors": [
@@ -8,6 +8,13 @@
             "description": "Agent Report",
             "plugin": "vRep",
             "pollIntervalSec": 3600
+        },
+        {
+            "description": "Net Watcher",
+            "plugin": "hamLive",
+            "url": "https://www.ham.live/api/data/livenets",
+            "pollIntervalSec": 60,
+            "omitTS": true
         },
         {
             "description": "SRS",

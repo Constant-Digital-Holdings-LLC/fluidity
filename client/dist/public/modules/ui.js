@@ -13,6 +13,7 @@ class FuidityFiltering {
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
     clickHandler(e) {
+        e.preventDefault();
         const extractUnique = (type, id) => {
             const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
@@ -24,14 +25,17 @@ class FuidityFiltering {
             if (e.target.classList.contains('filter-link')) {
             }
             if (e.target.classList.contains('collector-filter-link')) {
-                log.warn('You clicked on a collector filter link');
-                log.warn(extractUnique('COLLECTOR', e.target.id));
+                const collector = extractUnique('COLLECTOR', e.target.id);
+                collector && this.collectorsClicked.add(collector);
             }
             if (e.target.classList.contains('site-filter-link')) {
-                log.warn('You clicked on a site filter link');
-                log.warn(extractUnique('SITE', e.target.id));
+                const site = extractUnique('SITE', e.target.id);
+                console.log(site);
+                site && this.sitesClicked.add(site);
             }
         }
+        console.log(this.collectorsClicked);
+        console.log(this.sitesClicked);
     }
     index(fp) {
         if (fp.seq) {
