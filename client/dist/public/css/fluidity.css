@@ -182,7 +182,7 @@ li i {
 }
 
 .stat-data {
-    color: var(--color2);
+    color: var(--color3);
 }
 
 #cell-data {
@@ -305,7 +305,7 @@ li i {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 2px solid #FFF;
+    border: 2px solid var(--light);
     position: absolute;
     left: 0;
     top: 0;

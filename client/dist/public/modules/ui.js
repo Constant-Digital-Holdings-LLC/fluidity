@@ -4,16 +4,30 @@ import { isFluidityLink } from '#@shared/types.js';
 const conf = confFromDOM();
 const log = fetchLogger(conf);
 class FuidityFiltering {
-    constructor() {
+    constructor(firstPacketSeq) {
         var _a;
+        this.firstPacketSeq = firstPacketSeq;
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
+        this.stats = { visibileCount: 0, filterCount: 0 };
+        this.lastPacketSeq = firstPacketSeq;
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
     filtersClicked() {
-        return Boolean(this.sitesClicked.size || this.collectorsClicked.size);
+        return Boolean(this.stats.filterCount);
+    }
+    renderFilterStats() {
+        const visibileCountElem = document.getElementById('visibile-count');
+        const filterCountElem = document.getElementById('filter-count');
+        const { visibileCount, filterCount } = this.stats;
+        if (visibileCountElem && filterCountElem) {
+            visibileCountElem.innerText = visibileCount
+                ? visibileCount.toString()
+                : (this.lastPacketSeq - this.firstPacketSeq + 1).toString();
+            filterCountElem.innerText = filterCount.toString();
+        }
     }
     applyVisibility(target) {
         const visibileByCollector = new Set();
@@ -48,6 +62,7 @@ class FuidityFiltering {
                 visibileGlobal.add(cSeq);
             });
         }
+        this.stats.visibileCount = visibileGlobal.size;
         console.debug('These packet SEQ#s should be visible:');
         console.debug(visibileGlobal);
         const applySingle = (fpElem) => {
@@ -83,7 +98,7 @@ class FuidityFiltering {
         else {
             setTimeout(() => {
                 loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.remove('loader');
-            }, 500);
+            }, 250);
         }
     }
     clickHandler(e) {
@@ -122,13 +137,15 @@ class FuidityFiltering {
                 const site = extractUnique('SITE', e.target.id);
                 site && this.sitesClicked.delete(site);
             }
-            console.log(this.collectorsClicked);
+            this.stats.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
             this.applyVisibilityAll();
+            this.renderFilterStats();
             this.loader(false);
         }
     }
     index(fp) {
         if (fp.seq) {
+            this.lastPacketSeq = fp.seq;
             if (this.siteIndex.has(fp.site)) {
                 const old = this.siteIndex.get(fp.site);
                 if (old) {
@@ -240,6 +257,7 @@ export class FluidityUI {
             div.id = `fp-seq-${fp.seq}`;
         }
         this.ff.filtersClicked() && this.ff.applyVisibility(div);
+        this.ff.renderFilterStats();
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
         oBracket.innerText = '[';
@@ -287,10 +305,10 @@ export class FluidityUI {
         });
     }
     constructor(history) {
-        var _a;
+        var _a, _b, _c;
         this.history = history;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
-        this.ff = new FuidityFiltering();
+        this.ff = new FuidityFiltering((_c = (_b = history[0]) === null || _b === void 0 ? void 0 : _b.seq) !== null && _c !== void 0 ? _c : 0);
         this.packetSet('history', history);
     }
     packetAdd(fp) {

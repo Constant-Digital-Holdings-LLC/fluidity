@@ -7,23 +7,45 @@ const log = fetchLogger(conf);
 
 type FilterType = 'COLLECTOR' | 'SITE';
 
+interface FilterStats {
+    visibileCount: number;
+    filterCount: number;
+}
+
 class FuidityFiltering {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
     private sitesClicked: Set<string>;
     private collectorsClicked: Set<string>;
+    public stats: FilterStats;
+    private lastPacketSeq: number;
 
-    constructor() {
+    constructor(private firstPacketSeq: number) {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
+        this.stats = { visibileCount: 0, filterCount: 0 };
+        this.lastPacketSeq = firstPacketSeq;
 
         document.getElementById('container-main')?.addEventListener('click', this.clickHandler.bind(this));
     }
 
     public filtersClicked(): boolean {
-        return Boolean(this.sitesClicked.size || this.collectorsClicked.size);
+        return Boolean(this.stats.filterCount);
+    }
+
+    public renderFilterStats() {
+        const visibileCountElem = document.getElementById('visibile-count');
+        const filterCountElem = document.getElementById('filter-count');
+        const { visibileCount, filterCount } = this.stats;
+
+        if (visibileCountElem && filterCountElem) {
+            visibileCountElem.innerText = visibileCount
+                ? visibileCount.toString()
+                : (this.lastPacketSeq - this.firstPacketSeq + 1).toString();
+            filterCountElem.innerText = filterCount.toString();
+        }
     }
 
     public applyVisibility(target: HTMLDivElement | NodeListOf<Element>): void {
@@ -61,6 +83,7 @@ class FuidityFiltering {
             });
         }
 
+        this.stats.visibileCount = visibileGlobal.size;
         console.debug('These packet SEQ#s should be visible:');
         console.debug(visibileGlobal);
 
@@ -89,7 +112,7 @@ class FuidityFiltering {
         this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
 
-    public loader(on: boolean): void {
+    private loader(on: boolean): void {
         const loaderElem = document.getElementById('loader');
 
         if (on) {
@@ -97,7 +120,7 @@ class FuidityFiltering {
         } else {
             setTimeout(() => {
                 loaderElem?.classList.remove('loader');
-            }, 500);
+            }, 250);
         }
     }
 
@@ -143,15 +166,17 @@ class FuidityFiltering {
                 site && this.sitesClicked.delete(site);
             }
 
-            console.log(this.collectorsClicked);
-            this.applyVisibilityAll();
+            this.stats.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
 
+            this.applyVisibilityAll();
+            this.renderFilterStats();
             this.loader(false);
         }
     }
 
     private index(fp: FluidityPacket): void {
         if (fp.seq) {
+            this.lastPacketSeq = fp.seq;
             //index packet by site
             if (this.siteIndex.has(fp.site)) {
                 const old = this.siteIndex.get(fp.site);
@@ -294,6 +319,7 @@ export class FluidityUI {
         }
 
         this.ff.filtersClicked() && this.ff.applyVisibility(div);
+        this.ff.renderFilterStats();
 
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
@@ -354,7 +380,7 @@ export class FluidityUI {
 
     constructor(protected history: FluidityPacket[]) {
         this.demarc = history.at(-1)?.seq;
-        this.ff = new FuidityFiltering();
+        this.ff = new FuidityFiltering(history[0]?.seq ?? 0);
 
         this.packetSet('history', history);
     }
