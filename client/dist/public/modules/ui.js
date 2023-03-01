@@ -13,60 +13,54 @@ class FuidityFiltering {
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
     applyVisibility() {
+        const visibileByCollector = new Set();
+        const visibileBySite = new Set();
+        const visibileGlobal = new Set();
+        this.collectorsClicked.forEach(collector => {
+            const seqs = this.collectorIndex.get(collector);
+            if (seqs) {
+                seqs.forEach(seq => visibileByCollector.add(seq));
+            }
+        });
+        this.sitesClicked.forEach(site => {
+            const seqs = this.siteIndex.get(site);
+            if (seqs) {
+                seqs.forEach(seq => visibileBySite.add(seq));
+            }
+        });
+        if (visibileBySite.size && visibileByCollector.size) {
+            visibileByCollector.forEach(cSeq => {
+                if (visibileBySite.has(cSeq)) {
+                    visibileGlobal.add(cSeq);
+                }
+            });
+        }
+        else if (visibileBySite.size) {
+            visibileBySite.forEach(sSeq => {
+                visibileGlobal.add(sSeq);
+            });
+        }
+        else if (visibileByCollector.size) {
+            visibileByCollector.forEach(cSeq => {
+                visibileGlobal.add(cSeq);
+            });
+        }
+        console.debug('These packet SEQ#s should be visible:');
+        console.debug(visibileGlobal);
         document.querySelectorAll('.fluidity-packet').forEach(element => {
-            var _a, _b;
-            if ((_a = this.visibileGlobal) === null || _a === void 0 ? void 0 : _a.size) {
-                ((_b = this.visibileGlobal) === null || _b === void 0 ? void 0 : _b.has(parseInt(element.id.substring(7)))) || element.classList.add('hide');
+            if (visibileGlobal.size) {
+                if (visibileGlobal.has(parseInt(element.id.substring(7)))) {
+                    element.classList.remove('hide');
+                }
+                else {
+                    element.classList.add('hide');
+                }
             }
             else {
                 element.classList.remove('hide');
             }
             element.classList.remove('new');
         });
-    }
-    genVisibilityData() {
-        this.visibileByCollector = new Set();
-        this.visibileBySite = new Set();
-        this.visibileGlobal = new Set();
-        this.collectorsClicked.forEach(collector => {
-            const seqs = this.collectorIndex.get(collector);
-            if (seqs) {
-                seqs.forEach(seq => this.visibileByCollector instanceof Set && this.visibileByCollector.add(seq));
-            }
-        });
-        this.sitesClicked.forEach(site => {
-            const seqs = this.siteIndex.get(site);
-            if (seqs) {
-                seqs.forEach(seq => this.visibileBySite instanceof Set && this.visibileBySite.add(seq));
-            }
-        });
-        if (this.visibileBySite.size && this.visibileByCollector.size) {
-            this.visibileByCollector.forEach(cSeq => {
-                var _a;
-                if (this.visibileBySite instanceof Set) {
-                    if (this.visibileBySite.has(cSeq)) {
-                        (_a = this.visibileGlobal) === null || _a === void 0 ? void 0 : _a.add(cSeq);
-                    }
-                }
-            });
-        }
-        else if (this.visibileBySite.size) {
-            this.visibileBySite.forEach(sSeq => {
-                if (this.visibileGlobal instanceof Set) {
-                    this.visibileGlobal.add(sSeq);
-                }
-            });
-        }
-        else if (this.visibileByCollector.size) {
-            this.visibileByCollector.forEach(cSeq => {
-                if (this.visibileGlobal instanceof Set) {
-                    this.visibileGlobal.add(cSeq);
-                }
-            });
-        }
-        console.debug('These packet SEQ#s should be visible:');
-        console.debug(this.visibileGlobal);
-        return this.visibileGlobal;
     }
     clickHandler(e) {
         var _a;
@@ -103,7 +97,7 @@ class FuidityFiltering {
                 const site = extractUnique('SITE', e.target.id);
                 site && this.sitesClicked.delete(site);
             }
-            this.genVisibilityData();
+            console.log(this.collectorsClicked);
             this.applyVisibility();
         }
     }
@@ -128,7 +122,6 @@ class FuidityFiltering {
                 this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
             }
         }
-        this.genVisibilityData();
         this.applyVisibility();
     }
     renderFilterLinks(type, fp) {
