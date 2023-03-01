@@ -25,6 +25,17 @@ class FuidityFiltering {
         document.getElementById('container-main')?.addEventListener('click', this.clickHandler.bind(this));
     }
 
+    private applyVisibility(): void {
+        document.querySelectorAll('.fluidity-packet').forEach(element => {
+            if (this.visibileGlobal?.size) {
+                this.visibileGlobal?.has(parseInt(element.id.substring(7))) || element.classList.add('hide');
+            } else {
+                element.classList.remove('hide');
+            }
+            element.classList.remove('new');
+        });
+    }
+
     private genVisibilityData(): Set<number> {
         this.visibileByCollector = new Set();
         this.visibileBySite = new Set();
@@ -111,6 +122,7 @@ class FuidityFiltering {
             }
 
             this.genVisibilityData();
+            this.applyVisibility();
         }
     }
 
@@ -137,6 +149,7 @@ class FuidityFiltering {
         }
 
         this.genVisibilityData();
+        this.applyVisibility();
     }
 
     private renderFilterLinks(type: FilterType, fp: FluidityPacket): void {
@@ -254,7 +267,7 @@ export class FluidityUI {
 
         this.ff.render(fp);
 
-        div.classList.add('fluidity-packet');
+        div.classList.add('fluidity-packet', 'new');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }

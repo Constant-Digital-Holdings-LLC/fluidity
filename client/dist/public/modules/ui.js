@@ -12,6 +12,18 @@ class FuidityFiltering {
         this.collectorsClicked = new Set();
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
+    applyVisibility() {
+        document.querySelectorAll('.fluidity-packet').forEach(element => {
+            var _a, _b;
+            if ((_a = this.visibileGlobal) === null || _a === void 0 ? void 0 : _a.size) {
+                ((_b = this.visibileGlobal) === null || _b === void 0 ? void 0 : _b.has(parseInt(element.id.substring(7)))) || element.classList.add('hide');
+            }
+            else {
+                element.classList.remove('hide');
+            }
+            element.classList.remove('new');
+        });
+    }
     genVisibilityData() {
         this.visibileByCollector = new Set();
         this.visibileBySite = new Set();
@@ -92,6 +104,7 @@ class FuidityFiltering {
                 site && this.sitesClicked.delete(site);
             }
             this.genVisibilityData();
+            this.applyVisibility();
         }
     }
     index(fp) {
@@ -116,6 +129,7 @@ class FuidityFiltering {
             }
         }
         this.genVisibilityData();
+        this.applyVisibility();
     }
     renderFilterLinks(type, fp) {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
@@ -203,7 +217,7 @@ export class FluidityUI {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
         this.ff.render(fp);
-        div.classList.add('fluidity-packet');
+        div.classList.add('fluidity-packet', 'new');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
