@@ -12,7 +12,10 @@ class FuidityFiltering {
         this.collectorsClicked = new Set();
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
-    applyVisibility() {
+    filtersClicked() {
+        return Boolean(this.sitesClicked.size || this.collectorsClicked.size);
+    }
+    applyVisibility(target) {
         const visibileByCollector = new Set();
         const visibileBySite = new Set();
         const visibileGlobal = new Set();
@@ -47,20 +50,30 @@ class FuidityFiltering {
         }
         console.debug('These packet SEQ#s should be visible:');
         console.debug(visibileGlobal);
-        document.querySelectorAll('.fluidity-packet').forEach(element => {
+        const applySingle = (fpElem) => {
             if (visibileGlobal.size) {
-                if (visibileGlobal.has(parseInt(element.id.substring(7)))) {
-                    element.classList.remove('hide');
+                if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
+                    fpElem.classList.remove('hidden');
                 }
                 else {
-                    element.classList.add('hide');
+                    fpElem.classList.add('hidden');
                 }
             }
             else {
-                element.classList.remove('hide');
+                fpElem.classList.remove('hidden');
             }
-            element.classList.remove('new');
-        });
+        };
+        if (target instanceof HTMLDivElement) {
+            applySingle(target);
+        }
+        else if (target instanceof NodeList) {
+            target.forEach(element => {
+                element instanceof HTMLDivElement && applySingle(element);
+            });
+        }
+    }
+    applyVisibilityAll() {
+        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
     clickHandler(e) {
         var _a;
@@ -75,11 +88,11 @@ class FuidityFiltering {
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
                 if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('hide');
+                    e.target.previousElementSibling.classList.remove('hidden');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
-                e.target.classList.add('hide');
+                e.target.classList.add('hidden');
             }
             if (e.target.classList.contains('collector-filter-link')) {
                 const collector = extractUnique('COLLECTOR', e.target.id);
@@ -98,7 +111,7 @@ class FuidityFiltering {
                 site && this.sitesClicked.delete(site);
             }
             console.log(this.collectorsClicked);
-            this.applyVisibility();
+            this.applyVisibilityAll();
         }
     }
     index(fp) {
@@ -122,15 +135,14 @@ class FuidityFiltering {
                 this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
             }
         }
-        this.applyVisibility();
     }
-    renderFilterLinks(type, fp) {
+    renderType(type, fp) {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
         const li = document.createElement('li');
         const xIcon = document.createElement('i');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
-        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link', 'hide');
+        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link', 'hidden');
         a.href = '#0';
         a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
         typeIcon.classList.add('fa-solid');
@@ -151,12 +163,12 @@ class FuidityFiltering {
         li.appendChild(typeIcon);
         ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
     }
-    render(fp) {
+    renderFilterLinks(fp) {
         if (!this.collectorIndex.has(fp.plugin)) {
-            this.renderFilterLinks('COLLECTOR', fp);
+            this.renderType('COLLECTOR', fp);
         }
         if (!this.siteIndex.has(fp.site)) {
-            this.renderFilterLinks('SITE', fp);
+            this.renderType('SITE', fp);
         }
         this.index(fp);
     }
@@ -209,11 +221,12 @@ export class FluidityUI {
     packetRender(fp) {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
-        this.ff.render(fp);
-        div.classList.add('fluidity-packet', 'new');
+        this.ff.renderFilterLinks(fp);
+        div.classList.add('fluidity-packet');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
+        this.ff.filtersClicked() && this.ff.applyVisibility(div);
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
         oBracket.innerText = '[';

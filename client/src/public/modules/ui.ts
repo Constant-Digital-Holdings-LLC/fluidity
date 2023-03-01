@@ -22,7 +22,11 @@ class FuidityFiltering {
         document.getElementById('container-main')?.addEventListener('click', this.clickHandler.bind(this));
     }
 
-    private applyVisibility(): void {
+    public filtersClicked(): boolean {
+        return Boolean(this.sitesClicked.size || this.collectorsClicked.size);
+    }
+
+    public applyVisibility(target: HTMLDivElement | NodeListOf<Element>): void {
         const visibileByCollector = new Set<number>();
         const visibileBySite = new Set<number>();
         const visibileGlobal = new Set<number>();
@@ -60,18 +64,29 @@ class FuidityFiltering {
         console.debug('These packet SEQ#s should be visible:');
         console.debug(visibileGlobal);
 
-        document.querySelectorAll('.fluidity-packet').forEach(element => {
+        const applySingle = (fpElem: HTMLDivElement): void => {
             if (visibileGlobal.size) {
-                if (visibileGlobal.has(parseInt(element.id.substring(7)))) {
-                    element.classList.remove('hide');
+                if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
+                    fpElem.classList.remove('hidden');
                 } else {
-                    element.classList.add('hide');
+                    fpElem.classList.add('hidden');
                 }
             } else {
-                element.classList.remove('hide');
+                fpElem.classList.remove('hidden');
             }
-            element.classList.remove('new');
-        });
+        };
+
+        if (target instanceof HTMLDivElement) {
+            applySingle(target);
+        } else if (target instanceof NodeList) {
+            target.forEach(element => {
+                element instanceof HTMLDivElement && applySingle(element);
+            });
+        }
+    }
+
+    public applyVisibilityAll(): void {
+        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
 
     private clickHandler(e: MouseEvent): void {
@@ -87,11 +102,11 @@ class FuidityFiltering {
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
                 if (e.target.previousElementSibling?.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('hide');
+                    e.target.previousElementSibling.classList.remove('hidden');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
-                e.target.classList.add('hide');
+                e.target.classList.add('hidden');
             }
 
             if (e.target.classList.contains('collector-filter-link')) {
@@ -114,7 +129,7 @@ class FuidityFiltering {
             }
 
             console.log(this.collectorsClicked);
-            this.applyVisibility();
+            this.applyVisibilityAll();
         }
     }
 
@@ -139,11 +154,9 @@ class FuidityFiltering {
                 this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
             }
         }
-
-        this.applyVisibility();
     }
 
-    private renderFilterLinks(type: FilterType, fp: FluidityPacket): void {
+    private renderType(type: FilterType, fp: FluidityPacket): void {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
 
         const li = document.createElement('li');
@@ -156,7 +169,7 @@ class FuidityFiltering {
             'fa-circle-xmark',
             `${type.toLocaleLowerCase()}-clear-filter-link`,
             'clear-link',
-            'hide'
+            'hidden'
         );
 
         a.href = '#0';
@@ -182,15 +195,15 @@ class FuidityFiltering {
         ul?.appendChild(li);
     }
 
-    public render(fp: FluidityPacket) {
+    public renderFilterLinks(fp: FluidityPacket) {
         if (!this.collectorIndex.has(fp.plugin)) {
             //if we've never seen this collector, render filter links for it
-            this.renderFilterLinks('COLLECTOR', fp);
+            this.renderType('COLLECTOR', fp);
         }
 
         if (!this.siteIndex.has(fp.site)) {
             //if we've never seen this site, render filter links for it
-            this.renderFilterLinks('SITE', fp);
+            this.renderType('SITE', fp);
         }
 
         this.index(fp);
@@ -256,12 +269,14 @@ export class FluidityUI {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
 
-        this.ff.render(fp);
+        this.ff.renderFilterLinks(fp);
 
-        div.classList.add('fluidity-packet', 'new');
+        div.classList.add('fluidity-packet');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
+
+        this.ff.filtersClicked() && this.ff.applyVisibility(div);
 
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
