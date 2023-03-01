@@ -89,8 +89,23 @@ class FuidityFiltering {
         this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
 
+    public loader(on: boolean): void {
+        const loaderElem = document.getElementById('loader');
+
+        if (on) {
+            loaderElem?.classList.add('loader');
+        } else {
+            setTimeout(() => {
+                loaderElem?.classList.remove('loader');
+            }, 500);
+        }
+    }
+
     private clickHandler(e: MouseEvent): void {
         e.preventDefault();
+
+        this.loader(true);
+
         const extractUnique = (type: FilterType, id: string): string | undefined => {
             const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
 
@@ -130,6 +145,8 @@ class FuidityFiltering {
 
             console.log(this.collectorsClicked);
             this.applyVisibilityAll();
+
+            this.loader(false);
         }
     }
 

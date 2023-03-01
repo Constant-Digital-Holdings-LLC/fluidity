@@ -75,9 +75,21 @@ class FuidityFiltering {
     applyVisibilityAll() {
         this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
+    loader(on) {
+        const loaderElem = document.getElementById('loader');
+        if (on) {
+            loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.add('loader');
+        }
+        else {
+            setTimeout(() => {
+                loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.remove('loader');
+            }, 500);
+        }
+    }
     clickHandler(e) {
         var _a;
         e.preventDefault();
+        this.loader(true);
         const extractUnique = (type, id) => {
             const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
@@ -112,6 +124,7 @@ class FuidityFiltering {
             }
             console.log(this.collectorsClicked);
             this.applyVisibilityAll();
+            this.loader(false);
         }
     }
     index(fp) {

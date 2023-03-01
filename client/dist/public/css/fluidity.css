@@ -100,11 +100,6 @@ a:active {
     margin: 0.25rem;
 }
 
-#graph {
-    height: 4rem;
-    display: none;
-}
-
 #container-main {
     display: grid;
     gap: var(--small-gap);
@@ -118,7 +113,7 @@ a:active {
     gap: var(--small-gap);
 }
 
-#container-logo-and-graph {
+#container-logo-and-spinner {
     display: flex;
     grid-column: 1 / -1;
     align-items: center;
@@ -295,6 +290,44 @@ li i {
     color: var(--dark);
 }
 
+/* Begin Loader: */
+.loader {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+    position: relative;
+}
+
+.loader::after,
+.loader::before {
+    content: '';
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #FFF;
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: animloader 2s linear infinite;
+}
+
+.loader::after {
+    animation-delay: 1s;
+}
+
+@keyframes animloader {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+/* End Loader: */
 
 ::-webkit-scrollbar {
     height: 12px;
