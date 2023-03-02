@@ -261,9 +261,12 @@ export class FluidityUI {
 
         this.packetSet('history', history);
 
-        document
-            .getElementById('cell-data')
-            ?.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
+        const dataElem = document.getElementById('cell-data');
+
+        if (dataElem) {
+            dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
+            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
+        }
     }
 
     private scrollHandler(): void {
@@ -271,7 +274,7 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 20000);
+        }, 5000);
     }
 
     private autoScrollRequest(): void {

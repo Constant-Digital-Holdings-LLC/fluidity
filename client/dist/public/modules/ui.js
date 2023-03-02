@@ -207,21 +207,24 @@ class FilterManager {
 }
 export class FluidityUI {
     constructor(history) {
-        var _a, _b;
+        var _a;
         this.history = history;
         this.activeScrolling = false;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager();
         this.packetSet('history', history);
-        (_b = document
-            .getElementById('cell-data')) === null || _b === void 0 ? void 0 : _b.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
+        const dataElem = document.getElementById('cell-data');
+        if (dataElem) {
+            dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
+            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
+        }
     }
     scrollHandler() {
         this.activeScrolling = true;
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 20000);
+        }, 5000);
     }
     autoScrollRequest() {
         var _a;
