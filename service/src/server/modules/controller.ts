@@ -4,10 +4,11 @@ import { PacketFIFO } from './packetFIFO.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import SSE_pkg from 'express-sse-ts';
+const conf = await confFromFS();
 const { default: ServerSideEvents } = SSE_pkg;
 const sse = new ServerSideEvents(); // Create SSE instance.
-const log = fetchLogger(await confFromFS());
-const fifo = new PacketFIFO(100);
+const log = fetchLogger(conf);
+const fifo = new PacketFIFO(conf?.maxServerHistory ?? 500);
 
 export const SSE = (req: Request, res: Response, next: NextFunction) => {
     return sse.init(req, res, next);

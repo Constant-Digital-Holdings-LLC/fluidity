@@ -13,10 +13,12 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly httpCacheTTLSeconds?: number;
     readonly port?: number;
     readonly site?: Pick<FluidityPacket, 'site'>;
+    readonly maxClientHistory?: number;
+    readonly maxServerHistory?: number;
 }
 
 // config props which can be exposed to the client (browswer):
-export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv'] as const;
+export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'maxClientHistory'] as const;
 
 export const confFromDOM = () => {
     return new DOMConfigUtil<MyConfigData>().conf;

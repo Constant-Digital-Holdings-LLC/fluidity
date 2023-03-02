@@ -7,44 +7,40 @@ const log = fetchLogger(conf);
 
 type FilterType = 'COLLECTOR' | 'SITE';
 
-interface FilterStats {
-    visibileCount: number;
-    filterCount: number;
-}
-
 class FilterManager {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
     private sitesClicked: Set<string>;
     private collectorsClicked: Set<string>;
-    public stats: FilterStats;
-    private lastPacketSeq: number;
+    private filterCount: number;
 
     constructor(private firstPacketSeq: number) {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
-        this.stats = { visibileCount: 0, filterCount: 0 };
-        this.lastPacketSeq = firstPacketSeq;
+        this.filterCount = 0;
 
         document.getElementById('container-main')?.addEventListener('click', this.clickHandler.bind(this));
     }
 
     public filtersClicked(): boolean {
-        return Boolean(this.stats.filterCount);
+        return Boolean(this.filterCount);
     }
 
     public renderFilterStats() {
         const visibileCountElem = document.getElementById('visibile-count');
         const filterCountElem = document.getElementById('filter-count');
-        const { visibileCount, filterCount } = this.stats;
+        const historyElem = document.getElementById('history-data');
+        const currentElem = document.getElementById('current-data');
 
-        if (visibileCountElem && filterCountElem) {
-            visibileCountElem.innerText = visibileCount
-                ? visibileCount.toString()
-                : (this.lastPacketSeq - this.firstPacketSeq + 1).toString();
-            filterCountElem.innerText = filterCount.toString();
+        if (visibileCountElem && filterCountElem && historyElem && currentElem) {
+            visibileCountElem.innerText = (
+                historyElem.childElementCount +
+                currentElem.childElementCount +
+                1
+            ).toString();
+            filterCountElem.innerText = this.filterCount.toString();
         }
     }
 
@@ -82,10 +78,6 @@ class FilterManager {
                 visibileGlobal.add(cSeq);
             });
         }
-
-        this.stats.visibileCount = visibileGlobal.size;
-        console.debug('These packet SEQ#s should be visible:');
-        console.debug(visibileGlobal);
 
         const applySingle = (fpElem: HTMLDivElement): void => {
             if (visibileGlobal.size) {
@@ -166,7 +158,7 @@ class FilterManager {
                 site && this.sitesClicked.delete(site);
             }
 
-            this.stats.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+            this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
 
             this.applyVisibilityAll();
             this.renderFilterStats();
@@ -176,7 +168,6 @@ class FilterManager {
 
     private index(fp: FluidityPacket): void {
         if (fp.seq) {
-            this.lastPacketSeq = fp.seq;
             //index packet by site
             if (this.siteIndex.has(fp.site)) {
                 const old = this.siteIndex.get(fp.site);
@@ -369,15 +360,31 @@ export class FluidityUI {
         const current = document.getElementById('current-data');
         const end = document.getElementById('end-data');
 
-        fpArr.forEach(fp => {
-            if (pos === 'history') {
-                history?.appendChild(this.packetRender(fp));
-            } else if (pos === 'current') {
-                current?.appendChild(this.packetRender(fp));
-            }
+        const maxCount = conf?.maxClientHistory ?? 5000;
 
-            end?.scrollIntoView({ behavior: 'smooth' });
-        });
+        if (history && current && end) {
+            fpArr.forEach(fp => {
+                if (pos === 'history') {
+                    if (history.firstChild && history.childElementCount > maxCount) {
+                        history.removeChild(history.firstChild);
+                    }
+                    history.appendChild(this.packetRender(fp));
+                } else if (pos === 'current') {
+                    if (history.childElementCount > 0) {
+                        if (history.firstChild && history.childElementCount + current.childElementCount >= maxCount) {
+                            history.removeChild(history.firstChild);
+                        }
+                    } else {
+                        if (current.firstChild && current.childElementCount >= maxCount) {
+                            current.removeChild(current.firstChild);
+                        }
+                    }
+                    current.appendChild(this.packetRender(fp));
+                }
+
+                end.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
     }
 
     constructor(protected history: FluidityPacket[]) {

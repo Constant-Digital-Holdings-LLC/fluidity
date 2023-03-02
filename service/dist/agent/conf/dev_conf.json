@@ -3,6 +3,7 @@
     "site": "My QTH",
     "logLevel": "debug",
 
+
     "collectors": [
         {
             "description": "Agent Report",

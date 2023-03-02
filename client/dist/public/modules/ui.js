@@ -11,22 +11,22 @@ class FilterManager {
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
-        this.stats = { visibileCount: 0, filterCount: 0 };
-        this.lastPacketSeq = firstPacketSeq;
+        this.filterCount = 0;
         (_a = document.getElementById('container-main')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this.clickHandler.bind(this));
     }
     filtersClicked() {
-        return Boolean(this.stats.filterCount);
+        return Boolean(this.filterCount);
     }
     renderFilterStats() {
         const visibileCountElem = document.getElementById('visibile-count');
         const filterCountElem = document.getElementById('filter-count');
-        const { visibileCount, filterCount } = this.stats;
-        if (visibileCountElem && filterCountElem) {
-            visibileCountElem.innerText = visibileCount
-                ? visibileCount.toString()
-                : (this.lastPacketSeq - this.firstPacketSeq + 1).toString();
-            filterCountElem.innerText = filterCount.toString();
+        const historyElem = document.getElementById('history-data');
+        const currentElem = document.getElementById('current-data');
+        if (visibileCountElem && filterCountElem && historyElem && currentElem) {
+            visibileCountElem.innerText = (historyElem.childElementCount +
+                currentElem.childElementCount +
+                1).toString();
+            filterCountElem.innerText = this.filterCount.toString();
         }
     }
     applyVisibility(target) {
@@ -62,9 +62,6 @@ class FilterManager {
                 visibileGlobal.add(cSeq);
             });
         }
-        this.stats.visibileCount = visibileGlobal.size;
-        console.debug('These packet SEQ#s should be visible:');
-        console.debug(visibileGlobal);
         const applySingle = (fpElem) => {
             if (visibileGlobal.size) {
                 if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
@@ -137,7 +134,7 @@ class FilterManager {
                 const site = extractUnique('SITE', e.target.id);
                 site && this.sitesClicked.delete(site);
             }
-            this.stats.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+            this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
             this.applyVisibilityAll();
             this.renderFilterStats();
             this.loader(false);
@@ -145,7 +142,6 @@ class FilterManager {
     }
     index(fp) {
         if (fp.seq) {
-            this.lastPacketSeq = fp.seq;
             if (this.siteIndex.has(fp.site)) {
                 const old = this.siteIndex.get(fp.site);
                 if (old) {
@@ -291,18 +287,35 @@ export class FluidityUI {
         return mainFrag;
     }
     packetSet(pos, fpArr) {
+        var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
         const end = document.getElementById('end-data');
-        fpArr.forEach(fp => {
-            if (pos === 'history') {
-                history === null || history === void 0 ? void 0 : history.appendChild(this.packetRender(fp));
-            }
-            else if (pos === 'current') {
-                current === null || current === void 0 ? void 0 : current.appendChild(this.packetRender(fp));
-            }
-            end === null || end === void 0 ? void 0 : end.scrollIntoView({ behavior: 'smooth' });
-        });
+        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 5000;
+        if (history && current && end) {
+            fpArr.forEach(fp => {
+                if (pos === 'history') {
+                    if (history.firstChild && history.childElementCount > maxCount) {
+                        history.removeChild(history.firstChild);
+                    }
+                    history.appendChild(this.packetRender(fp));
+                }
+                else if (pos === 'current') {
+                    if (history.childElementCount > 0) {
+                        if (history.firstChild && history.childElementCount + current.childElementCount >= maxCount) {
+                            history.removeChild(history.firstChild);
+                        }
+                    }
+                    else {
+                        if (current.firstChild && current.childElementCount >= maxCount) {
+                            current.removeChild(current.firstChild);
+                        }
+                    }
+                    current.appendChild(this.packetRender(fp));
+                }
+                end.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
     }
     constructor(history) {
         var _a, _b, _c;
