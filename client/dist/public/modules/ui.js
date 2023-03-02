@@ -3,7 +3,7 @@ import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { isFluidityLink } from '#@shared/types.js';
 const conf = confFromDOM();
 const log = fetchLogger(conf);
-class FuidityFiltering {
+class FilterManager {
     constructor(firstPacketSeq) {
         var _a;
         this.firstPacketSeq = firstPacketSeq;
@@ -251,13 +251,13 @@ export class FluidityUI {
     packetRender(fp) {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
-        this.ff.renderFilterLinks(fp);
         div.classList.add('fluidity-packet');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
-        this.ff.filtersClicked() && this.ff.applyVisibility(div);
-        this.ff.renderFilterStats();
+        this.fm.renderFilterLinks(fp);
+        this.fm.filtersClicked() && this.fm.applyVisibility(div);
+        this.fm.renderFilterStats();
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
         oBracket.innerText = '[';
@@ -308,7 +308,7 @@ export class FluidityUI {
         var _a, _b, _c;
         this.history = history;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
-        this.ff = new FuidityFiltering((_c = (_b = history[0]) === null || _b === void 0 ? void 0 : _b.seq) !== null && _c !== void 0 ? _c : 0);
+        this.fm = new FilterManager((_c = (_b = history[0]) === null || _b === void 0 ? void 0 : _b.seq) !== null && _c !== void 0 ? _c : 0);
         this.packetSet('history', history);
     }
     packetAdd(fp) {

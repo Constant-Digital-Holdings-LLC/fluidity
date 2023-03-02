@@ -2,7 +2,7 @@ import { FluidityPacket, FormattedData } from '#@shared/types.js';
 export declare class FluidityUI {
     protected history: FluidityPacket[];
     private demarc;
-    private ff;
+    private fm;
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;
     private packetRender;
     private packetSet;

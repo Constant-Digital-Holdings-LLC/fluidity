@@ -12,7 +12,7 @@ interface FilterStats {
     filterCount: number;
 }
 
-class FuidityFiltering {
+class FilterManager {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
     private sitesClicked: Set<string>;
@@ -254,7 +254,7 @@ class FuidityFiltering {
 
 export class FluidityUI {
     private demarc: number | undefined;
-    private ff: FuidityFiltering;
+    private fm: FilterManager;
 
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment {
         const renderFormattedFrag = document.createDocumentFragment();
@@ -311,15 +311,17 @@ export class FluidityUI {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
 
-        this.ff.renderFilterLinks(fp);
-
         div.classList.add('fluidity-packet');
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
 
-        this.ff.filtersClicked() && this.ff.applyVisibility(div);
-        this.ff.renderFilterStats();
+        //setup filter manager
+        this.fm.renderFilterLinks(fp);
+        //apply filters to this singular element,
+        //prior to DOM insertion
+        this.fm.filtersClicked() && this.fm.applyVisibility(div);
+        this.fm.renderFilterStats();
 
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
@@ -380,7 +382,7 @@ export class FluidityUI {
 
     constructor(protected history: FluidityPacket[]) {
         this.demarc = history.at(-1)?.seq;
-        this.ff = new FuidityFiltering(history[0]?.seq ?? 0);
+        this.fm = new FilterManager(history[0]?.seq ?? 0);
 
         this.packetSet('history', history);
     }
