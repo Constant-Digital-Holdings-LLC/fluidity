@@ -185,6 +185,9 @@ li i {
     color: var(--color3);
 }
 
+.stat-data-attention {
+    color: var(--color6);
+}
 #cell-data {
     
     overflow: auto;

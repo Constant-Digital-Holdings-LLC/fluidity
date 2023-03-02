@@ -14,7 +14,7 @@ class FilterManager {
     private collectorsClicked: Set<string>;
     private filterCount: number;
 
-    constructor(private firstPacketSeq: number) {
+    constructor() {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
@@ -41,6 +41,12 @@ class FilterManager {
                 1
             ).toString();
             filterCountElem.innerText = this.filterCount.toString();
+
+            if (this.filterCount > 0) {
+                filterCountElem.classList.add('stat-data-attention');
+            } else {
+                filterCountElem.classList.remove('stat-data-attention');
+            }
         }
     }
 
@@ -112,14 +118,12 @@ class FilterManager {
         } else {
             setTimeout(() => {
                 loaderElem?.classList.remove('loader');
-            }, 250);
+            }, 600);
         }
     }
 
     private clickHandler(e: MouseEvent): void {
         e.preventDefault();
-
-        this.loader(true);
 
         const extractUnique = (type: FilterType, id: string): string | undefined => {
             const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
@@ -131,11 +135,13 @@ class FilterManager {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
+                this.loader(true);
                 if (e.target.previousElementSibling?.classList.contains('clear-link')) {
                     e.target.previousElementSibling.classList.remove('hidden');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
+                this.loader(true);
                 e.target.classList.add('hidden');
             }
 
@@ -246,6 +252,33 @@ class FilterManager {
 export class FluidityUI {
     private demarc: number | undefined;
     private fm: FilterManager;
+    private activeScrolling = false;
+    private scrollStateTimer: NodeJS.Timeout | undefined;
+
+    constructor(protected history: FluidityPacket[]) {
+        this.demarc = history.at(-1)?.seq;
+        this.fm = new FilterManager();
+
+        this.packetSet('history', history);
+
+        document
+            .getElementById('cell-data')
+            ?.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
+    }
+
+    private scrollHandler(): void {
+        this.activeScrolling = true;
+        clearTimeout(this.scrollStateTimer);
+        this.scrollStateTimer = setTimeout(() => {
+            this.activeScrolling = false;
+        }, 20000);
+    }
+
+    private autoScrollRequest(): void {
+        if (!this.activeScrolling) {
+            document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
 
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment {
         const renderFormattedFrag = document.createDocumentFragment();
@@ -358,11 +391,11 @@ export class FluidityUI {
     private packetSet(pos: 'history' | 'current', fpArr: FluidityPacket[]) {
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const end = document.getElementById('end-data');
+        // const end = document.getElementById('end-data');
 
         const maxCount = conf?.maxClientHistory ?? 5000;
 
-        if (history && current && end) {
+        if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
                     if (history.firstChild && history.childElementCount > maxCount) {
@@ -382,16 +415,9 @@ export class FluidityUI {
                     current.appendChild(this.packetRender(fp));
                 }
 
-                end.scrollIntoView({ behavior: 'smooth' });
+                this.autoScrollRequest();
             });
         }
-    }
-
-    constructor(protected history: FluidityPacket[]) {
-        this.demarc = history.at(-1)?.seq;
-        this.fm = new FilterManager(history[0]?.seq ?? 0);
-
-        this.packetSet('history', history);
     }
 
     public packetAdd(fp: FluidityPacket) {
