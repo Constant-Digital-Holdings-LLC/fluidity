@@ -168,8 +168,10 @@ class FilterManager {
 
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
 
-            this.applyVisibilityAll();
-            this.renderFilterStats();
+            if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
+                this.applyVisibilityAll();
+                this.renderFilterStats();
+            }
         }
     }
 
