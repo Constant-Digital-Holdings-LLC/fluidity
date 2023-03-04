@@ -100,8 +100,12 @@ class FilterManager {
         if (target instanceof HTMLDivElement) {
             applySingle(target);
         } else if (target instanceof NodeList) {
-            target.forEach(element => {
+            this.loader(true);
+            target.forEach((element, index, list) => {
                 element instanceof HTMLDivElement && applySingle(element);
+                if (index === list.length - 1) {
+                    this.loader(false);
+                }
             });
         }
     }
@@ -118,7 +122,7 @@ class FilterManager {
         } else {
             setTimeout(() => {
                 loaderElem?.classList.remove('loader');
-            }, 600);
+            }, 700);
         }
     }
 
@@ -135,13 +139,11 @@ class FilterManager {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
-                this.loader(true);
                 if (e.target.previousElementSibling?.classList.contains('clear-link')) {
                     e.target.previousElementSibling.classList.remove('hidden');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
-                this.loader(true);
                 e.target.classList.add('hidden');
             }
 
@@ -168,7 +170,6 @@ class FilterManager {
 
             this.applyVisibilityAll();
             this.renderFilterStats();
-            this.loader(false);
         }
     }
 
@@ -274,7 +275,7 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 5000);
+        }, 15000);
     }
 
     private autoScrollRequest(): void {
@@ -396,7 +397,7 @@ export class FluidityUI {
         const current = document.getElementById('current-data');
         // const end = document.getElementById('end-data');
 
-        const maxCount = conf?.maxClientHistory ?? 5000;
+        const maxCount = conf?.maxClientHistory ?? 2048;
 
         if (history && current) {
             fpArr.forEach(fp => {

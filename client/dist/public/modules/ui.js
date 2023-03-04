@@ -84,8 +84,12 @@ class FilterManager {
             applySingle(target);
         }
         else if (target instanceof NodeList) {
-            target.forEach(element => {
+            this.loader(true);
+            target.forEach((element, index, list) => {
                 element instanceof HTMLDivElement && applySingle(element);
+                if (index === list.length - 1) {
+                    this.loader(false);
+                }
             });
         }
     }
@@ -100,7 +104,7 @@ class FilterManager {
         else {
             setTimeout(() => {
                 loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.remove('loader');
-            }, 600);
+            }, 700);
         }
     }
     clickHandler(e) {
@@ -115,13 +119,11 @@ class FilterManager {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
-                this.loader(true);
                 if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
                     e.target.previousElementSibling.classList.remove('hidden');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
-                this.loader(true);
                 e.target.classList.add('hidden');
             }
             if (e.target.classList.contains('collector-filter-link')) {
@@ -143,7 +145,6 @@ class FilterManager {
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
             this.applyVisibilityAll();
             this.renderFilterStats();
-            this.loader(false);
         }
     }
     index(fp) {
@@ -224,7 +225,7 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 5000);
+        }, 15000);
     }
     autoScrollRequest() {
         var _a;
@@ -322,7 +323,7 @@ export class FluidityUI {
         var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 5000;
+        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 2048;
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
