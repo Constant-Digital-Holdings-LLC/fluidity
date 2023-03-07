@@ -11,6 +11,7 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly tlsKey?: string;
     readonly tlsCert?: string;
     readonly httpCacheTTLSeconds?: number;
+    readonly permittedKeys?: string[];
     readonly port?: number;
     readonly site?: Pick<FluidityPacket, 'site'>;
     readonly maxClientHistory?: number;

@@ -153,6 +153,10 @@ export abstract class DataCollector implements DataCollectorPlugin {
                     });
 
                     res.on('end', () => {
+                        if (res.statusCode === 401) {
+                            log.warn('Server responded with: Unauthorized');
+                            log.warn('Agent likely using invalidated api-key');
+                        }
                         if (res.statusCode && res.statusCode / 2 === 100) {
                             resolve(data);
                         } else {
