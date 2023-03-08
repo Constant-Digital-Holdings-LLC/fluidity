@@ -13,12 +13,14 @@ router.get('/', (req, res) => {
 router.get('/FIFO', GET);
 router.get('/SSE', SSE);
 
-if (conf?.permittedKeys && Array.isArray(conf.permittedKeys)) {
-    if (conf.permittedKeys.every(k => typeof k === 'string' && /^[a-zA-Z0-9]+$/.test(k))) {
-        router.post('/FIFO', apiKeyAuth(conf.permittedKeys as string[]), POST);
-    } else {
-        throw new Error('expected array of API keys as alphanumeric strings in conf');
-    }
+const permittedKeys = process.env['PERMITTED_KEY'] ? [process.env['PERMITTED_KEY']] : conf?.permittedKeys;
+
+if (!permittedKeys) {
+    throw new Error('server missing PERMITTED_KEY env var or permitted key list in conf');
+}
+
+if (Array.isArray(permittedKeys) && permittedKeys.every(pk => typeof pk === 'string' && /^[a-zA-Z0-9]+$/.test(pk))) {
+    router.post('/FIFO', apiKeyAuth(permittedKeys as string[]), POST);
 } else {
-    throw new Error('missing permittedKeys list in server conf');
+    throw new Error('Invalid permitted key or key list format');
 }
