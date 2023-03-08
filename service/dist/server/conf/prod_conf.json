@@ -1,5 +1,6 @@
 {
     "httpCacheTTLSeconds": 300,
     "logLevel": "info",
-    "logFormat": "JSON"
+    "logFormat": "JSON",
+    "permittedKeys": ["changeMe"]
 }

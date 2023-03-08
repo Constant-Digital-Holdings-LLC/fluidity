@@ -2,7 +2,7 @@
     "port": 3000,
     "tlsKey": "ssl/dev-server_key.pem",
     "tlsCert": "ssl/dev-server_cert.pem",
-    "permittedKeys": ["abc123"],
+    "permittedKeys": ["184f451d98b79137dcb014abda5eb6c9"],
     "httpCacheTTLSeconds": 5,
     "logLevel": "debug"
 }

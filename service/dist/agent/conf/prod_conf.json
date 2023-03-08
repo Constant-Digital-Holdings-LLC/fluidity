@@ -1,6 +1,6 @@
 {
     "targets": [
-        { "location": "https://localhost:3000", "key": "dkdfjdkfjk" },
+        { "location": "https://localhost:3000", "key": "changeMe" },
         { "location": "https://f-y.io:443", "key": "zfdfd" }
     ],
     "site": "office",

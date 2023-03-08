@@ -14,10 +14,10 @@ router.get('/FIFO', GET);
 router.get('/SSE', SSE);
 
 if (conf?.permittedKeys && Array.isArray(conf.permittedKeys)) {
-    if (conf.permittedKeys.every(k => typeof k === 'string')) {
+    if (conf.permittedKeys.every(k => typeof k === 'string' && /^[a-zA-Z0-9]+$/.test(k))) {
         router.post('/FIFO', apiKeyAuth(conf.permittedKeys as string[]), POST);
     } else {
-        throw new Error('expected array of API keys as strings in conf');
+        throw new Error('expected array of API keys as alphanumeric strings in conf');
     }
 } else {
     throw new Error('missing permittedKeys list in server conf');

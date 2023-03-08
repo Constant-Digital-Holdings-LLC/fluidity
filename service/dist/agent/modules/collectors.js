@@ -65,8 +65,13 @@ export class DataCollector {
     _reqJSON(method, uo, data, key) {
         const { protocol, hostname, port, pathname } = uo;
         return new Promise((resolve, reject) => {
-            if (method === 'POST' && !key) {
-                reject('DataCollector: POST method requires API Key');
+            if (method === 'POST') {
+                if (!key) {
+                    reject(`DataCollector: missing API key for ${uo.toString()}`);
+                }
+                if (key && !/^[a-zA-Z0-9]+$/.test(key)) {
+                    reject(`Invalid key format - API keys should be alphanumeric\nConsier using the bin/genApiKey utility`);
+                }
             }
             const req = https.request({
                 protocol,
