@@ -1,4 +1,5 @@
 {
+    "org": "MyOrg",
     "port": 3000,
     "tlsKey": "ssl/dev-server_key.pem",
     "tlsCert": "ssl/dev-server_cert.pem",

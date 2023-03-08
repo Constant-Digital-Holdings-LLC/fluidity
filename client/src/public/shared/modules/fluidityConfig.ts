@@ -7,6 +7,7 @@ import { ConfigData, FSConfigUtil, DOMConfigUtil } from '#@shared/modules/config
 import type { FluidityPacket, PublishTarget } from '#@shared/types.js';
 
 export interface MyConfigData extends ConfigData, LoggerConfig {
+    readonly org?: string;
     readonly targets?: PublishTarget[];
     readonly tlsKey?: string;
     readonly tlsCert?: string;
@@ -19,7 +20,7 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
 }
 
 // config props which can be exposed to the client (browswer):
-export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'maxClientHistory'] as const;
+export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'] as const;
 
 export const confFromDOM = () => {
     return new DOMConfigUtil<MyConfigData>().conf;

@@ -10,7 +10,7 @@ const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'deve
 export interface ConfigData {
     readonly appName: string;
     readonly appVersion?: string;
-    readonly nodeEnv?: NodeEnv;
+    readonly nodeEnv: NodeEnv;
     readonly [index: string]: unknown;
 }
 
@@ -187,8 +187,7 @@ export class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     public populateDOM(req: Request, res: Response, next: NextFunction) {
         if (!this.configCache) throw new Error('config cache empty - pass in conf to constructor`');
 
-        res.locals['configData'] = this.pubConf;
-        res.locals['NODE_ENV'] = NODE_ENV;
+        res.locals['configData'] = { ...this.pubConf, nodeEnv: NODE_ENV };
         res.locals['camelCaseToDashDelim'] = (prop: string) => prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
 
         next();

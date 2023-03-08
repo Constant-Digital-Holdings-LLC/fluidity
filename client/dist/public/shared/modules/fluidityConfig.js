@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { FSConfigUtil, DOMConfigUtil } from '#@shared/modules/config.js';
-export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'maxClientHistory'];
+export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'];
 export const confFromDOM = () => {
     return new DOMConfigUtil().conf;
 };

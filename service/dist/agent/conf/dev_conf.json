@@ -1,6 +1,6 @@
 {
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "184f451d98b79137dcb014abda5eb6c9" }],
-    "site": "My QTH",
+    "site": "MyOffice",
     "logLevel": "debug",
 
 
@@ -14,8 +14,7 @@
             "description": "Net Watcher",
             "plugin": "hamLive",
             "url": "https://www.ham.live/api/data/livenets",
-            "pollIntervalSec": 60,
-            "omitTS": true
+            "pollIntervalSec": 60
         },
         {
             "description": "SRS",

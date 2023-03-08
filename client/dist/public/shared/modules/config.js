@@ -148,8 +148,7 @@ export class DOMConfigUtil extends ConfigBase {
     populateDOM(req, res, next) {
         if (!this.configCache)
             throw new Error('config cache empty - pass in conf to constructor`');
-        res.locals['configData'] = this.pubConf;
-        res.locals['NODE_ENV'] = NODE_ENV;
+        res.locals['configData'] = Object.assign(Object.assign({}, this.pubConf), { nodeEnv: NODE_ENV });
         res.locals['camelCaseToDashDelim'] = (prop) => prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
         next();
     }

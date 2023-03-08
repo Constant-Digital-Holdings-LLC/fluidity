@@ -13,7 +13,16 @@
         <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%=
         camelCaseToDashDelim(pair[0]) %>="<%= pair[1] %>" <% }) %> />
 
-        <title><%=configData.appName%> Alpha</title>
+        
+        <% if(configData.nodeEnv === 'development'){ %>
+            <title>
+                <%=configData.appName%> Dev
+            </title>
+        <% } else{ %>
+            <title>
+                <%=configData.org%> Dash
+            </title>
+        <% } %>
 
         <!--Modules-->
         <script async src="/external/modules/es-module-shims/dist/es-module-shims.js"></script>

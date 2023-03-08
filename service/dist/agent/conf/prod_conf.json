@@ -3,7 +3,7 @@
         { "location": "https://localhost:3000", "key": "changeMe" },
         { "location": "https://f-y.io:443", "key": "zfdfd" }
     ],
-    "site": "office",
+    "site": "MyOffice",
     "logLevel": "info",
     "collectors": [
         {
@@ -11,13 +11,6 @@
             "plugin": "genericSerial",
             "path": "COM10",
             "baudRate": 9600,
-            "omitTS": true
-        },
-        {
-            "description": "Net Watcher",
-            "plugin": "hamLive",
-            "url": "https://www.ham.live/api/data/livenets",
-            "pollIntervalSec": 5,
             "omitTS": true
         },
         {
