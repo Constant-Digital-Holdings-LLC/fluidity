@@ -165,7 +165,7 @@ export class DataCollector {
             });
         }
         else {
-            log.warn(`DataCollector: ignoring string: ${data}`);
+            log.debug(`DataCollector: ignoring string: ${data}`);
         }
     }
 }

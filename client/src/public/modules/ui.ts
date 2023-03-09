@@ -277,7 +277,7 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 15000);
+        }, 7500);
     }
 
     private autoScrollRequest(): void {
