@@ -105,4 +105,4 @@ typings/
 .DS_Store
 
 # local conf
-service/dist/*/conf/*_conf.json
+service/dist/agent/conf/*_conf.json
