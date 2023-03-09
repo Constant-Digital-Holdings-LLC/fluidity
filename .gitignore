@@ -103,3 +103,6 @@ typings/
 
 .vscode
 .DS_Store
+
+# local conf
+service/dist/*/conf/*_conf.json
