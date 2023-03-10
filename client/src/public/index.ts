@@ -15,11 +15,12 @@ const es = new EventSource('/SSE');
 
 window.addEventListener('DOMContentLoaded', () => {
     log.info('DOM Content Loaded');
-
-    document.getElementById('current-data')?.scroll({
-        top: 0,
-        behavior: 'smooth'
-    });
+    setTimeout(() => {
+        document.getElementById('current-data')?.scroll({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }, 100);
 });
 
 fetch('/FIFO')
