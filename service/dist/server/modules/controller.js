@@ -7,7 +7,7 @@ const conf = await confFromFS();
 const { default: ServerSideEvents } = SSE_pkg;
 const sse = new ServerSideEvents();
 const log = fetchLogger(conf);
-const fifo = new PacketFIFO(conf?.maxServerHistory ?? 500);
+const fifo = new PacketFIFO(conf?.maxServerHistory ?? 100);
 export const SSE = (req, res, next) => {
     return sse.init(req, res, next);
 };
