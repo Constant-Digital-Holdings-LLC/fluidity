@@ -14,8 +14,9 @@ let ui: FluidityUI;
 const es = new EventSource('/SSE');
 
 window.addEventListener('DOMContentLoaded', () => {
-    log.info('DOM Content Loaded');
-    document.getElementById('history-data')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+        document.getElementById('current-data')?.classList.remove('scroll-margin');
+    }, 2000);
 });
 
 fetch('/FIFO')

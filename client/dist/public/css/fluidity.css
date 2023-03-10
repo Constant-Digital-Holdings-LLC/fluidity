@@ -293,6 +293,10 @@ li i {
     color: var(--dark);
 }
 
+.scroll-magin {
+    scroll-margin-top: 100px;
+}
+
 /* Begin Loader: */
 .loader {
     width: 40px;

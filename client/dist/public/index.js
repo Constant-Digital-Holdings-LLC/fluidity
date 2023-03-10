@@ -11,9 +11,10 @@ const rxQ = [];
 let ui;
 const es = new EventSource('/SSE');
 window.addEventListener('DOMContentLoaded', () => {
-    var _a;
-    log.info('DOM Content Loaded');
-    (_a = document.getElementById('history-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+        var _a;
+        (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.classList.remove('scroll-margin');
+    }, 2000);
 });
 fetch('/FIFO')
     .then(response => response.json())
