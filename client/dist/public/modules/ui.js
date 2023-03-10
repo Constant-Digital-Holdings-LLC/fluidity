@@ -227,14 +227,14 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 7500);
+        }, 5000);
     }
     autoScrollRequest() {
         if (!this.activeScrolling) {
             setTimeout(() => {
                 var _a;
                 (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+            }, 500);
         }
     }
     renderFormattedData(fArr) {
