@@ -13,7 +13,7 @@ const es = new EventSource('/SSE');
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         var _a;
-        (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.classList.remove('scroll-margin');
+        (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.classList.remove('scroll-padding-bottom');
     }, 2000);
 });
 fetch('/FIFO')

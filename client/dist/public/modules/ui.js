@@ -230,9 +230,11 @@ export class FluidityUI {
         }, 7500);
     }
     autoScrollRequest() {
-        var _a;
         if (!this.activeScrolling) {
-            (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                var _a;
+                (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         }
     }
     renderFormattedData(fArr) {

@@ -282,7 +282,9 @@ export class FluidityUI {
 
     private autoScrollRequest(): void {
         if (!this.activeScrolling) {
-            document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         }
     }
 

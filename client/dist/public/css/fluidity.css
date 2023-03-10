@@ -293,8 +293,8 @@ li i {
     color: var(--dark);
 }
 
-.scroll-magin {
-    scroll-margin-top: 100px;
+.scroll-padding-bottom {
+    scroll-padding-bottom: 200px;
 }
 
 /* Begin Loader: */

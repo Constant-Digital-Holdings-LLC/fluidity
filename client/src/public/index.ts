@@ -15,7 +15,7 @@ const es = new EventSource('/SSE');
 
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-        document.getElementById('current-data')?.classList.remove('scroll-margin');
+        document.getElementById('current-data')?.classList.remove('scroll-padding-bottom');
     }, 2000);
 });
 
