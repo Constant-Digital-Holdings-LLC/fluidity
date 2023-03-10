@@ -1,6 +1,13 @@
 import { isDataCollectorParams } from './modules/collectors.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(reason);
+    console.error(promise);
+});
+process.on('uncaughtException', reason => {
+    console.error(reason);
+});
 const conf = await confFromFS();
 if (!conf)
     throw new Error('Missing Fluidity Agent Config');
