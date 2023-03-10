@@ -13,6 +13,15 @@ let ui: FluidityUI;
 
 const es = new EventSource('/SSE');
 
+window.addEventListener('DOMContentLoaded', () => {
+    log.info('DOM Content Loaded');
+
+    document.getElementById('current-data')?.scroll({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
+
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {

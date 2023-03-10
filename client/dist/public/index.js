@@ -10,6 +10,14 @@ log.debug(conf);
 const rxQ = [];
 let ui;
 const es = new EventSource('/SSE');
+window.addEventListener('DOMContentLoaded', () => {
+    var _a;
+    log.info('DOM Content Loaded');
+    (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.scroll({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {
