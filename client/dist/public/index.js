@@ -10,12 +10,6 @@ log.debug(conf);
 const rxQ = [];
 let ui;
 const es = new EventSource('/SSE');
-window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        var _a;
-        (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.classList.remove('scroll-padding-bottom');
-    }, 2000);
-});
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {

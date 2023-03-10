@@ -13,12 +13,6 @@ let ui: FluidityUI;
 
 const es = new EventSource('/SSE');
 
-window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        document.getElementById('current-data')?.classList.remove('scroll-padding-bottom');
-    }, 2000);
-});
-
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {

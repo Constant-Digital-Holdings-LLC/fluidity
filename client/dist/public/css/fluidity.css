@@ -293,10 +293,6 @@ li i {
     color: var(--dark);
 }
 
-.scroll-padding-bottom {
-    scroll-padding-bottom: 200px;
-}
-
 /* Begin Loader: */
 .loader {
     width: 40px;
