@@ -11,14 +11,9 @@ const rxQ = [];
 let ui;
 const es = new EventSource('/SSE');
 window.addEventListener('DOMContentLoaded', () => {
+    var _a;
     log.info('DOM Content Loaded');
-    setTimeout(() => {
-        var _a;
-        (_a = document.getElementById('current-data')) === null || _a === void 0 ? void 0 : _a.scroll({
-            top: 0,
-            behavior: 'smooth'
-        });
-    }, 100);
+    (_a = document.getElementById('history-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 fetch('/FIFO')
     .then(response => response.json())

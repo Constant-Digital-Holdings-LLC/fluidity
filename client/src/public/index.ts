@@ -15,12 +15,7 @@ const es = new EventSource('/SSE');
 
 window.addEventListener('DOMContentLoaded', () => {
     log.info('DOM Content Loaded');
-    setTimeout(() => {
-        document.getElementById('current-data')?.scroll({
-            top: 0,
-            behavior: 'smooth'
-        });
-    }, 100);
+    document.getElementById('history-data')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 fetch('/FIFO')
