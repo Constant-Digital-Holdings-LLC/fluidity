@@ -1,7 +1,7 @@
 {
-    "org": "DARN",
-    "httpCacheTTLSeconds": 300,
+    "org": "MyOrg",
+    "httpCacheTTLSeconds": 600,
     "logLevel": "info",
     "logFormat": "JSON",
-    "permittedKeys": ["changeMe"]
+    "permittedKeys": ["changeMe", "or set by env var"]
 }
