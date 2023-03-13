@@ -230,7 +230,7 @@ li i {
 }
 
 .fade-in {
-    animation: fadeIn 1s;
+    animation: fadeIn 0.85s;
     animation-timing-function: ease-in;
 }
 
