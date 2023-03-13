@@ -230,7 +230,8 @@ li i {
 }
 
 .fade-in {
-    animation: fadeIn 0.75s;
+    animation: fadeIn 1s;
+    animation-timing-function: ease-in;
 }
 
 @keyframes fadeIn {
