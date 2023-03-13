@@ -7,10 +7,10 @@
     --color2: #706c9d;
     --color3: #54b0ed;
     --color4: #00fdff;
-    --color5: #472e40;
+    --color5: indianred;
     --color6: #fe95c6;
     --color7: #999;
-    --color8: #ee4866;
+    --color8: orchid;
     --light: #ffe5ff;
     --dark: #52423d;
     --small-gap: 0.5rem;
@@ -67,8 +67,16 @@ body {
     font-weight: 300;
 }
 
-.hidden, .pendingVisibility {
+.display-none {
     display: none
+}
+
+
+
+.visible {
+    visibility: visible;
+        opacity: 1;
+        transition: visibility 0s linear 0s, opacity 300ms;
 }
 
 /* links:  */
@@ -218,6 +226,20 @@ li i {
     
     margin-bottom: 1.25rem;
 
+}
+
+.fade-in {
+    animation: fadeIn 0.75s;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 .fluidity-packet .site {

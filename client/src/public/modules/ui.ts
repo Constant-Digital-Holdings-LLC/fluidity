@@ -88,12 +88,12 @@ class FilterManager {
         const applySingle = (fpElem: HTMLDivElement): void => {
             if (visibileGlobal.size) {
                 if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
-                    fpElem.classList.remove('hidden');
+                    fpElem.classList.remove('display-none');
                 } else {
-                    fpElem.classList.add('hidden');
+                    fpElem.classList.add('display-none');
                 }
             } else {
-                fpElem.classList.remove('hidden');
+                fpElem.classList.remove('display-none');
             }
         };
 
@@ -140,11 +140,11 @@ class FilterManager {
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
                 if (e.target.previousElementSibling?.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('hidden');
+                    e.target.previousElementSibling.classList.remove('display-none');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
-                e.target.classList.add('hidden');
+                e.target.classList.add('display-none');
             }
 
             if (e.target.classList.contains('collector-filter-link')) {
@@ -211,7 +211,7 @@ class FilterManager {
             'fa-circle-xmark',
             `${type.toLocaleLowerCase()}-clear-filter-link`,
             'clear-link',
-            'hidden'
+            'display-none'
         );
 
         a.href = '#0';
@@ -234,6 +234,7 @@ class FilterManager {
         li.appendChild(xIcon);
         li.appendChild(a);
         li.appendChild(typeIcon);
+        li.classList.add('fade-in');
         ul?.appendChild(li);
     }
 
@@ -414,6 +415,9 @@ export class FluidityUI {
                         history.removeChild(history.firstChild);
                     }
                     history.appendChild(this.packetRender(fp));
+                    if (history.lastChild instanceof HTMLElement) {
+                        history.lastChild.classList.add('fade-in');
+                    }
                 } else if (pos === 'current') {
                     if (history.childElementCount > 0) {
                         if (history.firstChild && history.childElementCount + current.childElementCount >= maxCount) {
@@ -424,7 +428,11 @@ export class FluidityUI {
                             current.removeChild(current.firstChild);
                         }
                     }
+
                     current.appendChild(this.packetRender(fp));
+                    if (current.lastChild instanceof HTMLElement) {
+                        current.lastChild.classList.add('fade-in');
+                    }
                 }
 
                 this.autoScrollRequest();
