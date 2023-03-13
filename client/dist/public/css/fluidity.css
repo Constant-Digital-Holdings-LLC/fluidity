@@ -10,8 +10,8 @@
     --color5: #472e40;
     --color6: #fe95c6;
     --color7: #999;
-    --color8: orchid;
-    --color9: indianred;
+    --color8: tan;
+    --color9: peachpuff;
     --light: #ffe5ff;
     --dark: #52423d;
     --small-gap: 0.5rem;
@@ -325,6 +325,10 @@ li i {
 }
 
 .fluidity-packet .fp-color-9 {
+    color: var(--color9);
+}
+
+.fluidity-packet .fp-color-10 {
     color: var(--dark);
 }
 
