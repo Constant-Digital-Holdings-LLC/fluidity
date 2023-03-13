@@ -196,6 +196,18 @@ li i {
     
 }
 
+.overflow-anchor-none {
+    overflow-anchor: none;
+}
+
+.overflow-anchor-auto {
+    overflow-anchor: auto;
+}
+
+#end-data {
+    height: 1px;
+}
+
 .cell {
     padding: 0.5rem;
     border-radius: 7px;

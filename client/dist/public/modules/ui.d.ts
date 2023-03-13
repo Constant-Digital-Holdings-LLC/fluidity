@@ -6,6 +6,7 @@ export declare class FluidityUI {
     private activeScrolling;
     private scrollStateTimer;
     constructor(history: FluidityPacket[]);
+    private autoScroll;
     private scrollHandler;
     private autoScrollRequest;
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;

@@ -104,7 +104,7 @@ class FilterManager {
         else {
             setTimeout(() => {
                 loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.remove('loader');
-            }, 700);
+            }, 800);
         }
     }
     clickHandler(e) {
@@ -219,22 +219,25 @@ export class FluidityUI {
         const dataElem = document.getElementById('cell-data');
         if (dataElem) {
             dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
+            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this));
+            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this));
+            dataElem.addEventListener('touchend', this.scrollHandler.bind(this));
         }
+    }
+    autoScroll() {
+        var _a;
+        (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
     scrollHandler() {
         this.activeScrolling = true;
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 100);
+        }, 10000);
     }
     autoScrollRequest() {
         if (!this.activeScrolling) {
-            setTimeout(() => {
-                var _a;
-                (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth' });
-            }, 500);
+            this.autoScroll();
         }
     }
     renderFormattedData(fArr) {

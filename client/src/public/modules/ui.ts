@@ -122,7 +122,7 @@ class FilterManager {
         } else {
             setTimeout(() => {
                 loaderElem?.classList.remove('loader');
-            }, 700);
+            }, 800);
         }
     }
 
@@ -268,8 +268,14 @@ export class FluidityUI {
 
         if (dataElem) {
             dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
+            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this));
+            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this));
+            dataElem.addEventListener('touchend', this.scrollHandler.bind(this));
         }
+    }
+
+    private autoScroll(): void {
+        document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
 
     private scrollHandler(): void {
@@ -277,14 +283,12 @@ export class FluidityUI {
         clearTimeout(this.scrollStateTimer);
         this.scrollStateTimer = setTimeout(() => {
             this.activeScrolling = false;
-        }, 100);
+        }, 10000);
     }
 
     private autoScrollRequest(): void {
         if (!this.activeScrolling) {
-            setTimeout(() => {
-                document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth' });
-            }, 500);
+            this.autoScroll();
         }
     }
 
