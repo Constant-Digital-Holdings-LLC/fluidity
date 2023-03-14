@@ -230,7 +230,7 @@ li i {
 }
 
 .fade-in {
-    animation: fadeIn 0.80s;
+    animation: fadeIn 0.73s;
 }
 
 @keyframes fadeIn {
@@ -284,6 +284,11 @@ li i {
     display: inline-block;
     margin-left: 0.3rem;
 
+}
+
+.fluidity-packet .fp-trim {
+    padding: 0;
+    margin: 0;
 }
 
 .fluidity-packet .fp-color-0 {

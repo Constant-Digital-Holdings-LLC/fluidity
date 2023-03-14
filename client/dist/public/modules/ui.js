@@ -109,7 +109,6 @@ class FilterManager {
     }
     clickHandler(e) {
         var _a;
-        e.preventDefault();
         const extractUnique = (type, id) => {
             const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
@@ -119,11 +118,13 @@ class FilterManager {
         };
         if (e.target instanceof Element) {
             if (e.target.classList.contains('filter-link')) {
+                e.preventDefault();
                 if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
                     e.target.previousElementSibling.classList.remove('display-none');
                 }
             }
             if (e.target.classList.contains('clear-link')) {
+                e.preventDefault();
                 e.target.classList.add('display-none');
             }
             if (e.target.classList.contains('collector-filter-link')) {
@@ -220,8 +221,8 @@ export class FluidityUI {
         const dataElem = document.getElementById('cell-data');
         if (dataElem) {
             dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this));
-            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this));
+            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
+            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this), { passive: true });
             dataElem.addEventListener('touchend', this.scrollHandler.bind(this));
         }
     }
@@ -247,23 +248,31 @@ export class FluidityUI {
             const stringFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = field;
-            span.classList.add('fp-line', 'fp-string', `fp-color-${suggestStyle}`);
+            span.classList.add('fp-line', 'fp-string');
+            if (suggestStyle >= 100) {
+                span.classList.add('fp-trim', `fp-color-${suggestStyle % 10}`);
+            }
             stringFrag.appendChild(span);
             return stringFrag;
         };
         const markupLinkType = (field, suggestStyle = 0) => {
+            log.warn('received link');
+            log.warn(JSON.stringify(field));
             const linkFrag = document.createDocumentFragment();
             const a = document.createElement('a');
             a.href = field.location;
             a.innerText = field.name;
-            a.classList.add('fp-line', 'fp-link');
+            a.classList.add('fp-line', 'fp-link', `fp-color-${suggestStyle}`);
+            a.setAttribute('target', '_blank');
+            linkFrag.appendChild(a);
             return linkFrag;
         };
         const markupDateType = (field, suggestStyle = 0) => {
             const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
-            span.innerText = new Date(field).toLocaleTimeString();
+            span.innerText = new Date(field).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
+            dateFrag.appendChild(span);
             return dateFrag;
         };
         fArr.forEach(f => {
