@@ -7,7 +7,7 @@
     "logLevel": "info",
     "collectors": [
         {
-            "description": "TNC",
+            "description": "My Label",
             "plugin": "genericSerial",
             "path": "COM10",
             "baudRate": 9600,

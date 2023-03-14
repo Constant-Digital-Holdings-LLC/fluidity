@@ -1,0 +1,46 @@
+{
+    "targets": [{ "location": "https://localhost:3000/FIFO", "key": "184f451d98b79137dcb014abda5eb6c9" }],
+    "site": "MyOffice",
+    "logLevel": "debug",
+
+
+    "collectors": [
+        {
+            "description": "Agent Report",
+            "plugin": "vRep",
+            "pollIntervalSec": 3600
+        },
+        {
+            "description": "Net Watcher",
+            "plugin": "hamLive",
+            "url": "https://www.ham.live/api/data/livenets",
+            "pollIntervalSec": 60
+        },
+        {
+            "description": "SRS",
+            "plugin": "srsSerial",
+            "path": "/dev/tty.usbmodem11201",
+            "baudRate": 9600,
+            "keepRaw": true,
+            "extendedOptions": {
+                "portmap": [
+                    "440",
+                    "2M",
+                    "L1-PV Switch",
+                    "L2-South Mtn",
+                    "L3-TBD-OFF",
+                    "L4-Saddle",
+                    "L5-Sulphur",
+                    "L6-San Pedro"
+                ]
+            }
+        },
+        {
+            "description": "TNC",
+            "plugin": "genericSerial",
+            "path": "/dev/tty.usbmodem11401",
+            "baudRate": 9600
+        }
+
+    ]
+}
