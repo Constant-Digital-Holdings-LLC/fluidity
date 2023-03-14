@@ -252,6 +252,9 @@ export class FluidityUI {
             if (suggestStyle >= 100) {
                 span.classList.add('fp-trim', `fp-color-${suggestStyle % 10}`);
             }
+            else {
+                span.classList.add(`fp-color-${suggestStyle}`);
+            }
             stringFrag.appendChild(span);
             return stringFrag;
         };

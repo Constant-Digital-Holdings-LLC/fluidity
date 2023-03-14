@@ -301,8 +301,12 @@ export class FluidityUI {
             const span = document.createElement('span');
             span.innerText = field;
             span.classList.add('fp-line', 'fp-string');
+            //styles over 100 should use the 0-10 colors, but apply trim (no margin/no padding)
+            //so 100 is color0, trimmed
             if (suggestStyle >= 100) {
                 span.classList.add('fp-trim', `fp-color-${suggestStyle % 10}`);
+            } else {
+                span.classList.add(`fp-color-${suggestStyle}`);
             }
             stringFrag.appendChild(span);
             return stringFrag;
