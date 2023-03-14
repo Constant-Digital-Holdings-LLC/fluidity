@@ -106,3 +106,4 @@ typings/
 
 # local conf
 service/dist/agent/conf/prod_conf.json
+service/dist/*/conf/dev_conf.json

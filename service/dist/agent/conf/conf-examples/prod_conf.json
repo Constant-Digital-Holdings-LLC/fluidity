@@ -1,36 +1,27 @@
 {
-    "targets": [
-        { "location": "https://localhost:3000", "key": "changeMe" },
-        { "location": "https://f-y.io:443", "key": "zfdfd" }
-    ],
+    "targets": [{ "location": "https://localhost:443/FIFO", "key": "184f451d98b79137dcb014abda5eb6c9" }],
     "site": "MyOffice",
     "logLevel": "info",
+
+
     "collectors": [
         {
-            "description": "My Label",
-            "plugin": "genericSerial",
-            "path": "COM10",
-            "baudRate": 9600,
-            "omitTS": true
+            "description": "Agent Report",
+            "plugin": "vRep",
+            "pollIntervalSec": 1800
         },
         {
-            "description": "SRS",
-            "plugin": "srsSerial",
-            "path": "COM4",
-            "baudRate": 9600,
-            "keepRaw": true,
-            "extendedOptions": {
-                "portmap": [
-                    "440",
-                    "2M",
-                    "L1-PV Switch",
-                    "L2-South Mtn",
-                    "L3-TBD-OFF",
-                    "L4-Saddle",
-                    "L5-Sulphur",
-                    "L6-San Pedro"
-                ]
-            }
+            "description": "Device Foo",
+            "plugin": "genericSerial",
+            "path": "/dev/tty.usbmodem11201",
+            "baudRate": 9600
+        },
+        {
+            "description": "Device Bar",
+            "plugin": "genericSerial",
+            "path": "/dev/tty.usbmodem11401",
+            "baudRate": 9600
         }
+
     ]
 }
