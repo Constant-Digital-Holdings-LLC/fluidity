@@ -15,7 +15,7 @@
         "start": "npm --loglevel verbose run start:agent"
     },
     "author": "Sean Lynch - KK6BEB",
-    "license": "ISC",
+    "license": "MIT",
     "devDependencies": {
         "@types/express": "^4.17.14",
         "@types/node": "^18.11.16",
