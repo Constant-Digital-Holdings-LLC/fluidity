@@ -253,6 +253,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
 export interface PollingCollectorParams extends DataCollectorParams {
     pollIntervalSec: number;
+    notifyIntervalSec?: number;
 }
 
 export interface WebJSONCollectorParams extends PollingCollectorParams {

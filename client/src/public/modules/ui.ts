@@ -301,8 +301,6 @@ export class FluidityUI {
         };
 
         const markupLinkType = (field: FluidityLink, suggestStyle = 0): DocumentFragment => {
-            log.warn('received link');
-            log.warn(JSON.stringify(field));
             const linkFrag = document.createDocumentFragment();
             const a = document.createElement('a');
             a.href = field.location;
