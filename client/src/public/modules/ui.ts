@@ -256,40 +256,28 @@ class FilterManager {
 export class FluidityUI {
     private demarc: number | undefined;
     private fm: FilterManager;
-    private activeScrolling = false;
-    private scrollStateTimer: NodeJS.Timeout | undefined;
+    private highestScrollPos = 0;
 
     constructor(protected history: FluidityPacket[]) {
         this.demarc = history.at(-1)?.seq;
         this.fm = new FilterManager();
 
         this.packetSet('history', history);
-
-        const dataElem = document.getElementById('cell-data');
-
-        if (dataElem) {
-            dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchend', this.scrollHandler.bind(this));
-        }
     }
 
     private autoScroll(): void {
         document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
 
-    private scrollHandler(): void {
-        this.activeScrolling = true;
-        clearTimeout(this.scrollStateTimer);
-        this.scrollStateTimer = setTimeout(() => {
-            this.activeScrolling = false;
-        }, 10000);
-    }
-
     private autoScrollRequest(): void {
-        if (!this.activeScrolling) {
+        const curScrollPos = document.getElementById('cell-data')?.scrollTop;
+
+        if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            this.highestScrollPos = curScrollPos;
             this.autoScroll();
+        } else {
+            log.debug('auto-scroll temp disabled due to manual scroll-back');
+            return;
         }
     }
 

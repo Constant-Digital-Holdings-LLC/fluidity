@@ -214,32 +214,25 @@ export class FluidityUI {
     constructor(history) {
         var _a;
         this.history = history;
-        this.activeScrolling = false;
+        this.highestScrollPos = 0;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager();
         this.packetSet('history', history);
-        const dataElem = document.getElementById('cell-data');
-        if (dataElem) {
-            dataElem.addEventListener('mousewheel', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchstart', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchmove', this.scrollHandler.bind(this), { passive: true });
-            dataElem.addEventListener('touchend', this.scrollHandler.bind(this));
-        }
     }
     autoScroll() {
         var _a;
         (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
-    scrollHandler() {
-        this.activeScrolling = true;
-        clearTimeout(this.scrollStateTimer);
-        this.scrollStateTimer = setTimeout(() => {
-            this.activeScrolling = false;
-        }, 10000);
-    }
     autoScrollRequest() {
-        if (!this.activeScrolling) {
+        var _a;
+        const curScrollPos = (_a = document.getElementById('cell-data')) === null || _a === void 0 ? void 0 : _a.scrollTop;
+        if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            this.highestScrollPos = curScrollPos;
             this.autoScroll();
+        }
+        else {
+            log.debug('auto-scroll temp disabled due to manual scroll-back');
+            return;
         }
     }
     renderFormattedData(fArr) {

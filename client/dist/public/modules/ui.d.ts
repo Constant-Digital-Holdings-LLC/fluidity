@@ -3,11 +3,9 @@ export declare class FluidityUI {
     protected history: FluidityPacket[];
     private demarc;
     private fm;
-    private activeScrolling;
-    private scrollStateTimer;
+    private highestScrollPos;
     constructor(history: FluidityPacket[]);
     private autoScroll;
-    private scrollHandler;
     private autoScrollRequest;
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;
     private packetRender;

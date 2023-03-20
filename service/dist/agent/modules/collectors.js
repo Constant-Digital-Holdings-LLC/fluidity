@@ -75,7 +75,7 @@ export class DataCollector {
             }
             const req = https.request({
                 protocol,
-                rejectUnauthorized: NODE_ENV === 'development' ? false : false,
+                rejectUnauthorized: NODE_ENV === 'development' ? false : true,
                 hostname,
                 port,
                 method: method,
