@@ -7,6 +7,10 @@ const log = fetchLogger(conf);
 
 type FilterType = 'COLLECTOR' | 'SITE';
 
+interface FMHooks {
+    onLinkClick: () => void;
+}
+
 class FilterManager {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
@@ -14,7 +18,7 @@ class FilterManager {
     private collectorsClicked: Set<string>;
     private filterCount: number;
 
-    constructor() {
+    constructor(private hooks?: FMHooks) {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
@@ -171,6 +175,7 @@ class FilterManager {
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
                 this.applyVisibilityAll();
                 this.renderFilterStats();
+                this.hooks?.onLinkClick();
             }
         }
     }
@@ -260,7 +265,9 @@ export class FluidityUI {
 
     constructor(protected history: FluidityPacket[]) {
         this.demarc = history.at(-1)?.seq;
-        this.fm = new FilterManager();
+        this.fm = new FilterManager({
+            onLinkClick: this.autoScroll.bind(this)
+        });
 
         this.packetSet('history', history);
 

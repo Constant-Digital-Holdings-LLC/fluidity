@@ -4,8 +4,9 @@ import { isFluidityLink } from '#@shared/types.js';
 const conf = confFromDOM();
 const log = fetchLogger(conf);
 class FilterManager {
-    constructor() {
+    constructor(hooks) {
         var _a;
+        this.hooks = hooks;
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
         this.sitesClicked = new Set();
@@ -108,7 +109,7 @@ class FilterManager {
         }
     }
     clickHandler(e) {
-        var _a;
+        var _a, _b;
         const extractUnique = (type, id) => {
             const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
@@ -147,6 +148,7 @@ class FilterManager {
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
                 this.applyVisibilityAll();
                 this.renderFilterStats();
+                (_b = this.hooks) === null || _b === void 0 ? void 0 : _b.onLinkClick();
             }
         }
     }
@@ -216,7 +218,9 @@ export class FluidityUI {
         this.history = history;
         this.highestScrollPos = 0;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
-        this.fm = new FilterManager();
+        this.fm = new FilterManager({
+            onLinkClick: this.autoScroll.bind(this)
+        });
         this.packetSet('history', history);
         (_b = document.getElementById('logo-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', e => {
             e.preventDefault();
