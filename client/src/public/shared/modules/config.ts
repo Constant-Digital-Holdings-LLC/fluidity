@@ -9,15 +9,15 @@ const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'deve
 
 export interface ConfigData {
     readonly appName: string;
-    readonly appVersion?: string;
+    readonly appVersion: string;
     readonly nodeEnv: NodeEnv;
     readonly [index: string]: unknown;
 }
 
-const isConfigData = <C extends ConfigData>(item: unknown): item is C =>
+export const isConfigData = <C extends ConfigData>(item: unknown): item is C =>
     isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 
-const isConfigDataPopulated = <C extends ConfigData>(obj: unknown): obj is C =>
+export const isConfigDataPopulated = <C extends ConfigData>(obj: unknown): obj is C =>
     isConfigData(obj) && Boolean(obj['appName']);
 
 interface ConfigParser {
@@ -115,7 +115,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
             }
         }
 
-        if (!(this.configCache instanceof Object && 'appName' in this.configCache)) {
+        if (!(this.configCache instanceof Object)) {
             throw new Error(
                 `No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`
             );

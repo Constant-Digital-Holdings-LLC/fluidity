@@ -12,8 +12,8 @@ import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
 import { isObject } from '#@shared/types.js';
 const log = fetchLogger();
 const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
-const isConfigData = (item) => isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
-const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);
+export const isConfigData = (item) => isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
+export const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);
 class ConfigBase {
     constructor() {
         this.configCache = null;
@@ -87,7 +87,7 @@ export class FSConfigUtil extends ConfigBase {
                     log.error(err);
                 }
             }
-            if (!(this.configCache instanceof Object && 'appName' in this.configCache)) {
+            if (!(this.configCache instanceof Object)) {
                 throw new Error(`No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`);
             }
             return this.configCache;

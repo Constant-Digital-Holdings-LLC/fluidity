@@ -7,12 +7,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { FSConfigUtil, DOMConfigUtil } from '#@shared/modules/config.js';
+import { FSConfigUtil, DOMConfigUtil, isConfigDataPopulated } from '#@shared/modules/config.js';
+const appName = 'Fluidity';
+const appVersion = '1.0.1';
 export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'];
 export const confFromDOM = () => {
-    return new DOMConfigUtil().conf;
+    const c = Object.assign({ appName, appVersion }, new DOMConfigUtil().conf);
+    if (isConfigDataPopulated(c)) {
+        return c;
+    }
+    else {
+        throw new Error('confFromDOM expected populated config');
+    }
 };
 export const confFromFS = () => __awaiter(void 0, void 0, void 0, function* () {
-    return (yield FSConfigUtil.asyncNew()).conf;
+    const c = Object.assign({ appName, appVersion }, (yield FSConfigUtil.asyncNew()).conf);
+    if (isConfigDataPopulated(c)) {
+        return c;
+    }
+    else {
+        throw new Error('confFromFS expected populated config');
+    }
 });
 //# sourceMappingURL=fluidityConfig.js.map

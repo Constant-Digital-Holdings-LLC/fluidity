@@ -2,10 +2,12 @@ import type { Request, Response, NextFunction } from 'express';
 import { NodeEnv } from '#@shared/types.js';
 export interface ConfigData {
     readonly appName: string;
-    readonly appVersion?: string;
+    readonly appVersion: string;
     readonly nodeEnv: NodeEnv;
     readonly [index: string]: unknown;
 }
+export declare const isConfigData: <C extends ConfigData>(item: unknown) => item is C;
+export declare const isConfigDataPopulated: <C extends ConfigData>(obj: unknown) => obj is C;
 interface ConfigParser {
     parse(src: string): unknown;
 }
