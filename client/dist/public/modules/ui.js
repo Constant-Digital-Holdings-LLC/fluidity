@@ -212,12 +212,16 @@ class FilterManager {
 }
 export class FluidityUI {
     constructor(history) {
-        var _a;
+        var _a, _b;
         this.history = history;
         this.highestScrollPos = 0;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager();
         this.packetSet('history', history);
+        (_b = document.getElementById('logo-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', e => {
+            e.preventDefault();
+            this.autoScroll();
+        });
     }
     autoScroll() {
         var _a;

@@ -263,6 +263,11 @@ export class FluidityUI {
         this.fm = new FilterManager();
 
         this.packetSet('history', history);
+
+        document.getElementById('logo-link')?.addEventListener('click', e => {
+            e.preventDefault();
+            this.autoScroll();
+        });
     }
 
     private autoScroll(): void {
