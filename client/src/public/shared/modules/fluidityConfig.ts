@@ -1,13 +1,11 @@
 import type { LoggerConfig } from '#@shared/modules/logger.js';
 import { ConfigData, FSConfigUtil, DOMConfigUtil, isConfigDataPopulated } from '#@shared/modules/config.js';
 import type { FluidityPacket, PublishTarget } from '#@shared/types.js';
+
 //
 // Application Specific Customizations of
-// Configuration Lib:
+// Configuration Lib Below:
 //
-const appName = 'Fluidity';
-const appVersion = '1.0.1';
-
 export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly org?: string;
     readonly targets?: PublishTarget[];
@@ -21,11 +19,17 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly maxServerHistory?: number;
 }
 
+const DEFAULTS: MyConfigData = {
+    appName: 'Fluidity',
+    appVersion: '1.0.1'
+};
+
 // config props which can be exposed to the client (browswer):
 export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'] as const;
 
+// two main utils for retrieving config:
 export const confFromDOM = (): MyConfigData => {
-    const c = { appName, appVersion, ...new DOMConfigUtil<MyConfigData>().conf };
+    const c = { DEFAULTS, ...new DOMConfigUtil<MyConfigData>().conf };
     if (isConfigDataPopulated<MyConfigData>(c)) {
         return c;
     } else {
@@ -33,7 +37,7 @@ export const confFromDOM = (): MyConfigData => {
     }
 };
 export const confFromFS = async (): Promise<MyConfigData> => {
-    const c = { appName, appVersion, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
+    const c = { DEFAULTS, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
     if (isConfigDataPopulated<MyConfigData>(c)) {
         return c;
     } else {
