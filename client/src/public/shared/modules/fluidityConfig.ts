@@ -29,7 +29,7 @@ export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEn
 
 // two main utils for retrieving config:
 export const confFromDOM = (): MyConfigData => {
-    const c = { DEFAULTS, ...new DOMConfigUtil<MyConfigData>().conf };
+    const c = { ...DEFAULTS, ...new DOMConfigUtil<MyConfigData>().conf };
     if (isConfigDataPopulated<MyConfigData>(c)) {
         return c;
     } else {
@@ -37,7 +37,7 @@ export const confFromDOM = (): MyConfigData => {
     }
 };
 export const confFromFS = async (): Promise<MyConfigData> => {
-    const c = { DEFAULTS, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
+    const c = { ...DEFAULTS, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
     if (isConfigDataPopulated<MyConfigData>(c)) {
         return c;
     } else {

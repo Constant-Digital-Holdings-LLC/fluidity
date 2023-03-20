@@ -3,7 +3,7 @@ import { NodeEnv } from '#@shared/types.js';
 export interface ConfigData {
     readonly appName: string;
     readonly appVersion: string;
-    readonly nodeEnv: NodeEnv;
+    readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }
 export declare const isConfigData: <C extends ConfigData>(item: unknown) => item is C;

@@ -10,7 +10,7 @@ const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'deve
 export interface ConfigData {
     readonly appName: string;
     readonly appVersion: string;
-    readonly nodeEnv: NodeEnv;
+    readonly nodeEnv?: NodeEnv;
     readonly [index: string]: unknown;
 }
 
