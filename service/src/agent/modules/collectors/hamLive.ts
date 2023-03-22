@@ -50,7 +50,7 @@ export default class HamLiveCollector extends WebJSONCollector implements DataCo
     //default url can be overridden by config:
     constructor({
         url = 'https://www.ham.live/api/data/livenets',
-        notifyIntervalSec = 1800,
+        notifyIntervalSec = 900,
         ...params
     }: WebJSONCollectorParams) {
         super({ url, ...params });

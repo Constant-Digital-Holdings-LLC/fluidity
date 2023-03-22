@@ -24,7 +24,7 @@ const isNetDetail = (item) => {
 };
 export default class HamLiveCollector extends WebJSONCollector {
     notifyIntervalSec;
-    constructor({ url = 'https://www.ham.live/api/data/livenets', notifyIntervalSec = 1800, ...params }) {
+    constructor({ url = 'https://www.ham.live/api/data/livenets', notifyIntervalSec = 900, ...params }) {
         super({ url, ...params });
         this.notifyIntervalSec = notifyIntervalSec;
     }
