@@ -6,7 +6,7 @@ import { FluidityPacket, isFfluidityPacket } from '#@shared/types.js';
 const conf = confFromDOM();
 if (!conf) throw new Error('Missing Fluidity Client Config');
 const log = fetchLogger(conf);
-log.debug(conf);
+log.info(conf);
 
 const rxQ: FluidityPacket[] = [];
 let ui: FluidityUI;

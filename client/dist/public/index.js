@@ -6,7 +6,7 @@ const conf = confFromDOM();
 if (!conf)
     throw new Error('Missing Fluidity Client Config');
 const log = fetchLogger(conf);
-log.debug(conf);
+log.info(conf);
 const rxQ = [];
 let ui;
 const es = new EventSource('/SSE');

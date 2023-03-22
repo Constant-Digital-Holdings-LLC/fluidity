@@ -266,7 +266,10 @@ export class FluidityUI {
     constructor(protected history: FluidityPacket[]) {
         this.demarc = history.at(-1)?.seq;
         this.fm = new FilterManager({
-            onLinkClick: this.autoScroll.bind(this)
+            onLinkClick: () => {
+                this.highestScrollPos = 0;
+                this.autoScroll();
+            }
         });
 
         this.packetSet('history', history);
