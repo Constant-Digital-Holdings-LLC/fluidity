@@ -146,4 +146,6 @@ Once the agent and service are configured, run:
 
 `npm run start:agent`
 
-If you want fancy syntax colarization/highlighting, plugins are very easy to develop. I'm planning on writing a guide here soon on how to add collectors.
+If you want fancy syntax colarization/highlighting, plugins (collectors) are very easy to develop. I'm planning on writing a guide here soon on how to add plugins.
+
+Feel free to log an issue if you need assistance. For my amateur radio friends, I'm 'good on QRZ' -KK6BEB
