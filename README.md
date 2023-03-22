@@ -108,7 +108,7 @@ Next edit **service/dist/server/conf/dev_conf.json**:
 
 ---
 
-Download Node.js: https://nodejs.org/en
+Download Node.js: https://nodejs.org
 
 From the root of the respository, run `npm install`
 
