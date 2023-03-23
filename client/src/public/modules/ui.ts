@@ -97,7 +97,11 @@ class FilterManager {
                     fpElem.classList.add('display-none');
                 }
             } else {
-                fpElem.classList.remove('display-none');
+                if (visibileByCollector.size && visibileBySite.size) {
+                    fpElem.classList.add('display-none');
+                } else {
+                    fpElem.classList.remove('display-none');
+                }
             }
         };
 
@@ -262,14 +266,14 @@ export class FluidityUI {
     private demarc: number | undefined;
     private fm: FilterManager;
     private highestScrollPos = 0;
+    private lastVh: number;
 
     constructor(protected history: FluidityPacket[]) {
+        this.lastVh = window.innerHeight;
+
         this.demarc = history.at(-1)?.seq;
         this.fm = new FilterManager({
-            onLinkClick: () => {
-                this.highestScrollPos = 0;
-                this.autoScroll();
-            }
+            onLinkClick: this.scrollReset.bind(this)
         });
 
         this.packetSet('history', history);
@@ -280,19 +284,30 @@ export class FluidityUI {
         });
     }
 
+    private scrollReset(): void {
+        this.highestScrollPos = 0;
+        this.autoScroll();
+    }
+
     private autoScroll(): void {
         document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
 
     private autoScrollRequest(): void {
-        const curScrollPos = document.getElementById('cell-data')?.scrollTop;
-
-        if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
-            this.highestScrollPos = curScrollPos;
-            this.autoScroll();
-        } else {
-            log.debug('auto-scroll temp disabled due to manual scroll-back');
+        if (window.innerHeight !== this.lastVh) {
+            this.scrollReset();
+            this.lastVh = window.innerHeight;
             return;
+        } else {
+            const curScrollPos = document.getElementById('cell-data')?.scrollTop;
+
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+                this.highestScrollPos = curScrollPos;
+                this.autoScroll();
+            } else {
+                log.debug('auto-scroll temp disabled due to manual scroll-back');
+                return;
+            }
         }
     }
 

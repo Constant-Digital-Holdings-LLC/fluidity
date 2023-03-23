@@ -78,7 +78,12 @@ class FilterManager {
                 }
             }
             else {
-                fpElem.classList.remove('display-none');
+                if (visibileByCollector.size && visibileBySite.size) {
+                    fpElem.classList.add('display-none');
+                }
+                else {
+                    fpElem.classList.remove('display-none');
+                }
             }
         };
         if (target instanceof HTMLDivElement) {
@@ -217,12 +222,10 @@ export class FluidityUI {
         var _a, _b;
         this.history = history;
         this.highestScrollPos = 0;
+        this.lastVh = window.innerHeight;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager({
-            onLinkClick: () => {
-                this.highestScrollPos = 0;
-                this.autoScroll();
-            }
+            onLinkClick: this.scrollReset.bind(this)
         });
         this.packetSet('history', history);
         (_b = document.getElementById('logo-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', e => {
@@ -230,20 +233,31 @@ export class FluidityUI {
             this.autoScroll();
         });
     }
+    scrollReset() {
+        this.highestScrollPos = 0;
+        this.autoScroll();
+    }
     autoScroll() {
         var _a;
         (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
     autoScrollRequest() {
         var _a;
-        const curScrollPos = (_a = document.getElementById('cell-data')) === null || _a === void 0 ? void 0 : _a.scrollTop;
-        if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
-            this.highestScrollPos = curScrollPos;
-            this.autoScroll();
+        if (window.innerHeight !== this.lastVh) {
+            this.scrollReset();
+            this.lastVh = window.innerHeight;
+            return;
         }
         else {
-            log.debug('auto-scroll temp disabled due to manual scroll-back');
-            return;
+            const curScrollPos = (_a = document.getElementById('cell-data')) === null || _a === void 0 ? void 0 : _a.scrollTop;
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+                this.highestScrollPos = curScrollPos;
+                this.autoScroll();
+            }
+            else {
+                log.debug('auto-scroll temp disabled due to manual scroll-back');
+                return;
+            }
         }
     }
     renderFormattedData(fArr) {
