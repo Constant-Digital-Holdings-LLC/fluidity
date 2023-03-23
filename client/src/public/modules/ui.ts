@@ -55,12 +55,90 @@ class FilterManager {
     }
 
     public applyVisibility(one?: HTMLDivElement): void {
-        if (one) {
-            log.debug(`apply visibility to one ${one.id}`);
-        } else {
-            this.loader(true);
-            log.debug('apply visibility to all...');
-            this.loader(false);
+        const hide = (elem: Element) => {
+            elem.classList.add('display-none');
+        };
+
+        const show = (elem: Element) => {
+            elem.classList.remove('display-none');
+        };
+
+        const negate = (label: string, set: Set<string>): string => {
+            let s = '';
+
+            set.forEach(item => {
+                s += `:not([data-${label}="${item}"])`;
+            });
+
+            return s;
+        };
+
+        if (!one) document.querySelectorAll('.fluidity-packet').forEach(elem => show(elem));
+
+        if (this.sitesClicked.size && this.collectorsClicked.size) {
+            //WE ARE FILTERING ON SITES AND COLLECTORS:
+            if (one && one.dataset['memberSite'] && one.dataset['memberPlugin']) {
+                //apply to ONE:
+                if (
+                    this.sitesClicked.has(one.dataset['memberSite']) &&
+                    this.collectorsClicked.has(one.dataset['memberPlugin'])
+                ) {
+                    show(one);
+                } else {
+                    hide(one);
+                }
+            } else {
+                //apply to MANY:
+                this.loader(true);
+
+                document
+                    .querySelectorAll(
+                        `.fluidity-packet${negate('member-site', this.sitesClicked)}, .fluidity-packet${negate(
+                            'member-plugin',
+                            this.collectorsClicked
+                        )}`
+                    )
+                    .forEach(node => hide(node));
+                this.loader(false);
+            }
+        } else if (this.sitesClicked.size) {
+            //WE ARE *JUST FILTERING ON SITES:
+            if (one && one.dataset['memberSite']) {
+                //apply to ONE:
+                if (this.sitesClicked.has(one.dataset['memberSite'])) {
+                    show(one);
+                } else {
+                    hide(one);
+                }
+            } else {
+                //apply to MANY:
+                this.loader(true);
+
+                document
+                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}`)
+                    .forEach(node => hide(node));
+
+                this.loader(false);
+            }
+        } else if (this.collectorsClicked.size) {
+            //WE ARE *JUST FILTERING ON COLLECTORS:
+            if (one && one.dataset['memberPlugin']) {
+                //apply to  ONE:
+                if (this.collectorsClicked.has(one.dataset['memberPlugin'])) {
+                    show(one);
+                } else {
+                    hide(one);
+                }
+            } else {
+                //apply to MANY:
+                this.loader(true);
+
+                document
+                    .querySelectorAll(`.fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .forEach(node => hide(node));
+
+                this.loader(false);
+            }
         }
     }
 
@@ -218,7 +296,7 @@ export class FluidityUI {
         } else {
             const curScrollPos = document.getElementById('cell-data')?.scrollTop;
 
-            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos - 100) {
                 this.highestScrollPos = curScrollPos;
                 this.autoScroll();
             } else {
@@ -295,6 +373,10 @@ export class FluidityUI {
         const div = document.createElement('div');
 
         div.classList.add('fluidity-packet');
+
+        div.setAttribute('data-member-site', fp.site);
+        div.setAttribute('data-member-plugin', fp.plugin);
+
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
@@ -352,7 +434,7 @@ export class FluidityUI {
         const current = document.getElementById('current-data');
         // const end = document.getElementById('end-data');
 
-        const maxCount = conf?.maxClientHistory ?? 3000;
+        const maxCount = conf?.maxClientHistory ?? 50;
 
         if (history && current) {
             fpArr.forEach(fp => {

@@ -36,13 +36,72 @@ class FilterManager {
         }
     }
     applyVisibility(one) {
-        if (one) {
-            log.debug(`apply visibility to one ${one.id}`);
+        const hide = (elem) => {
+            elem.classList.add('display-none');
+        };
+        const show = (elem) => {
+            elem.classList.remove('display-none');
+        };
+        const negate = (label, set) => {
+            let s = '';
+            set.forEach(item => {
+                s += `:not([data-${label}="${item}"])`;
+            });
+            return s;
+        };
+        if (!one)
+            document.querySelectorAll('.fluidity-packet').forEach(elem => show(elem));
+        if (this.sitesClicked.size && this.collectorsClicked.size) {
+            if (one && one.dataset['memberSite'] && one.dataset['memberPlugin']) {
+                if (this.sitesClicked.has(one.dataset['memberSite']) &&
+                    this.collectorsClicked.has(one.dataset['memberPlugin'])) {
+                    show(one);
+                }
+                else {
+                    hide(one);
+                }
+            }
+            else {
+                this.loader(true);
+                document
+                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}, .fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .forEach(node => hide(node));
+                this.loader(false);
+            }
         }
-        else {
-            this.loader(true);
-            log.debug('apply visibility to all...');
-            this.loader(false);
+        else if (this.sitesClicked.size) {
+            if (one && one.dataset['memberSite']) {
+                if (this.sitesClicked.has(one.dataset['memberSite'])) {
+                    show(one);
+                }
+                else {
+                    hide(one);
+                }
+            }
+            else {
+                this.loader(true);
+                document
+                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}`)
+                    .forEach(node => hide(node));
+                this.loader(false);
+            }
+        }
+        else if (this.collectorsClicked.size) {
+            if (one && one.dataset['memberPlugin']) {
+                if (this.collectorsClicked.has(one.dataset['memberPlugin'])) {
+                    show(one);
+                }
+                else {
+                    hide(one);
+                }
+            }
+            else {
+                this.loader(true);
+                document
+                    .querySelectorAll(`.fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .forEach(node => hide(node));
+                this.loader(false);
+            }
         }
     }
     loader(on) {
@@ -171,7 +230,7 @@ export class FluidityUI {
         }
         else {
             const curScrollPos = (_a = document.getElementById('cell-data')) === null || _a === void 0 ? void 0 : _a.scrollTop;
-            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos - 100) {
                 this.highestScrollPos = curScrollPos;
                 this.autoScroll();
             }
@@ -238,6 +297,8 @@ export class FluidityUI {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
         div.classList.add('fluidity-packet');
+        div.setAttribute('data-member-site', fp.site);
+        div.setAttribute('data-member-plugin', fp.plugin);
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
         }
@@ -280,7 +341,7 @@ export class FluidityUI {
         var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 3000;
+        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 50;
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
