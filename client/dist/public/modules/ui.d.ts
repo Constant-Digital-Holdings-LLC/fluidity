@@ -6,7 +6,6 @@ export declare class FluidityUI {
     private highestScrollPos;
     private lastVh;
     constructor(history: FluidityPacket[]);
-    private scrollReset;
     private autoScroll;
     private autoScrollRequest;
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;

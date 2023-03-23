@@ -7,8 +7,8 @@ class FilterManager {
     constructor(hooks) {
         var _a;
         this.hooks = hooks;
-        this.siteIndex = new Map();
-        this.collectorIndex = new Map();
+        this.knownSites = new Set();
+        this.knownCollectors = new Set();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
         this.filterCount = 0;
@@ -35,72 +35,15 @@ class FilterManager {
             }
         }
     }
-    applyVisibility(target) {
-        const visibileByCollector = new Set();
-        const visibileBySite = new Set();
-        const visibileGlobal = new Set();
-        this.collectorsClicked.forEach(collector => {
-            const seqs = this.collectorIndex.get(collector);
-            if (seqs) {
-                seqs.forEach(seq => visibileByCollector.add(seq));
-            }
-        });
-        this.sitesClicked.forEach(site => {
-            const seqs = this.siteIndex.get(site);
-            if (seqs) {
-                seqs.forEach(seq => visibileBySite.add(seq));
-            }
-        });
-        if (visibileBySite.size && visibileByCollector.size) {
-            visibileByCollector.forEach(cSeq => {
-                if (visibileBySite.has(cSeq)) {
-                    visibileGlobal.add(cSeq);
-                }
-            });
+    applyVisibility(one) {
+        if (one) {
+            log.debug(`apply visibility to one ${one.id}`);
         }
-        else if (visibileBySite.size) {
-            visibileBySite.forEach(sSeq => {
-                visibileGlobal.add(sSeq);
-            });
-        }
-        else if (visibileByCollector.size) {
-            visibileByCollector.forEach(cSeq => {
-                visibileGlobal.add(cSeq);
-            });
-        }
-        const applySingle = (fpElem) => {
-            if (visibileGlobal.size) {
-                if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
-                    fpElem.classList.remove('display-none');
-                }
-                else {
-                    fpElem.classList.add('display-none');
-                }
-            }
-            else {
-                if (visibileByCollector.size && visibileBySite.size) {
-                    fpElem.classList.add('display-none');
-                }
-                else {
-                    fpElem.classList.remove('display-none');
-                }
-            }
-        };
-        if (target instanceof HTMLDivElement) {
-            applySingle(target);
-        }
-        else if (target instanceof NodeList) {
+        else {
             this.loader(true);
-            target.forEach((element, index, list) => {
-                element instanceof HTMLDivElement && applySingle(element);
-                if (index === list.length - 1) {
-                    this.loader(false);
-                }
-            });
+            log.debug('apply visibility to all...');
+            this.loader(false);
         }
-    }
-    applyVisibilityAll() {
-        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
     loader(on) {
         const loaderElem = document.getElementById('loader');
@@ -151,31 +94,9 @@ class FilterManager {
             }
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.applyVisibilityAll();
+                this.applyVisibility();
                 this.renderFilterStats();
                 (_b = this.hooks) === null || _b === void 0 ? void 0 : _b.onLinkClick();
-            }
-        }
-    }
-    index(fp) {
-        if (fp.seq) {
-            if (this.siteIndex.has(fp.site)) {
-                const old = this.siteIndex.get(fp.site);
-                if (old) {
-                    this.siteIndex.set(fp.site, old.add(fp.seq));
-                }
-            }
-            else {
-                this.siteIndex.set(fp.site, new Set([fp.seq]));
-            }
-            if (this.collectorIndex.has(fp.plugin)) {
-                const old = this.collectorIndex.get(fp.plugin);
-                if (old) {
-                    this.collectorIndex.set(fp.plugin, old.add(fp.seq));
-                }
-            }
-            else {
-                this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
             }
         }
     }
@@ -208,13 +129,14 @@ class FilterManager {
         ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
     }
     renderFilterLinks(fp) {
-        if (!this.collectorIndex.has(fp.plugin)) {
+        if (!this.knownCollectors.has(fp.plugin)) {
+            this.knownCollectors.add(fp.plugin);
             this.renderType('COLLECTOR', fp);
         }
-        if (!this.siteIndex.has(fp.site)) {
+        if (!this.knownSites.has(fp.site)) {
+            this.knownSites.add(fp.site);
             this.renderType('SITE', fp);
         }
-        this.index(fp);
     }
 }
 export class FluidityUI {
@@ -225,17 +147,16 @@ export class FluidityUI {
         this.lastVh = window.innerHeight;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager({
-            onLinkClick: this.scrollReset.bind(this)
+            onLinkClick: () => {
+                this.highestScrollPos = 0;
+                this.autoScroll();
+            }
         });
         this.packetSet('history', history);
         (_b = document.getElementById('logo-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', e => {
             e.preventDefault();
             this.autoScroll();
         });
-    }
-    scrollReset() {
-        this.highestScrollPos = 0;
-        this.autoScroll();
     }
     autoScroll() {
         var _a;
@@ -244,7 +165,7 @@ export class FluidityUI {
     autoScrollRequest() {
         var _a;
         if (window.innerHeight !== this.lastVh) {
-            this.scrollReset();
+            this.highestScrollPos = 0;
             this.lastVh = window.innerHeight;
             return;
         }

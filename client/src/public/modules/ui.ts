@@ -12,15 +12,15 @@ interface FMHooks {
 }
 
 class FilterManager {
-    private siteIndex: Map<string, Set<number>>;
-    private collectorIndex: Map<string, Set<number>>;
+    private knownSites: Set<string>;
+    private knownCollectors: Set<string>;
     private sitesClicked: Set<string>;
     private collectorsClicked: Set<string>;
     private filterCount: number;
 
     constructor(private hooks?: FMHooks) {
-        this.siteIndex = new Map();
-        this.collectorIndex = new Map();
+        this.knownSites = new Set();
+        this.knownCollectors = new Set();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
         this.filterCount = 0;
@@ -54,72 +54,14 @@ class FilterManager {
         }
     }
 
-    public applyVisibility(target: HTMLDivElement | NodeListOf<Element>): void {
-        const visibileByCollector = new Set<number>();
-        const visibileBySite = new Set<number>();
-        const visibileGlobal = new Set<number>();
-
-        this.collectorsClicked.forEach(collector => {
-            const seqs = this.collectorIndex.get(collector);
-            if (seqs) {
-                seqs.forEach(seq => visibileByCollector.add(seq));
-            }
-        });
-
-        this.sitesClicked.forEach(site => {
-            const seqs = this.siteIndex.get(site);
-            if (seqs) {
-                seqs.forEach(seq => visibileBySite.add(seq));
-            }
-        });
-
-        if (visibileBySite.size && visibileByCollector.size) {
-            visibileByCollector.forEach(cSeq => {
-                if (visibileBySite.has(cSeq)) {
-                    visibileGlobal.add(cSeq);
-                }
-            });
-        } else if (visibileBySite.size) {
-            visibileBySite.forEach(sSeq => {
-                visibileGlobal.add(sSeq);
-            });
-        } else if (visibileByCollector.size) {
-            visibileByCollector.forEach(cSeq => {
-                visibileGlobal.add(cSeq);
-            });
-        }
-
-        const applySingle = (fpElem: HTMLDivElement): void => {
-            if (visibileGlobal.size) {
-                if (visibileGlobal.has(parseInt(fpElem.id.substring(7)))) {
-                    fpElem.classList.remove('display-none');
-                } else {
-                    fpElem.classList.add('display-none');
-                }
-            } else {
-                if (visibileByCollector.size && visibileBySite.size) {
-                    fpElem.classList.add('display-none');
-                } else {
-                    fpElem.classList.remove('display-none');
-                }
-            }
-        };
-
-        if (target instanceof HTMLDivElement) {
-            applySingle(target);
-        } else if (target instanceof NodeList) {
+    public applyVisibility(one?: HTMLDivElement): void {
+        if (one) {
+            log.debug(`apply visibility to one ${one.id}`);
+        } else {
             this.loader(true);
-            target.forEach((element, index, list) => {
-                element instanceof HTMLDivElement && applySingle(element);
-                if (index === list.length - 1) {
-                    this.loader(false);
-                }
-            });
+            log.debug('apply visibility to all...');
+            this.loader(false);
         }
-    }
-
-    public applyVisibilityAll(): void {
-        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
     }
 
     private loader(on: boolean): void {
@@ -177,32 +119,9 @@ class FilterManager {
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
 
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.applyVisibilityAll();
+                this.applyVisibility();
                 this.renderFilterStats();
                 this.hooks?.onLinkClick();
-            }
-        }
-    }
-
-    private index(fp: FluidityPacket): void {
-        if (fp.seq) {
-            //index packet by site
-            if (this.siteIndex.has(fp.site)) {
-                const old = this.siteIndex.get(fp.site);
-                if (old) {
-                    this.siteIndex.set(fp.site, old.add(fp.seq));
-                }
-            } else {
-                this.siteIndex.set(fp.site, new Set([fp.seq]));
-            }
-            //index packet by collector
-            if (this.collectorIndex.has(fp.plugin)) {
-                const old = this.collectorIndex.get(fp.plugin);
-                if (old) {
-                    this.collectorIndex.set(fp.plugin, old.add(fp.seq));
-                }
-            } else {
-                this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
             }
         }
     }
@@ -248,17 +167,17 @@ class FilterManager {
     }
 
     public renderFilterLinks(fp: FluidityPacket) {
-        if (!this.collectorIndex.has(fp.plugin)) {
+        if (!this.knownCollectors.has(fp.plugin)) {
             //if we've never seen this collector, render filter links for it
+            this.knownCollectors.add(fp.plugin);
             this.renderType('COLLECTOR', fp);
         }
 
-        if (!this.siteIndex.has(fp.site)) {
+        if (!this.knownSites.has(fp.site)) {
             //if we've never seen this site, render filter links for it
+            this.knownSites.add(fp.site);
             this.renderType('SITE', fp);
         }
-
-        this.index(fp);
     }
 }
 
@@ -273,7 +192,10 @@ export class FluidityUI {
 
         this.demarc = history.at(-1)?.seq;
         this.fm = new FilterManager({
-            onLinkClick: this.scrollReset.bind(this)
+            onLinkClick: () => {
+                this.highestScrollPos = 0;
+                this.autoScroll();
+            }
         });
 
         this.packetSet('history', history);
@@ -284,18 +206,13 @@ export class FluidityUI {
         });
     }
 
-    private scrollReset(): void {
-        this.highestScrollPos = 0;
-        this.autoScroll();
-    }
-
     private autoScroll(): void {
         document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
     }
 
     private autoScrollRequest(): void {
         if (window.innerHeight !== this.lastVh) {
-            this.scrollReset();
+            this.highestScrollPos = 0;
             this.lastVh = window.innerHeight;
             return;
         } else {
