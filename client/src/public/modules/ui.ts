@@ -63,17 +63,37 @@ class FilterManager {
             elem.classList.remove('display-none');
         };
 
-        const negate = (label: string, set: Set<string>): string => {
-            let s = '';
+        //note - and & doesn't have a comma, and || does have a comma (in querySelectorAll())
+        const dataQueryString = (
+            op: 'AND' | 'OR',
+            label: 'member-site' | 'member-plugin',
+            set: Set<string>,
+            not?: 'not'
+        ): string => {
+            let qs = '';
+
+            const lastItem = Array.from(set).pop();
 
             set.forEach(item => {
-                s += `:not([data-${label}="${item}"])`;
+                if (not) {
+                    if (op === 'AND') {
+                        qs += `:not([data-${label}="${item}"])`;
+                    } else if (op === 'OR') {
+                        qs += `:not([data-${label}="${item}"])${item === lastItem ? '' : ', .fluidity-packet'}`;
+                    }
+                } else {
+                    if (op === 'AND') {
+                        qs += `[data-${label}="${item}"]`;
+                    } else if (op === 'OR') {
+                        qs += `[data-${label}="${item}"]${item === lastItem ? '' : ', .fluidity-packet'}`;
+                    }
+                }
             });
 
-            return s;
+            return '.fluidity-packet' + qs;
         };
 
-        if (!one) document.querySelectorAll('.fluidity-packet').forEach(elem => show(elem));
+        // if (!one) document.querySelectorAll('.fluidity-packet').forEach(elem => show(elem));
 
         if (this.sitesClicked.size && this.collectorsClicked.size) {
             //WE ARE FILTERING ON SITES AND COLLECTORS:
@@ -93,12 +113,27 @@ class FilterManager {
 
                 document
                     .querySelectorAll(
-                        `.fluidity-packet${negate('member-site', this.sitesClicked)}, .fluidity-packet${negate(
+                        //groups are 'OR-d', inidividual items are AND-ed
+                        `${dataQueryString('AND', 'member-site', this.sitesClicked, 'not')}, ${dataQueryString(
+                            'AND',
+                            'member-plugin',
+                            this.collectorsClicked,
+                            'not'
+                        )}`
+                    )
+                    .forEach(node => hide(node));
+
+                document
+                    .querySelectorAll(
+                        //groups are 'AND-ed', inidividual items are OR-ed
+                        `${dataQueryString('OR', 'member-site', this.sitesClicked)}${dataQueryString(
+                            'OR',
                             'member-plugin',
                             this.collectorsClicked
                         )}`
                     )
-                    .forEach(node => hide(node));
+                    .forEach(node => show(node));
+
                 this.loader(false);
             }
         } else if (this.sitesClicked.size) {
@@ -115,8 +150,12 @@ class FilterManager {
                 this.loader(true);
 
                 document
-                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}`)
+                    .querySelectorAll(dataQueryString('AND', 'member-site', this.sitesClicked, 'not'))
                     .forEach(node => hide(node));
+
+                document
+                    .querySelectorAll(dataQueryString('OR', 'member-site', this.sitesClicked))
+                    .forEach(node => show(node));
 
                 this.loader(false);
             }
@@ -134,11 +173,17 @@ class FilterManager {
                 this.loader(true);
 
                 document
-                    .querySelectorAll(`.fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .querySelectorAll(dataQueryString('AND', 'member-plugin', this.collectorsClicked, 'not'))
                     .forEach(node => hide(node));
+
+                document
+                    .querySelectorAll(dataQueryString('OR', 'member-plugin', this.collectorsClicked))
+                    .forEach(node => show(node));
 
                 this.loader(false);
             }
+        } else {
+            document.querySelectorAll('.fluidity-packet').forEach(node => show(node));
         }
     }
 

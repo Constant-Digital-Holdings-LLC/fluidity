@@ -42,15 +42,29 @@ class FilterManager {
         const show = (elem) => {
             elem.classList.remove('display-none');
         };
-        const negate = (label, set) => {
-            let s = '';
+        const dataQueryString = (op, label, set, not) => {
+            let qs = '';
+            const lastItem = Array.from(set).pop();
             set.forEach(item => {
-                s += `:not([data-${label}="${item}"])`;
+                if (not) {
+                    if (op === 'AND') {
+                        qs += `:not([data-${label}="${item}"])`;
+                    }
+                    else if (op === 'OR') {
+                        qs += `:not([data-${label}="${item}"])${item === lastItem ? '' : ', .fluidity-packet'}`;
+                    }
+                }
+                else {
+                    if (op === 'AND') {
+                        qs += `[data-${label}="${item}"]`;
+                    }
+                    else if (op === 'OR') {
+                        qs += `[data-${label}="${item}"]${item === lastItem ? '' : ', .fluidity-packet'}`;
+                    }
+                }
             });
-            return s;
+            return '.fluidity-packet' + qs;
         };
-        if (!one)
-            document.querySelectorAll('.fluidity-packet').forEach(elem => show(elem));
         if (this.sitesClicked.size && this.collectorsClicked.size) {
             if (one && one.dataset['memberSite'] && one.dataset['memberPlugin']) {
                 if (this.sitesClicked.has(one.dataset['memberSite']) &&
@@ -64,8 +78,11 @@ class FilterManager {
             else {
                 this.loader(true);
                 document
-                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}, .fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .querySelectorAll(`${dataQueryString('AND', 'member-site', this.sitesClicked, 'not')}, ${dataQueryString('AND', 'member-plugin', this.collectorsClicked, 'not')}`)
                     .forEach(node => hide(node));
+                document
+                    .querySelectorAll(`${dataQueryString('OR', 'member-site', this.sitesClicked)}${dataQueryString('OR', 'member-plugin', this.collectorsClicked)}`)
+                    .forEach(node => show(node));
                 this.loader(false);
             }
         }
@@ -81,8 +98,11 @@ class FilterManager {
             else {
                 this.loader(true);
                 document
-                    .querySelectorAll(`.fluidity-packet${negate('member-site', this.sitesClicked)}`)
+                    .querySelectorAll(dataQueryString('AND', 'member-site', this.sitesClicked, 'not'))
                     .forEach(node => hide(node));
+                document
+                    .querySelectorAll(dataQueryString('OR', 'member-site', this.sitesClicked))
+                    .forEach(node => show(node));
                 this.loader(false);
             }
         }
@@ -98,10 +118,16 @@ class FilterManager {
             else {
                 this.loader(true);
                 document
-                    .querySelectorAll(`.fluidity-packet${negate('member-plugin', this.collectorsClicked)}`)
+                    .querySelectorAll(dataQueryString('AND', 'member-plugin', this.collectorsClicked, 'not'))
                     .forEach(node => hide(node));
+                document
+                    .querySelectorAll(dataQueryString('OR', 'member-plugin', this.collectorsClicked))
+                    .forEach(node => show(node));
                 this.loader(false);
             }
+        }
+        else {
+            document.querySelectorAll('.fluidity-packet').forEach(node => show(node));
         }
     }
     loader(on) {
