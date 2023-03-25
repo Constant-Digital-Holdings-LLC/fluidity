@@ -1,6 +1,6 @@
 {
     "targets": [{ "location": "https://localhost:3000/FIFO", "key": "184f451d98b79137dcb014abda5eb6c9" }],
-    "site": "My Office",
+    "site": "My Office2",
     "logLevel": "debug",
 
 

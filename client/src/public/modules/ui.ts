@@ -63,7 +63,7 @@ class FilterManager {
             elem.classList.remove('display-none');
         };
 
-        //note - and & doesn't have a comma, and || does have a comma (in querySelectorAll())
+        //note - '& ops' don't have a comma, '|| ops' do have a comma (in querySelectorAll())
         const dataQueryString = (
             op: 'AND' | 'OR',
             label: 'member-site' | 'member-plugin',
@@ -114,6 +114,7 @@ class FilterManager {
                 document
                     .querySelectorAll(
                         //groups are 'OR-d', inidividual items are AND-ed
+                        //note - '& ops' don't have a comma, '|| ops' do have a comma (in querySelectorAll())
                         `${dataQueryString('AND', 'member-site', this.sitesClicked, 'not')}, ${dataQueryString(
                             'AND',
                             'member-plugin',
@@ -126,6 +127,7 @@ class FilterManager {
                 document
                     .querySelectorAll(
                         //groups are 'AND-ed', inidividual items are OR-ed
+                        //note - '& ops' don't have a comma, '|| ops' do have a comma (in querySelectorAll())
                         `${dataQueryString('OR', 'member-site', this.sitesClicked)}${dataQueryString(
                             'OR',
                             'member-plugin',
@@ -183,6 +185,7 @@ class FilterManager {
                 this.loader(false);
             }
         } else {
+            //no filters
             document.querySelectorAll('.fluidity-packet').forEach(node => show(node));
         }
     }
