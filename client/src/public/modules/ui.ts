@@ -108,18 +108,20 @@ class FilterManager {
         if (target instanceof HTMLDivElement) {
             applySingle(target);
         } else if (target instanceof NodeList) {
-            this.loader(true);
-            target.forEach((element, index, list) => {
-                element instanceof HTMLDivElement && applySingle(element);
-                if (index === list.length - 1) {
-                    this.loader(false);
-                }
-            });
+            target.forEach(element => element instanceof HTMLDivElement && applySingle(element));
         }
     }
 
-    public applyVisibilityAll(): void {
-        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
+    public applyVisibilityAll(): Promise<void> {
+        //run in a microtask so we dont block main event loop
+        return new Promise((resolve, reject) => {
+            try {
+                this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     private loader(on: boolean): void {
@@ -130,7 +132,7 @@ class FilterManager {
         } else {
             setTimeout(() => {
                 loaderElem?.classList.remove('loader');
-            }, 800);
+            }, 300);
         }
     }
 
@@ -177,7 +179,15 @@ class FilterManager {
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
 
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.applyVisibilityAll();
+                this.loader(true);
+                this.applyVisibilityAll()
+                    .then(() => {
+                        this.loader(false);
+                    })
+                    .catch(err => {
+                        this.loader(false);
+                        log.error(err);
+                    });
                 this.renderFilterStats();
                 this.hooks?.onLinkClick();
             }

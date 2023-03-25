@@ -90,17 +90,19 @@ class FilterManager {
             applySingle(target);
         }
         else if (target instanceof NodeList) {
-            this.loader(true);
-            target.forEach((element, index, list) => {
-                element instanceof HTMLDivElement && applySingle(element);
-                if (index === list.length - 1) {
-                    this.loader(false);
-                }
-            });
+            target.forEach(element => element instanceof HTMLDivElement && applySingle(element));
         }
     }
     applyVisibilityAll() {
-        this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
+        return new Promise((resolve, reject) => {
+            try {
+                this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
+                resolve();
+            }
+            catch (err) {
+                reject(err);
+            }
+        });
     }
     loader(on) {
         const loaderElem = document.getElementById('loader');
@@ -110,7 +112,7 @@ class FilterManager {
         else {
             setTimeout(() => {
                 loaderElem === null || loaderElem === void 0 ? void 0 : loaderElem.classList.remove('loader');
-            }, 800);
+            }, 300);
         }
     }
     clickHandler(e) {
@@ -151,7 +153,15 @@ class FilterManager {
             }
             this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
             if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.applyVisibilityAll();
+                this.loader(true);
+                this.applyVisibilityAll()
+                    .then(() => {
+                    this.loader(false);
+                })
+                    .catch(err => {
+                    this.loader(false);
+                    log.error(err);
+                });
                 this.renderFilterStats();
                 (_b = this.hooks) === null || _b === void 0 ? void 0 : _b.onLinkClick();
             }
