@@ -11,17 +11,10 @@
 
         <!-- camelCaseToDashDelim(pair[0]) - inverse of how HTML dataset props are converted -->
         <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%=
-        camelCaseToDashDelim(pair[0]) %>="<%= pair[1] %>" <% }) %> />
-
-        
-        <% if(configData.nodeEnv === 'development'){ %>
-            <title>
-                <%=configData.appName%> Dev
-            </title>
+        camelCaseToDashDelim(pair[0]) %>="<%= pair[1] %>" <% }) %> /> <% if(configData.nodeEnv === 'development'){ %>
+        <title><%=configData.appName%> Dev</title>
         <% } else{ %>
-            <title>
-                <%=configData.org%> Dash
-            </title>
+        <title><%=configData.org%> Dash</title>
         <% } %>
 
         <!--Modules-->
@@ -41,22 +34,17 @@
     <body>
         <div id="container-main" class="container">
             <div id="container-logo-and-spinner" class="container bg-gradient cell">
-                <a id="logo-link" href=""><img src="img/logo.svg" id="logo"/></a>
+                <a id="logo-link" href=""><img src="img/logo.svg" id="logo" /></a>
 
                 <span id="loader"></span>
-                
             </div>
             <div id="cell-sites" class="cell bg-gradient">
-                
-
-                <ul class="fa-ul" id="site-filter-list">
-                </ul>
+                <ul class="fa-ul" id="site-filter-list"></ul>
             </div>
             <div id="container-mesgs" class="container">
                 <div id="cell-collectors-and-stats" class="cell bg-gradient">
                     <div id="cell-collectors">
-                        <ul class="fa-ul" id="collector-filter-list">
-                        </ul>
+                        <ul class="fa-ul" id="collector-filter-list"></ul>
                     </div>
                     <div id="cell-stats">
                         <div class="stat-name">Filters:</div>
@@ -68,11 +56,9 @@
                 <div id="cell-data" class="cell bg-gradient">
                     <div id="history-data"></div>
                     <div id="current-data"></div>
-                    <div id="end-data"></div>
+                    <span id="end-data">&nbsp;</span>
                 </div>
             </div>
         </div>
-
-        
     </body>
 </html>

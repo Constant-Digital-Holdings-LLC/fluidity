@@ -300,7 +300,9 @@ export class FluidityUI {
     }
 
     private autoScroll(): void {
-        document.getElementById('end-data')?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
+        document
+            .getElementById('end-data')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     }
 
     private autoScrollRequest(): void {
@@ -311,8 +313,15 @@ export class FluidityUI {
         } else {
             const curScrollPos = document.getElementById('cell-data')?.scrollTop;
 
-            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            if (curScrollPos) log.debug(`current scroll pos: ${curScrollPos}`);
+
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos - 100) {
+                log.debug('current scroll pos is greater than highest scroll pos:');
+                if (curScrollPos && this.highestScrollPos) {
+                    log.debug(`current scroll pos: ${curScrollPos}, highest: ${this.highestScrollPos}`);
+                }
                 this.highestScrollPos = curScrollPos;
+                log.debug('autoScroll()');
                 this.autoScroll();
             } else {
                 log.debug('auto-scroll temp disabled due to manual scroll-back');
@@ -445,7 +454,7 @@ export class FluidityUI {
         const current = document.getElementById('current-data');
         // const end = document.getElementById('end-data');
 
-        const maxCount = conf?.maxClientHistory ?? 5000;
+        const maxCount = conf?.maxClientHistory ?? 50;
 
         if (history && current) {
             fpArr.forEach(fp => {

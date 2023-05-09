@@ -69,15 +69,13 @@ body {
 }
 
 .display-none {
-    display: none
+    display: none;
 }
-
-
 
 .visible {
     visibility: visible;
-        opacity: 1;
-        transition: visibility 0s linear 0s, opacity 300ms;
+    opacity: 1;
+    transition: visibility 0s linear 0s, opacity 300ms;
 }
 
 /* links:  */
@@ -90,14 +88,13 @@ a:link {
     color: var(--light);
 }
 a:visited {
-    color: var(--light)
+    color: var(--light);
 }
 a:hover {
-    
-    color: var(--light)
+    color: var(--light);
 }
 a:active {
-    color: var(--color4)
+    color: var(--color4);
 }
 
 .fa-ul {
@@ -114,6 +111,10 @@ a:active {
     gap: var(--small-gap);
     grid-template-columns: 99vw;
     /* min-width: 23.4rem; */
+}
+
+#end-data {
+    font-size: 1px;
 }
 
 #container-mesgs {
@@ -198,11 +199,8 @@ li i {
     color: var(--color6);
 }
 #cell-data {
-    
     overflow: auto;
     max-height: clamp(75vh, 72vh, 77vh);
-    
-    
 }
 
 .overflow-anchor-none {
@@ -224,9 +222,7 @@ li i {
 }
 
 .fluidity-packet {
-    
     margin-bottom: 1.25rem;
-
 }
 
 .fade-in {
@@ -244,46 +240,34 @@ li i {
 }
 
 .fluidity-packet .site {
-
     text-transform: uppercase;
     color: var(--color4);
-    
-
 }
 
 .fluidity-packet .description {
-
     text-transform: lowercase;
     font-weight: bolder;
     color: var(--color7);
     margin: 0 0.1rem;
-
 }
 
 .fluidity-packet .bracket-open {
-
     color: var(--color2);
     margin-right: 0.1rem;
-
 }
 
 .fluidity-packet .bracket-close {
-
     color: var(--color2);
     margin-left: 0.1rem;
-
 }
 
 .fluidity-packet .colon {
-
     color: var(--color2);
-
 }
 
 .fluidity-packet .fp-line {
     display: inline-block;
     margin-left: 0.3rem;
-
 }
 
 .fluidity-packet .fp-trim {
@@ -318,7 +302,6 @@ li i {
 
 .fluidity-packet .fp-color-6 {
     color: var(--color6);
-    
 }
 
 .fluidity-packet .fp-color-7 {
@@ -410,11 +393,9 @@ li i {
         justify-content: space-between;
     }
 
-        .fluidity-packet {
-    
-            margin-bottom: 1rem;
-    
-        }
+    .fluidity-packet {
+        margin-bottom: 1rem;
+    }
 }
 
 /* Medium devices */
@@ -434,11 +415,8 @@ li i {
     }
 
     .fluidity-packet {
-
         margin-bottom: 0.75rem;
-
     }
-
 }
 
 /*  Large high-res */

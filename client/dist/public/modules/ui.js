@@ -249,7 +249,8 @@ export class FluidityUI {
     }
     autoScroll() {
         var _a;
-        (_a = document.getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'start' });
+        (_a = document
+            .getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     }
     autoScrollRequest() {
         var _a;
@@ -260,8 +261,15 @@ export class FluidityUI {
         }
         else {
             const curScrollPos = (_a = document.getElementById('cell-data')) === null || _a === void 0 ? void 0 : _a.scrollTop;
-            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos) {
+            if (curScrollPos)
+                log.debug(`current scroll pos: ${curScrollPos}`);
+            if (typeof curScrollPos !== 'undefined' && curScrollPos >= this.highestScrollPos - 100) {
+                log.debug('current scroll pos is greater than highest scroll pos:');
+                if (curScrollPos && this.highestScrollPos) {
+                    log.debug(`current scroll pos: ${curScrollPos}, highest: ${this.highestScrollPos}`);
+                }
                 this.highestScrollPos = curScrollPos;
+                log.debug('autoScroll()');
                 this.autoScroll();
             }
             else {
@@ -369,7 +377,7 @@ export class FluidityUI {
         var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 5000;
+        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 50;
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
