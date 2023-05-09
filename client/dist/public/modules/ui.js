@@ -369,7 +369,7 @@ export class FluidityUI {
         var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 3000;
+        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 1000;
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
