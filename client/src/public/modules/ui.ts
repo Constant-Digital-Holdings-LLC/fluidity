@@ -445,7 +445,7 @@ export class FluidityUI {
         const current = document.getElementById('current-data');
         // const end = document.getElementById('end-data');
 
-        const maxCount = conf?.maxClientHistory ?? 1000;
+        const maxCount = conf?.maxClientHistory ?? 5000;
 
         if (history && current) {
             fpArr.forEach(fp => {
