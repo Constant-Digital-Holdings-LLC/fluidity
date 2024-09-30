@@ -21,7 +21,7 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
 
 const DEFAULTS: MyConfigData = {
     appName: 'Fluidity',
-    appVersion: '1.0.1'
+    appVersion: '1.0.2'
 };
 
 // config props which can be exposed to the client (browswer):

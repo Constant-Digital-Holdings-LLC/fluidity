@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { FSConfigUtil, DOMConfigUtil, isConfigDataPopulated } from '#@shared/modules/config.js';
 const DEFAULTS = {
     appName: 'Fluidity',
-    appVersion: '1.0.1'
+    appVersion: '1.0.2'
 };
 export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'];
 export const confFromDOM = () => {

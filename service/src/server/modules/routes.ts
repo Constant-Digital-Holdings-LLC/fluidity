@@ -10,6 +10,10 @@ router.get('/', (req, res) => {
     res.render('index');
 });
 
+router.get('/about', (req, res) => {
+    res.render('about');
+});
+
 router.get('/FIFO', GET);
 router.get('/SSE', SSE);
 
@@ -20,7 +24,7 @@ if (!permittedKeys) {
 }
 
 if (Array.isArray(permittedKeys) && permittedKeys.every(pk => typeof pk === 'string' && /^[a-zA-Z0-9]+$/.test(pk))) {
-    router.post('/FIFO', apiKeyAuth(permittedKeys as string[]), POST);
+    router.post('/FIFO', apiKeyAuth(permittedKeys), POST);
 } else {
     throw new Error('Invalid permitted key or key list format');
 }

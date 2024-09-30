@@ -20,7 +20,7 @@
         {
             "description": "SRS",
             "plugin": "srsSerial",
-            "path": "/dev/tty.usbmodem11201",
+            "path": "/dev/tty.usbmodem114101",
             "baudRate": 9600,
             "keepRaw": true,
             "extendedOptions": {
@@ -39,7 +39,7 @@
         {
             "description": "TNC",
             "plugin": "genericSerial",
-            "path": "/dev/tty.usbmodem11401",
+            "path": "/dev/tty.usbmodem114401",
             "baudRate": 9600
         }
 

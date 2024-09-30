@@ -7,6 +7,9 @@ export const router = Router();
 router.get('/', (req, res) => {
     res.render('index');
 });
+router.get('/about', (req, res) => {
+    res.render('about');
+});
 router.get('/FIFO', GET);
 router.get('/SSE', SSE);
 const permittedKeys = process.env['PERMITTED_KEY'] ? [process.env['PERMITTED_KEY']] : conf?.permittedKeys;

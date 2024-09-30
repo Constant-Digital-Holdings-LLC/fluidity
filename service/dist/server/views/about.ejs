@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="/css/normalize.css" />
+  <link href="/css/fontawesome.css" rel="stylesheet" />
+  <link href="/css/solid.css" rel="stylesheet" />
+  <link href="/css/brands.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fluidity.css" />
+
+  <!-- camelCaseToDashDelim(pair[0]) - inverse of how HTML dataset props are converted -->
+  <meta name="configData" id="configData" <% Object.entries(configData).forEach(pair => { %> data-<%=
+        camelCaseToDashDelim(pair[0]) %>="<%= pair[1] %>" <% }) %> />
+
+  <title>About <%=configData.appName%></title>
+</head>
+
+<body>
+  <div id="container-about" class="container">
+    <div id="container-about-text" class="container bg-gradient cell">
+      <a id="logo-link" href="/"><img src="img/logo.svg" id="logo" /></a>
+      <p>
+        Fluidity is a lightweight, real-time aggregator for serial data, compatible with all modern operating systems. It offers fast, centralized viewing with syntax highlighting in a clean, mobile-friendly interface.
+      </p>
+
+      <h3>Key Benefits</h3>
+
+      <ul class="fa-ul">
+        <li><i class="fa fa-circle-nodes"></i>Real-Time Data: Instantly collect and display serial data.</li>
+        <li><i class="fa fa-circle-nodes"></i>Cross-Platform: Runs on Windows, macOS, and Linux.</li>
+        <li><i class="fa fa-circle-nodes"></i>Extensible: Easily extend with custom plugins.</li>
+        <li><i class="fa fa-circle-nodes"></i>Self-Contained: No internet dependencies, secure local operation.</li>
+        <li><i class="fa fa-circle-nodes"></i>User-Friendly: Intuitive and mobile-friendly dashboard.</li>
+      </ul>
+
+      <h3>Get Started</h3>
+      <p>
+        Fluidity is free and open-source.
+      </p>
+
+      <p>
+        <i class="fa-brands fa-github"></i>
+        <a href="https://github.com/Constant-Digital-Holdings-LLC/fluidity">Get the software on GitHub</a>
+      </p>
+
+    </div>
+  </div>
+
+</body>
+
+</html>

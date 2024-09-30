@@ -147,38 +147,30 @@ a:active {
     justify-content: left;
 }
 
-li {
+#container-main li {
     width: 9rem;
+    font-size: 0.8rem;
+    line-height: 1.2rem;
 }
 
-ul {
+#container-main ul {
     /* list-style: none; */
     display: block;
     margin: 0;
     padding: 0;
 }
 
-li {
-    font-size: 0.8rem;
-    line-height: 1.2rem;
+#container-main li i {
+    margin: 0 3px;
 }
 
 li i {
     color: var(--color6);
-    margin: 0 3px;
 }
 
 .fa-circle-xmark {
     color: var(--color2);
 }
-
-/* .fa-tower-cell {
-    margin-left: 3px;
-}
-
-.fa-circle-nodes {
-    margin-left: 3px;
-} */
 
 #cell-sites li {
     margin-left: 10px;
@@ -442,3 +434,67 @@ li i {
         gap: 0.5rem;
     }
 }
+
+#about-link {
+    color: var(--color7);
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+
+}
+
+/* About page */
+
+   #container-about {
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       height: 100vh;
+   }
+
+   #container-about-text {
+       max-width: 600px;
+       padding: 20px;
+       border-radius: 10px;
+       box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+   }
+
+   #container-about #logo-link {
+       display: block;
+       margin-bottom: 20px;
+   }
+
+   #container-about h1 {
+       font-size: 2.2em;
+       margin-bottom: 20px;
+   }
+
+   #container-about h3 {
+       font-size: 1.6em;
+       margin-bottom: 10px;
+   }
+
+   #container-about p {
+       font-size: 1.3em;
+   }
+
+   #container-about ul {
+       margin-bottom: 20px;
+       font-size: 1.3em;
+   }
+
+   #container-about li {
+       margin-bottom: 10px;
+   }
+
+   #container-about li i {
+       margin-right: 10px;
+   }
+
+   #container-about a {
+       font-size: 1.1em;
+   }
+
+   #container-about .fa-github {
+       font-size: 1.2em;
+   }
