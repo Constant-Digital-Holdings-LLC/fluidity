@@ -312,6 +312,70 @@ li i {
     color: var(--dark);
 }
 
+#about-link {
+    color: var(--color7);
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+
+}
+
+/* About page */
+
+#container-about {
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    height: 100vh;
+}
+
+#container-about-text {
+    max-width: 600px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+#container-about #logo-link {
+    display: block;
+    margin-bottom: 20px;
+}
+
+#container-about h1 {
+    font-size: 2.2em;
+    margin-bottom: 20px;
+}
+
+#container-about h3 {
+    font-size: 1.6em;
+    margin-bottom: 10px;
+}
+
+#container-about p {
+    font-size: 1.3em;
+}
+
+#container-about ul {
+    margin-bottom: 20px;
+    font-size: 1.3em;
+}
+
+#container-about li {
+    margin-bottom: 10px;
+}
+
+#container-about li i {
+    margin-right: 10px;
+}
+
+#container-about a {
+    font-size: 1.1em;
+}
+
+#container-about .fa-github {
+    font-size: 1.2em;
+}
+
 /* Begin Loader: */
 .loader {
     width: 40px;
@@ -409,6 +473,9 @@ li i {
     .fluidity-packet {
         margin-bottom: 0.75rem;
     }
+    #container-about {
+        align-items: center;
+    }
 }
 
 /*  Large high-res */
@@ -434,67 +501,3 @@ li i {
         gap: 0.5rem;
     }
 }
-
-#about-link {
-    color: var(--color7);
-    display: block;
-    text-align: center;
-    margin-top: 10px;
-
-}
-
-/* About page */
-
-   #container-about {
-       display: flex;
-       justify-content: center;
-       align-items: center;
-       height: 100vh;
-   }
-
-   #container-about-text {
-       max-width: 600px;
-       padding: 20px;
-       border-radius: 10px;
-       box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-   }
-
-   #container-about #logo-link {
-       display: block;
-       margin-bottom: 20px;
-   }
-
-   #container-about h1 {
-       font-size: 2.2em;
-       margin-bottom: 20px;
-   }
-
-   #container-about h3 {
-       font-size: 1.6em;
-       margin-bottom: 10px;
-   }
-
-   #container-about p {
-       font-size: 1.3em;
-   }
-
-   #container-about ul {
-       margin-bottom: 20px;
-       font-size: 1.3em;
-   }
-
-   #container-about li {
-       margin-bottom: 10px;
-   }
-
-   #container-about li i {
-       margin-right: 10px;
-   }
-
-   #container-about a {
-       font-size: 1.1em;
-   }
-
-   #container-about .fa-github {
-       font-size: 1.2em;
-   }
