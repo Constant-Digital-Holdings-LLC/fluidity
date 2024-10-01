@@ -349,6 +349,7 @@ li i {
 #container-about h3 {
     font-size: 1.6em;
     margin-bottom: 10px;
+    color: var(--color4);
 }
 
 #container-about p {
@@ -375,6 +376,7 @@ li i {
 #container-about .fa-github {
     font-size: 1.2em;
 }
+
 
 /* Begin Loader: */
 .loader {
