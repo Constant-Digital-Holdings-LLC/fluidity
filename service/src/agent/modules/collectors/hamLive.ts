@@ -67,7 +67,9 @@ export default class HamLiveCollector extends WebJSONCollector implements DataCo
 
                     if (typeof ts === 'undefined' || Date.now() - ts >= this.notifyIntervalSec * 1000) {
                         log.debug(`hamLive: OK to notify re: ${net.title}`);
-                        fh.e({ location: `https://ham.live${net.url}`, name: net.title }, 6).e(
+                        //resolve the net's path against the polled instance, so
+                        //self-hosted ham.live deployments link to themselves
+                        fh.e({ location: new URL(net.url, this.url).href, name: net.title }, 6).e(
                             ` ${net.started ? ' in progress' : ' starts at '}`
                         );
                         if (!net.started) {

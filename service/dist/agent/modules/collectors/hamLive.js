@@ -36,7 +36,7 @@ export default class HamLiveCollector extends WebJSONCollector {
                     const ts = lastNotified.get(net.id);
                     if (typeof ts === 'undefined' || Date.now() - ts >= this.notifyIntervalSec * 1000) {
                         log.debug(`hamLive: OK to notify re: ${net.title}`);
-                        fh.e({ location: `https://ham.live${net.url}`, name: net.title }, 6).e(` ${net.started ? ' in progress' : ' starts at '}`);
+                        fh.e({ location: new URL(net.url, this.url).href, name: net.title }, 6).e(` ${net.started ? ' in progress' : ' starts at '}`);
                         if (!net.started) {
                             const startTime = new Date(net.createdAt);
                             startTime.setMinutes(startTime.getMinutes() + net.countdownTimer);

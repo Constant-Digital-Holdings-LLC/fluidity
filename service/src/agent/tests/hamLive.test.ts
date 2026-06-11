@@ -39,8 +39,24 @@ void test('an in-progress net renders as a link plus status text', () => {
     assert.equal(out[0]?.fieldType, 'LINK');
     assert.ok(isFluidityLink(out[0]?.field));
     assert.equal(out[0]?.field.name, 'Test Net');
-    assert.equal(out[0]?.field.location, 'https://ham.live/views/livenet/abc123');
+    //links resolve against the polled instance (self-hosted ham.live support)
+    assert.equal(out[0]?.field.location, 'https://localhost:1/views/livenet/abc123');
     assert.deepEqual(out[1], { suggestStyle: 0, field: '  in progress', fieldType: 'STRING' });
+});
+
+void test('links point at the configured instance; default stays on ham.live', () => {
+    const selfHosted = new HamLiveCollector({ ...params(), url: 'https://nets.myclub.org/api/data/livenets' });
+    const selfOut = selfHosted.format(JSON.stringify({ netlist: [net({ id: 'n-self' })] }), new FormatHelper());
+    assert.ok(selfOut && isFluidityLink(selfOut[0]?.field));
+    assert.equal(selfOut[0]?.field.location, 'https://nets.myclub.org/views/livenet/abc123');
+
+    //url omitted from config: plugin defaults to the public ham.live instance
+    const { url: omitted, ...noUrl } = params();
+    void omitted;
+    const defaulted = new HamLiveCollector(noUrl as WebJSONCollectorParams);
+    const defOut = defaulted.format(JSON.stringify({ netlist: [net({ id: 'n-default' })] }), new FormatHelper());
+    assert.ok(defOut && isFluidityLink(defOut[0]?.field));
+    assert.equal(defOut[0]?.field.location, 'https://www.ham.live/views/livenet/abc123');
 });
 
 void test('an upcoming net includes its computed start time', () => {
@@ -101,10 +117,10 @@ void test('a real captured ham.live response parses without error', () => {
     const out = c.format(body, new FormatHelper());
 
     assert.ok(Array.isArray(out));
-    //every emitted link must point at ham.live
+    //every emitted link must point at the polled instance
     out.forEach(f => {
         if (f.fieldType === 'LINK' && isFluidityLink(f.field)) {
-            assert.match(f.field.location, /^https:\/\/ham\.live\//);
+            assert.match(f.field.location, /^https:\/\/localhost:1\//);
         }
     });
 });
