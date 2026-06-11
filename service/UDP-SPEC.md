@@ -272,17 +272,16 @@ traffic passes, tampered bytes drop with `bad-mac`, perf is a non-issue at
 real M5Stack on the LAN appears on f-y.io-style dashboards end-to-end with
 MAC mode on.
 
-## 11. Open questions (mark up before U1)
+## 11. Resolved decisions (2026-06-11)
 
-1. **Default port 17996** — fine, or do you have a house favorite?
-2. **`siteFromPacket` default true** — agreed that devices are first-class
-   sites? (The liveness dots argue yes.)
-3. **Replay protection (U2)**: is the strict `device_seq` window worth the
-   firmware constraint (devices must persist/monotonize seq across reboots —
-   or we accept "resets allowed, window re-anchors")? Proposed: re-anchor on
-   reset, window 1..1024, off by default.
-4. **Per-device secrets vs one shared secret per collector** — v1 proposes
-   one per collector (simple key management for a hobby LAN); per-device
-   means a key table in config. Shared OK?
-5. **Field text width 40** — enough for your sensor lines, or trade
-   field_count 4→3 for text[56]?
+1. **Default port: 17996** (0x464C, "FL"); always overridable per collector.
+2. **`siteFromPacket` defaults true** — devices are first-class sites with
+   their own pills and liveness dots.
+3. **Replay protection (U2): available, off by default.** Strict
+   `device_seq` window 1..1024 behind a config flag; the window re-anchors
+   when a device resets, so firmware needs no persistent counter.
+4. **One shared secret per collector.** Per-device keys remain addable
+   without a wire change (the agent can key lookup off the packet's
+   site/plugin) if ever needed.
+5. **Fields stay 4 x text[40]** — four individually styled segments,
+   237-byte max datagram, as specified in §3.
