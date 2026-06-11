@@ -23,6 +23,7 @@
             "baudRate": 9600,
             "keepRaw": true,
             "extendedOptions": {
+                "suppress": ["COR"],
                 "portmap": [
                     "440",
                     "2M",

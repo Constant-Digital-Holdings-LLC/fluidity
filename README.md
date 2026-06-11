@@ -152,7 +152,9 @@ Once the agent and service are configured, run:
 
 The simulators live in **sims/** as a TypeScript library (`sims/src/`). Any serial collector can be pointed at a simulator by using a `sim://` path in its config (`sim://srs` for SRS controller telemetry, `sim://generic` for assorted serial console data). Simulated devices behave like real ones: same parsers, same plugins, same data path to the dashboard.
 
-The SRS simulator is a stateful model of a real controller's telemetry stream (per SRS Command List command C22A, validated against live production data): single-port COR events alternating between linked ports, release-to-zero state changes, and 100-second status heartbeats. Equivalent Arduino sketches for driving a real serial port from a microcontroller live in **sims/arduino/**.
+The SRS simulator is a stateful model of a real controller's telemetry stream (per SRS Command List command C22A, validated against live production data): single-port COR events alternating between linked ports, release-to-zero state changes, and 100-second status heartbeats.
+
+By default the srsSerial plugin hides messages that contain nothing but carrier detect (in practice ~90% of real traffic is COR-only noise); messages carrying anything more pass through complete. Tune this per collector with `"extendedOptions": { "suppress": [...] }` — an empty list shows everything, and any radio/port state name (e.g. `"LINK"`, `"LOOPBACK"`) can be added to the list. Equivalent Arduino sketches for driving a real serial port from a microcontroller live in **sims/arduino/**.
 
 Run the test suite (no hardware required) with:
 

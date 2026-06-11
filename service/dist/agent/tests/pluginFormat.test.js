@@ -16,9 +16,26 @@ void test('srsSerial format ignores garbage, partial, and zero frames', () => {
     assert.equal(c.format('>0:5<', fh), null);
 });
 void test('srsSerial format uses portmap names from extendedOptions', () => {
-    const c = new CapturingSRSCollector(srsParams('/test/fmt-portmap', { extendedOptions: { portmap: ['Alpha', 'Bravo'] } }));
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-portmap', { extendedOptions: { portmap: ['Alpha', 'Bravo'], suppress: [] } }));
     const out = c.format('[02 00 00 00 00]', new FormatHelper());
     assert.deepEqual(out?.map(f => f.field), ['Radio States: ', 'Bravo:', 'COR']);
+});
+void test('srsSerial hides carrier-only messages by default, keeps mixed frames whole', () => {
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-suppress'));
+    assert.equal(c.format('[01 00 00 00 00]', new FormatHelper()), null);
+    assert.equal(c.format('[40 00 00 00 00]', new FormatHelper()), null);
+    const mixed = c.format('[01 00 01 00 00]', new FormatHelper());
+    assert.deepEqual(mixed?.map(f => f.field), ['Radio States: ', 'port-0:', 'COR,RCVACT']);
+    assert.ok(c.format('{0f 01 00 00 00 1f}', new FormatHelper()));
+});
+void test('suppress is configurable: empty list shows everything, port states can be hidden too', () => {
+    const showAll = new CapturingSRSCollector(srsParams('/test/fmt-suppress-off', { extendedOptions: { suppress: [] } }));
+    assert.deepEqual(showAll.format('[01 00 00 00 00]', new FormatHelper())?.map(f => f.field), ['Radio States: ', 'port-0:', 'COR']);
+    const quiet = new CapturingSRSCollector(srsParams('/test/fmt-suppress-ports', {
+        extendedOptions: { suppress: ['COR', 'LINK', 'LOOPBACK', 'INTERFACED'] }
+    }));
+    assert.equal(quiet.format('{0f 01 00 00 00 1f}', new FormatHelper()), null);
+    assert.ok(quiet.format('{00 00 01 00 00 00}', new FormatHelper()));
 });
 void test('srsSerial format falls back to port-N labels without a portmap', () => {
     const c = new CapturingSRSCollector(srsParams('/test/fmt-fallback'));

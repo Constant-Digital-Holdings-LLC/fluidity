@@ -12,7 +12,9 @@ const collectorFor = (portmap, idx) => {
     const key = JSON.stringify(portmap ?? null);
     let c = collectors.get(key);
     if (!c) {
-        c = new CapturingSRSCollector(srsParams(`/test/golden-${idx}`, portmap ? { extendedOptions: { portmap } } : undefined));
+        c = new CapturingSRSCollector(srsParams(`/test/golden-${idx}`, {
+            extendedOptions: { suppress: [], ...(portmap ? { portmap } : {}) }
+        }));
         collectors.set(key, c);
     }
     return c;

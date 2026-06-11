@@ -41,7 +41,8 @@ void test('simulator stream decodes through the collector: active frames render,
     assert.ok(expectActive.length > 0, 'sample should contain active frames');
     assert.ok(expectActive.length < lines.length, 'sample should contain zero frames');
 
-    const collector = new CapturingSRSCollector(srsParams('/test/srs-stream'));
+    //suppress disabled: this test counts every decodable frame, incl. COR-only
+    const collector = new CapturingSRSCollector(srsParams('/test/srs-stream', { extendedOptions: { suppress: [] } }));
     const allCaptured = new Promise<void>(resolve => {
         collector.onCapture = () => {
             if (collector.captured.length === expectActive.length) resolve();

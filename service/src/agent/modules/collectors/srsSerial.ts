@@ -21,6 +21,13 @@ const portStates = ['LINK', 'LOOPBACK', 'DISABLED', 'SUDISABLED', 'SPLIT_GROUP',
 type RadioStates = (typeof radioStates)[number];
 type PortStates = (typeof portStates)[number];
 
+const isStringArray = (item: unknown): item is string[] =>
+    Array.isArray(item) && item.every(s => typeof s === 'string');
+
+//carrier-detect events dominate real traffic (~90% of observed production
+//packets are COR-only) - messages containing nothing else are noise by default
+const DEFAULT_SUPPRESS = ['COR'];
+
 export default class SRSserialCollector extends SerialCollector implements SerialCollectorPlugin {
     constructor(params: SerialCollectorParams) {
         super(params);
@@ -65,6 +72,19 @@ export default class SRSserialCollector extends SerialCollector implements Seria
         return portMatrix;
     }
 
+    //message types to hide: a frame whose decoded states are ALL in this list
+    //is dropped entirely; frames carrying anything else pass through complete.
+    //config: extendedOptions.suppress (string[]); [] shows everything
+    private suppressed(): Set<string> {
+        const eo = this.params.extendedOptions;
+
+        if (eo && typeof eo === 'object' && 'suppress' in eo && isStringArray(eo.suppress)) {
+            return new Set(eo.suppress);
+        }
+
+        return new Set(DEFAULT_SUPPRESS);
+    }
+
     override format(data: string, fh: FormatHelper): FormattedData[] | null {
         const result = data.match(/[[{]((?:[a-fA-F0-9]{2}\s*)+)[\]}]/);
 
@@ -82,11 +102,18 @@ export default class SRSserialCollector extends SerialCollector implements Seria
             return portName ? `${portName}` : `port-${p}`;
         };
 
+        const suppress = this.suppressed();
+        const onlyNoise = (matrix: string[][]): boolean => {
+            const states = matrix.flat();
+            return states.length > 0 && states.every(s => suppress.has(s));
+        };
+
         if (typeof result?.[1] === 'string' && (data[0] === '[' || data[0] === '{')) {
             if (data[0] === '[') {
-                const RS = this.decode<RadioStates>(radioStates, 16, result[1].split(' ')).flatMap((s, index) =>
-                    s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 9).done : []
-                );
+                const matrix = this.decode<RadioStates>(radioStates, 16, result[1].split(' '));
+                if (onlyNoise(matrix)) return null;
+
+                const RS = matrix.flatMap((s, index) => (s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 9).done : []));
                 if (RS.length) {
                     return [...fh.e('Radio States: ').done, ...RS];
                 } else {
@@ -94,9 +121,10 @@ export default class SRSserialCollector extends SerialCollector implements Seria
                 }
             }
             if (data[0] === '{') {
-                const PS = this.decode<PortStates>(portStates, 16, result[1].split(' ')).flatMap((s, index) =>
-                    s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 7).done : []
-                );
+                const matrix = this.decode<PortStates>(portStates, 16, result[1].split(' '));
+                if (onlyNoise(matrix)) return null;
+
+                const PS = matrix.flatMap((s, index) => (s.length ? fh.e(`${pLookup(index)}:`, 3).e(s, 7).done : []));
                 if (PS.length) {
                     return [...fh.e('Port States: ').done, ...PS];
                 } else {

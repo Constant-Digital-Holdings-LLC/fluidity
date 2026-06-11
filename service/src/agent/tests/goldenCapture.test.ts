@@ -24,8 +24,12 @@ const collectorFor = (portmap: string[] | undefined, idx: number): CapturingSRSC
     const key = JSON.stringify(portmap ?? null);
     let c = collectors.get(key);
     if (!c) {
+        //suppress disabled: this test verifies decode parity with production
+        //output, which does not hide COR-only messages
         c = new CapturingSRSCollector(
-            srsParams(`/test/golden-${idx}`, portmap ? { extendedOptions: { portmap } } : undefined)
+            srsParams(`/test/golden-${idx}`, {
+                extendedOptions: { suppress: [], ...(portmap ? { portmap } : {}) }
+            })
         );
         collectors.set(key, c);
     }

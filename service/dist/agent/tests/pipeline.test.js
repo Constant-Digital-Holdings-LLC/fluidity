@@ -41,7 +41,7 @@ void test('serial data flows through the collector onto the wire as a FluidityPa
     try {
         const collector = new MockPortSRSCollector(srsParams('/test/pipeline-1', {
             targets: [{ location: target.location, key: 'pipelinekey1' }],
-            extendedOptions: { portmap: ['Repeater440'] }
+            extendedOptions: { portmap: ['Repeater440'], suppress: [] }
         }));
         const posted = target.next();
         collector.start();
