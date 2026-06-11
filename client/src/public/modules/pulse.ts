@@ -8,7 +8,11 @@ export class RateBuckets {
     private headIdx = 0;
     private headBucket: number;
 
-    constructor(private bucketMs: number, private size: number, now: number) {
+    constructor(
+        private bucketMs: number,
+        private size: number,
+        now: number
+    ) {
         this.counts = new Array<number>(size).fill(0);
         this.headBucket = Math.floor(now / bucketMs);
     }

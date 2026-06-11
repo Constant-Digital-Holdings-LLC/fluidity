@@ -237,9 +237,13 @@ a:focus-visible {
 }
 
 #container-main li {
-    /* hug the label; 9rem cap preserves the rail's wrap behavior for long names */
+    /* a pill is one non-breaking row: dot + name + icon. Long names
+       ellipsize instead of wrapping; min() keeps pills inside the rail */
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
     width: fit-content;
-    max-width: 9rem;
+    max-width: min(9rem, 100%);
     font-size: 0.8rem;
     line-height: 1.2rem;
     padding: 0.12rem 0.55rem;
@@ -247,6 +251,18 @@ a:focus-visible {
     background: var(--chip);
     transition: background-color 0.15s ease, box-shadow 0.15s ease;
     user-select: none;
+}
+
+#container-main li a.filter-link {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+#container-main li i,
+#container-main li .live-dot {
+    flex: none;
 }
 
 #container-main li:hover {
