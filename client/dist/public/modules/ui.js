@@ -117,56 +117,44 @@ class FilterManager {
         }
     }
     clickHandler(e) {
-        var _a, _b;
+        var _a;
         const extractUnique = (type, id) => {
-            const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
                 return match[1];
             }
             return;
         };
-        if (e.target instanceof Element) {
-            if (e.target.classList.contains('filter-link')) {
-                e.preventDefault();
-                if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('display-none');
-                }
-            }
-            if (e.target.classList.contains('clear-link')) {
-                e.preventDefault();
-                e.target.classList.add('display-none');
-            }
-            if (e.target.classList.contains('collector-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.add(collector);
-            }
-            if (e.target.classList.contains('collector-clear-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.delete(collector);
-            }
-            if (e.target.classList.contains('site-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.add(site);
-            }
-            if (e.target.classList.contains('site-clear-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.delete(site);
-            }
-            this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
-            if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.loader(true);
-                this.applyVisibilityAll()
-                    .then(() => {
-                    this.loader(false);
-                })
-                    .catch(err => {
-                    this.loader(false);
-                    log.error(err);
-                });
-                this.renderFilterStats();
-                (_b = this.hooks) === null || _b === void 0 ? void 0 : _b.onLinkClick();
-            }
-        }
+        if (!(e.target instanceof Element))
+            return;
+        const pill = e.target.closest('li.filter-pill');
+        if (!(pill instanceof Element))
+            return;
+        e.preventDefault();
+        const link = pill.querySelector('a.filter-link');
+        if (!(link instanceof Element))
+            return;
+        const isCollector = link.classList.contains('collector-filter-link');
+        const name = extractUnique(isCollector ? 'COLLECTOR' : 'SITE', link.id);
+        if (name === undefined)
+            return;
+        const selections = isCollector ? this.collectorsClicked : this.sitesClicked;
+        const nowSelected = !selections.has(name);
+        nowSelected ? selections.add(name) : selections.delete(name);
+        pill.classList.toggle('filter-selected', nowSelected);
+        link.setAttribute('aria-pressed', String(nowSelected));
+        this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+        this.loader(true);
+        this.applyVisibilityAll()
+            .then(() => {
+            this.loader(false);
+        })
+            .catch(err => {
+            this.loader(false);
+            log.error(err);
+        });
+        this.renderFilterStats();
+        (_a = this.hooks) === null || _a === void 0 ? void 0 : _a.onLinkClick();
     }
     index(fp) {
         if (fp.seq) {
@@ -193,29 +181,26 @@ class FilterManager {
     renderType(type, fp) {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
         const li = document.createElement('li');
-        const xIcon = document.createElement('i');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
-        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link', 'display-none');
         a.href = '#0';
         a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        a.setAttribute('role', 'button');
+        a.setAttribute('aria-pressed', 'false');
         typeIcon.classList.add('fa-solid');
         if (type === 'COLLECTOR') {
-            xIcon.id = `clear-collector-${fp.plugin}`;
             a.innerText = fp.plugin;
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         }
         else if (type === 'SITE') {
-            xIcon.id = `clear-site-${fp.site}`;
             a.innerText = fp.site;
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
         }
-        li.appendChild(xIcon);
         li.appendChild(a);
         li.appendChild(typeIcon);
-        li.classList.add('fade-in');
+        li.classList.add('filter-pill', 'fade-in');
         ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
     }
     renderFilterLinks(fp) {

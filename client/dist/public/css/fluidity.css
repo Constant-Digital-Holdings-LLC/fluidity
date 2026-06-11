@@ -209,9 +209,13 @@ a:focus-visible {
     background: var(--chip-hover);
 }
 
-/* selected filter: the FilterManager reveals the adjacent x icon; modern
-   browsers can style the whole chip from that (progressive enhancement) */
-#container-main li:has(.clear-link:not(.display-none)) {
+/* each pill is a toggle: the whole pill is the click target and selection
+   is a class set by the FilterManager (no x icon, no :has() needed) */
+#container-main li.filter-pill {
+    cursor: pointer;
+}
+
+#container-main li.filter-selected {
     background: var(--chip-active);
     box-shadow: inset 0 0 0 1px var(--chip-active-ring);
 }
@@ -226,7 +230,7 @@ a:focus-visible {
     color: var(--color9);
 }
 
-#container-main li:has(.clear-link:not(.display-none)) i {
+#container-main li.filter-selected i {
     color: var(--color6);
 }
 
@@ -244,15 +248,6 @@ a:focus-visible {
 /* outside the dashboard chrome (about page lists), icons keep the brand pink */
 li i {
     color: var(--color6);
-}
-
-.fa-circle-xmark {
-    color: var(--color9);
-    cursor: pointer;
-}
-
-.fa-circle-xmark:hover {
-    color: var(--accent-a);
 }
 
 #cell-sites li {
