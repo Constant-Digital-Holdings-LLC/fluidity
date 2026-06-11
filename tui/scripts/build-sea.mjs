@@ -6,7 +6,7 @@
 import { build } from 'esbuild';
 import { inject } from 'postject';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -48,6 +48,10 @@ execFileSync(process.execPath, ['--experimental-sea-config', seaConfig], { stdio
 
 // 3. copy the node binary and inject the blob
 console.log('[3/4] inject into node binary');
+//unlink first: overwriting an executable that's currently running fails with
+//ETXTBSY on linux; removing the directory entry is safe (the running process
+//keeps its inode) and a fresh file is written in its place
+rmSync(exePath, { force: true });
 copyFileSync(process.execPath, exePath);
 chmodSync(exePath, 0o755);
 
