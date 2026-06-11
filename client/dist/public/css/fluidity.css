@@ -3,6 +3,8 @@
 }
 
 :root {
+    /* packet palette - the suggestion contract (TUI parity, pinned by tests).
+       these values must not change */
     --color1: #53354a;
     --color2: #706c9d;
     --color3: #54b0ed;
@@ -14,6 +16,20 @@
     --color9: peachpuff;
     --light: #ffe5ff;
     --dark: #52423d;
+
+    /* chrome tokens, derived from the logo: deep plum field #53354a,
+       pink->peach mark gradient #fe8dc6 -> #fed1c7 */
+    --surface-page: #271a26;
+    --surface-cell: #53354a; /* the logo's own field - header melts into it */
+    --surface-cell-hi: #6b4862;
+    --accent-a: #fe8dc6;
+    --accent-b: #fed1c7;
+    --line: rgba(255, 229, 255, 0.13);
+    --chip: rgba(255, 229, 255, 0.06);
+    --chip-hover: rgba(255, 229, 255, 0.12);
+    --chip-active: rgba(254, 141, 198, 0.16);
+    --chip-active-ring: rgba(254, 141, 198, 0.45);
+
     --small-gap: 0.5rem;
     --big-gap: 0.75rem;
 }
@@ -55,17 +71,26 @@
         /* Safari, Android, iOS */ url('/webfonts/outfit-v6-latin-600.svg#Outfit') format('svg'); /* Legacy iOS */
 }
 
+/* the first 75% stays flat #53354a on purpose: the logo's own field color,
+   so its bounding box disappears into the header */
 .bg-gradient {
     background: rgb(83, 53, 74);
-    background: linear-gradient(90deg, rgba(83, 53, 74, 1) 75%, rgba(112, 76, 101, 1) 100%);
+    background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
 }
 
 body {
     color: var(--light);
-    background-color: var(--color2);
+    background-color: var(--surface-page);
+    background-image: radial-gradient(110rem 60rem at 85% -20%, #3a2438 0%, var(--surface-page) 60%);
+    background-attachment: fixed;
     font-size: 0.8rem;
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
+}
+
+::selection {
+    background: var(--accent-a);
+    color: var(--surface-page);
 }
 
 .display-none {
@@ -82,6 +107,7 @@ body {
 
 a {
     text-decoration: none;
+    transition: color 0.15s ease;
 }
 
 a:link {
@@ -91,10 +117,16 @@ a:visited {
     color: var(--light);
 }
 a:hover {
-    color: var(--light);
+    color: var(--color9);
 }
 a:active {
     color: var(--color4);
+}
+
+a:focus-visible {
+    outline: 2px solid var(--color9);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .fa-ul {
@@ -104,6 +136,16 @@ a:active {
 #logo {
     height: 3.25rem;
     margin: 0.25rem;
+    display: block;
+}
+
+#logo-link {
+    border-radius: 6px;
+    transition: filter 0.2s ease;
+}
+
+#logo-link:hover {
+    filter: drop-shadow(0 0 0.6rem rgba(254, 141, 198, 0.35));
 }
 
 #container-main {
@@ -151,6 +193,22 @@ a:active {
     width: 9rem;
     font-size: 0.8rem;
     line-height: 1.2rem;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    background: var(--chip);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+}
+
+#container-main li:hover {
+    background: var(--chip-hover);
+}
+
+/* selected filter: the FilterManager reveals the adjacent x icon; modern
+   browsers can style the whole chip from that (progressive enhancement) */
+#container-main li:has(.clear-link:not(.display-none)) {
+    background: var(--chip-active);
+    box-shadow: inset 0 0 0 1px var(--chip-active-ring);
 }
 
 #container-main ul {
@@ -169,11 +227,17 @@ li i {
 }
 
 .fa-circle-xmark {
-    color: var(--color2);
+    color: var(--color9);
+    cursor: pointer;
+}
+
+.fa-circle-xmark:hover {
+    color: var(--accent-a);
 }
 
 #cell-sites li {
     margin-left: 10px;
+    margin-bottom: 0.35rem;
 }
 
 #cell-stats {
@@ -183,8 +247,14 @@ li i {
     grid-template-columns: 1fr 1fr;
 }
 
+.stat-name {
+    color: var(--color7);
+}
+
 .stat-data {
     color: var(--color3);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-data-attention {
@@ -193,6 +263,7 @@ li i {
 #cell-data {
     overflow: auto;
     max-height: clamp(75vh, 72vh, 77vh);
+    scrollbar-gutter: stable;
 }
 
 .overflow-anchor-none {
@@ -209,12 +280,21 @@ li i {
 
 .cell {
     padding: 0.5rem;
-    border-radius: 7px;
-    border: 2px groove var(--color3);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .fluidity-packet {
     margin-bottom: 1.25rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    line-height: 1.35;
+    transition: background-color 0.15s ease;
+}
+
+.fluidity-packet:hover {
+    background: rgba(255, 255, 255, 0.035);
 }
 
 .fade-in {
@@ -234,6 +314,7 @@ li i {
 .fluidity-packet .site {
     text-transform: uppercase;
     color: var(--color4);
+    letter-spacing: 0.04em;
 }
 
 .fluidity-packet .description {
@@ -317,7 +398,10 @@ li i {
     display: block;
     text-align: center;
     margin-top: 10px;
+}
 
+#about-link:hover {
+    color: var(--color9);
 }
 
 /* About page */
@@ -332,8 +416,10 @@ li i {
 #container-about-text {
     max-width: 600px;
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 #container-about #logo-link {
@@ -377,8 +463,9 @@ li i {
     font-size: 1.2em;
 }
 
-
 /* Begin Loader: */
+/* concentric expanding rings - the logo's own ripple motif, in its gradient
+   colors (pink inner ring, peach trailing ring) */
 .loader {
     width: 40px;
     height: 40px;
@@ -393,7 +480,7 @@ li i {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 2px solid var(--light);
+    border: 2px solid var(--accent-a);
     position: absolute;
     left: 0;
     top: 0;
@@ -401,6 +488,7 @@ li i {
 }
 
 .loader::after {
+    border-color: var(--accent-b);
     animation-delay: 1s;
 }
 
@@ -418,15 +506,43 @@ li i {
 /* End Loader: */
 
 ::-webkit-scrollbar {
-    height: 12px;
-    width: 12px;
-    background: var(--color1);
+    height: 10px;
+    width: 10px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color5);
-    -webkit-border-radius: 1ex;
-    -webkit-box-shadow: var(--color4);
+    background: var(--surface-cell-hi);
+    border-radius: 1ex;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-a);
+}
+
+#cell-data {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-cell-hi) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-in {
+        animation: none;
+    }
+
+    .loader::after,
+    .loader::before {
+        animation: none;
+        opacity: 0.4;
+        transform: scale(0.6);
+    }
+
+    a,
+    #container-main li,
+    .fluidity-packet,
+    #logo-link {
+        transition: none;
+    }
 }
 
 @media (min-width: 550px) {
