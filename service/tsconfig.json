@@ -2,6 +2,9 @@
     "references": [
         {
             "path": "../client"
+        },
+        {
+            "path": "../sims"
         }
     ],
 

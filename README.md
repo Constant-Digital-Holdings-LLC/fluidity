@@ -32,7 +32,9 @@ Fluidity has no internet dependences. The dashboard intentionally does not utliz
 
 It's recommended that you run all 3 components on a single computer, initially, in order to famliarize yourself with the stack.
 
-Upon downloading the repository locally, first edit : **service/dist/agent/conf/dev_conf.json** and customize the below as you see fit. If you are testing with a single local serial device, delete the stanza for either "Device Foo" or "Device Bar", so only once collector will be running within the agent.
+You don't need any serial hardware to try Fluidity: the agent ships with built-in simulated serial devices. Set a collector's `path` to `sim://generic` (or `sim://srs` for the SRS plugin) and the agent emits realistic sample data in software, exactly as if an Arduino test device were attached. Use a real device path (e.g. `/dev/tty.usbmodem11201` or `COM4`) when you have actual hardware.
+
+Upon downloading the repository locally, first edit : **service/dist/agent/conf/dev_conf.json** and customize the below as you see fit. If you are testing with a single local serial device, replace the `sim://` path in the "Device Foo" stanza with your device's path, or delete a stanza so only one collector runs within the agent.
 
 ---
 
@@ -62,7 +64,7 @@ Upon downloading the repository locally, first edit : **service/dist/agent/conf/
 
 ​ `"plugin": "genericSerial",`
 
-​ `"path": "/dev/tty.usbmodem11201",`
+​ `"path": "sim://generic",`
 
 ​ `"baudRate": 9600`
 
@@ -72,9 +74,9 @@ Upon downloading the repository locally, first edit : **service/dist/agent/conf/
 
 ​ `"description": "Device Bar",`
 
-​ `"plugin": "genericSerial",`
+​ `"plugin": "srsSerial",`
 
-​ `"path": "COM4",`
+​ `"path": "sim://srs",`
 
 ​ `"baudRate": 9600`
 
@@ -145,6 +147,16 @@ Once the agent and service are configured, run:
 `npm run start:server`
 
 `npm run start:agent`
+
+#### Simulated Devices & Testing
+
+The simulators live in **sims/** as a TypeScript library (`sims/src/`). Any serial collector can be pointed at a simulator by using a `sim://` path in its config (`sim://srs` for SRS controller telemetry, `sim://generic` for assorted serial console data). Simulated devices behave like real ones: same parsers, same plugins, same data path to the dashboard.
+
+The SRS simulator is a stateful model of a real controller's telemetry stream (per SRS Command List command C22A, validated against live production data): single-port COR events alternating between linked ports, release-to-zero state changes, and 100-second status heartbeats. Equivalent Arduino sketches for driving a real serial port from a microcontroller live in **sims/arduino/**.
+
+Run the test suite (no hardware required) with:
+
+`npm test`
 
 If you want fancy syntax colarization/highlighting, plugins (collectors) are very easy to develop. I'm planning on writing a guide here soon on how to add plugins.
 

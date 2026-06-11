@@ -1,6 +1,7 @@
 {
     "imports": {
-        "#@shared/*": "./client/dist/public/shared/*"
+        "#@shared/*": "./client/dist/public/shared/*",
+        "#@sims/*": "./sims/dist/*"
     },
     "type": "module",
     "name": "fluidity",
@@ -8,6 +9,8 @@
     "description": "",
     "main": "app.js",
     "scripts": {
+        "build": "tsc --build service/tsconfig.json",
+        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\"",
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",

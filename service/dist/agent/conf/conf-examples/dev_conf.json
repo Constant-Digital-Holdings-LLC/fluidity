@@ -17,9 +17,9 @@
             "pollIntervalSec": 60
         },
         {
-            "description": "SRS",
+            "description": "SRS Simulated",
             "plugin": "srsSerial",
-            "path": "/dev/tty.usbmodem11201",
+            "path": "sim://srs",
             "baudRate": 9600,
             "keepRaw": true,
             "extendedOptions": {
@@ -36,7 +36,13 @@
             }
         },
         {
-            "description": "TNC",
+            "description": "TNC Simulated",
+            "plugin": "genericSerial",
+            "path": "sim://generic",
+            "baudRate": 9600
+        },
+        {
+            "description": "Real Serial Device",
             "plugin": "genericSerial",
             "path": "/dev/tty.usbmodem11401",
             "baudRate": 9600

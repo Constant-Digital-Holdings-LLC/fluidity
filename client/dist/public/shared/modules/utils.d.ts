@@ -1,3 +1,4 @@
+/// <reference types="node" resolution-mode="require"/>
 export declare const inBrowser: () => boolean;
 export declare const isErrnoException: (object: Error) => object is NodeJS.ErrnoException;
 export declare function counter(): IterableIterator<number>;

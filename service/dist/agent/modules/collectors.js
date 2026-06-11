@@ -1,6 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
-import { SerialPort } from 'serialport';
+import { SerialPort, SerialPortMock } from 'serialport';
+import { simProfileFromPath, startFeeder } from '#@sims/index.js';
 import { isFfluidityPacket, isFluidityLink, isObject } from '#@shared/types.js';
 import throttledQueue from 'throttled-queue';
 const conf = await confFromFS();
@@ -218,16 +219,31 @@ export class SerialCollector extends DataCollector {
     format(data, fh) {
         return fh.e(data).done;
     }
+    openPort(path, baudRate) {
+        const onOpenError = (err) => {
+            if (err?.stack)
+                log.error(err.stack);
+        };
+        const profile = simProfileFromPath(path);
+        if (profile) {
+            SerialPortMock.binding.createPort(path);
+            const port = new SerialPortMock({ path, baudRate }, onOpenError);
+            port.on('open', () => {
+                log.info(`${this.params.plugin} [${this.params.description}]: simulating serial device on ${path} (profile: ${profile.name})`);
+                const feeder = startFeeder(profile, chunk => port.port?.emitData(chunk));
+                port.on('close', () => feeder.stop());
+            });
+            return port;
+        }
+        return new SerialPort({ path, baudRate }, onOpenError);
+    }
     constructor({ path, baudRate, ...params }) {
         super(params);
         if (typeof path !== 'string')
             throw new Error(`expected serial port identifier (string) in config for ${params.plugin}: ${params.description}`);
         if (typeof baudRate !== 'number')
             throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
-        this.port = new SerialPort({ path, baudRate }, err => {
-            if (err?.stack)
-                log.error(err.stack);
-        });
+        this.port = this.openPort(path, baudRate);
         this.parser = this.port.pipe(this.fetchParser());
     }
     start() {

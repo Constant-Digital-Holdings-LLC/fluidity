@@ -1,6 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
-import { SerialPort, ReadlineParser, RegexParser } from 'serialport';
+import { SerialPort, SerialPortMock, ReadlineParser, RegexParser } from 'serialport';
+import { simProfileFromPath, startFeeder } from '#@sims/index.js';
 import {
     FormattedData,
     FluidityPacket,
@@ -322,13 +323,39 @@ export interface SerialCollectorPlugin extends DataCollectorPlugin {
 }
 
 export abstract class SerialCollector extends DataCollector implements SerialCollectorPlugin {
-    protected port: SerialPort;
+    protected port: SerialPort | SerialPortMock;
     protected parser: SerialParser;
 
     abstract fetchParser(): SerialParser;
 
     format(data: string, fh: FormatHelper): FormattedData[] | null {
         return fh.e(data).done;
+    }
+
+    //single seam for port construction: real device, sim:// virtual device, or test override
+    protected openPort(path: string, baudRate: number): SerialPort | SerialPortMock {
+        const onOpenError = (err: Error | null): void => {
+            if (err?.stack) log.error(err.stack);
+        };
+
+        const profile = simProfileFromPath(path);
+
+        if (profile) {
+            SerialPortMock.binding.createPort(path);
+            const port = new SerialPortMock({ path, baudRate }, onOpenError);
+
+            port.on('open', () => {
+                log.info(
+                    `${this.params.plugin} [${this.params.description}]: simulating serial device on ${path} (profile: ${profile.name})`
+                );
+                const feeder = startFeeder(profile, chunk => port.port?.emitData(chunk));
+                port.on('close', () => feeder.stop());
+            });
+
+            return port;
+        }
+
+        return new SerialPort({ path, baudRate }, onOpenError);
     }
 
     constructor({ path, baudRate, ...params }: SerialCollectorParams) {
@@ -341,9 +368,7 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
         if (typeof baudRate !== 'number')
             throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
 
-        this.port = new SerialPort({ path, baudRate }, err => {
-            if (err?.stack) log.error(err.stack);
-        });
+        this.port = this.openPort(path, baudRate);
         this.parser = this.port.pipe(this.fetchParser());
     }
 
