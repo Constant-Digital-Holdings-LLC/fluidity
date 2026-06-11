@@ -540,10 +540,13 @@ li i {
 
 /* Begin Loader: */
 /* concentric expanding rings - the logo's own ripple motif, in its gradient
-   colors (pink inner ring, peach trailing ring) */
-.loader {
+   colors (pink inner ring, peach trailing ring). The box is reserved
+   permanently so the rings appearing never reflows the header (which would
+   resize the sparkline canvas) */
+#loader {
     width: 40px;
     height: 40px;
+    flex: none;
     display: inline-block;
     position: relative;
 }

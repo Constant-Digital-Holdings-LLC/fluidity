@@ -73,9 +73,16 @@ export const drawSparkline = (canvas: HTMLCanvasElement, series: number[]): void
     const dpr = globalThis.devicePixelRatio ?? 1;
     const w = canvas.clientWidth || 220;
     const h = canvas.clientHeight || 36;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    ctx.scale(dpr, dpr);
+
+    //resizing a canvas clears it; only do so when the size truly changed
+    //(layout shifts elsewhere must not make the graph visibly re-render)
+    const targetW = Math.round(w * dpr);
+    const targetH = Math.round(h * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     const pad = 2.5;
