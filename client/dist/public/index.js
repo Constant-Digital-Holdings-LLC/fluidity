@@ -1,6 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { FluidityUI } from './modules/ui.js';
+import { startPulse } from './modules/pulse.js';
 import { isFfluidityPacket } from '#@shared/types.js';
 const conf = confFromDOM();
 if (!conf)
@@ -9,6 +10,8 @@ const log = fetchLogger(conf);
 log.info(conf);
 const rxQ = [];
 let ui;
+const pulseCanvas = document.getElementById('pulse');
+const pulse = pulseCanvas instanceof HTMLCanvasElement ? startPulse(pulseCanvas) : undefined;
 const es = new EventSource('/SSE');
 fetch('/FIFO')
     .then(response => response.json())
@@ -26,6 +29,7 @@ es.onmessage = event => {
         const pd = JSON.parse(event.data);
         if (isFfluidityPacket(pd)) {
             rxQ.push(pd);
+            pulse === null || pulse === void 0 ? void 0 : pulse.note();
         }
     }
     if (ui instanceof FluidityUI) {

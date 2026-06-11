@@ -1,6 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { FluidityUI } from './modules/ui.js';
+import { startPulse } from './modules/pulse.js';
 import { FluidityPacket, isFfluidityPacket } from '#@shared/types.js';
 
 const conf = confFromDOM();
@@ -10,6 +11,10 @@ log.info(conf);
 
 const rxQ: FluidityPacket[] = [];
 let ui: FluidityUI;
+
+//header sparkline: counts live SSE arrivals only (history would fake a burst)
+const pulseCanvas = document.getElementById('pulse');
+const pulse = pulseCanvas instanceof HTMLCanvasElement ? startPulse(pulseCanvas) : undefined;
 
 const es = new EventSource('/SSE');
 
@@ -31,6 +36,7 @@ es.onmessage = event => {
         const pd = JSON.parse(event.data) as unknown;
         if (isFfluidityPacket(pd)) {
             rxQ.push(pd);
+            pulse?.note();
         }
     }
 

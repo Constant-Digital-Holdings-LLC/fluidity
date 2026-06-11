@@ -2,6 +2,7 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
+import { livenessOf } from './pulse.js';
 
 //in the browser, conf is injected into the DOM by the server;
 //under test (node + jsdom) defaults apply
@@ -17,6 +18,7 @@ interface FMHooks {
 class FilterManager {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
+    private siteLastSeen: Map<string, number>;
     private sitesClicked: Set<string>;
     private collectorsClicked: Set<string>;
     private filterCount: number;
@@ -24,6 +26,7 @@ class FilterManager {
     constructor(private hooks?: FMHooks) {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
+        this.siteLastSeen = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
         this.filterCount = 0;
@@ -188,7 +191,24 @@ class FilterManager {
         this.hooks?.onLinkClick();
     }
 
+    //liveness uses the packet's own timestamp (agent clock); the minute-scale
+    //thresholds shrug off reasonable clock skew
+    public refreshLiveness(now: number = Date.now()): void {
+        for (const [site, seen] of this.siteLastSeen) {
+            const dot = document.getElementById(`live-site-${site}`);
+            if (!dot) continue;
+            dot.classList.remove('live-dot--fresh', 'live-dot--recent', 'live-dot--stale');
+            dot.classList.add(`live-dot--${livenessOf(seen, now)}`);
+        }
+    }
+
     private index(fp: FluidityPacket): void {
+        const seenAt = new Date(fp.ts).getTime();
+        if (Number.isFinite(seenAt)) {
+            const prev = this.siteLastSeen.get(fp.site) ?? 0;
+            if (seenAt > prev) this.siteLastSeen.set(fp.site, seenAt);
+        }
+
         if (fp.seq) {
             //index packet by site
             if (this.siteIndex.has(fp.site)) {
@@ -233,6 +253,12 @@ class FilterManager {
             a.innerText = fp.site;
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
+
+            //liveness dot: bright while the site reports, dimming as it goes quiet
+            const dot = document.createElement('span');
+            dot.classList.add('live-dot');
+            dot.id = `live-site-${fp.site}`;
+            li.appendChild(dot);
         }
 
         li.appendChild(a);
@@ -271,11 +297,21 @@ export class FluidityUI {
         });
 
         this.packetSet('history', history);
+        this.fm.refreshLiveness();
+
+        //keep dots decaying while the stream is quiet. unref where available
+        //(node/jsdom tests) so the timer never holds the process open
+        const tick = setInterval(() => this.fm.refreshLiveness(), 15_000);
+        (tick as unknown as { unref?: () => void }).unref?.();
 
         document.getElementById('logo-link')?.addEventListener('click', e => {
             e.preventDefault();
             this.autoScroll();
         });
+    }
+
+    public refreshLiveness(now?: number): void {
+        now === undefined ? this.fm.refreshLiveness() : this.fm.refreshLiveness(now);
     }
 
     private scrollReset(): void {
@@ -476,6 +512,7 @@ export class FluidityUI {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
                 this.packetSet('current', [fp]);
+                this.fm.refreshLiveness();
             }
         }
     }

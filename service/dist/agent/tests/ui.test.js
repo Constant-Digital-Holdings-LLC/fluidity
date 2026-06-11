@@ -124,6 +124,23 @@ void test('the whole pill is the click target, not just the label', async () => 
     assert.ok(!pill.classList.contains('filter-selected'));
     assert.equal(byId('filter-count').textContent, '0');
 });
+void test('site pills carry a liveness dot that decays as the site goes quiet', () => {
+    const dot = byId('live-site-Verdugo Pk');
+    assert.ok(dot.classList.contains('live-dot'));
+    const seen = new Date('2026-06-11T12:00:00.000Z').getTime();
+    ui.refreshLiveness(seen + 60_000);
+    assert.ok(dot.classList.contains('live-dot--fresh'), 'reported a minute ago: fresh');
+    ui.refreshLiveness(seen + 5 * 60_000);
+    assert.ok(dot.classList.contains('live-dot--recent'), 'five minutes quiet: recent');
+    assert.ok(!dot.classList.contains('live-dot--fresh'));
+    ui.refreshLiveness(seen + 30 * 60_000);
+    assert.ok(dot.classList.contains('live-dot--stale'), 'half an hour quiet: stale');
+});
+void test('drawSparkline is harmless where canvas is unavailable (jsdom)', async () => {
+    const { drawSparkline } = await import('#@client/modules/pulse.js');
+    const canvas = dom.window.document.createElement('canvas');
+    assert.doesNotThrow(() => drawSparkline(canvas, [0, 1, 3, 2, 5]));
+});
 void test('site and collector filters intersect', async () => {
     click(byId('filter-site-Verdugo Pk'));
     click(byId('filter-collector-genericSerial'));

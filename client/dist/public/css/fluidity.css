@@ -154,6 +154,47 @@ a:focus-visible {
     filter: drop-shadow(0 0 0.6rem rgba(254, 141, 198, 0.22));
 }
 
+/* live packet-rate sparkline (mobile keeps the header minimal) */
+#pulse {
+    display: none;
+}
+
+/* site liveness: bright while reporting, dimming as the site goes quiet */
+.live-dot {
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    margin-right: 0.35em;
+    vertical-align: 6%;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.live-dot--fresh {
+    background: var(--color4);
+    box-shadow: 0 0 6px rgba(0, 253, 255, 0.55);
+    animation: livePulse 2.4s ease-in-out infinite;
+}
+
+.live-dot--recent {
+    background: var(--color9);
+}
+
+.live-dot--stale {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes livePulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.55;
+    }
+}
+
 #container-main {
     display: grid;
     gap: var(--small-gap);
@@ -561,11 +602,23 @@ li i {
     #logo-link {
         transition: none;
     }
+
+    .live-dot--fresh {
+        animation: none;
+    }
 }
 
 @media (min-width: 550px) {
     body {
         margin: var(--small-gap);
+    }
+
+    #pulse {
+        display: block;
+        flex: 0 1 16rem;
+        min-width: 6rem;
+        height: 2.3rem;
+        margin: 0 1.25rem;
     }
 
     #container-main {
