@@ -34,8 +34,12 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
   capture saved at `sims/fixtures/fy-io-fifo-capture-2026-06-11.json`
   (golden test data — `goldenCapture.test.ts` pins the decoder to it).
 - **srsSerial suppression**: messages decoding to nothing but states in
-  `extendedOptions.suppress` (default `["COR"]`) are dropped at the agent.
-  Tests that verify decode parity opt out with `suppress: []`.
+  `extendedOptions.suppress` (default `["COR", "CLEAR"]` — CLEAR is the
+  synthetic state for all-zero release frames) are dropped at the agent.
+  Tests that verify decode parity opt out with `suppress: []`. The frame
+  parser (`parseSrsFrame`) is strict per the C22A docs: single-space hex,
+  matched brackets, length-validated (bit-7 extended frames tolerated);
+  rejected lines are counted in `collector.dropCounts`.
 - TUI has **zero runtime deps** (hand-rolled SSE client, ANSI, key parsing);
   keep it that way. Pure parts (`uiModel`, `composeFrame`, `renderLine`) are
   unit-tested; only thin orchestrators touch the terminal/process.

@@ -305,5 +305,8 @@ no `@ts-ignore` interop hacks left.
   than first assessed (ids with spaces round-trip fine, verified by the
   jsdom tests, which now provide a safety net for any refactor).
 - srsSerial DTMF telemetry (`>p:c<`, C22A bit 2) — plugin can't parse it;
-  sim support would follow the plugin.
+  sim support would follow the plugin. (The 2026-06-11 hardening pass added
+  strict frame validation, CLEAR release events, drop counters, and config
+  validation; bit-7 extended frames are tolerated but their group-membership
+  bytes are still ignored — supporting them fully is a further enhancement.)
 - TUI `/` incremental search (deferred from T2).

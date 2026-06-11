@@ -3,7 +3,31 @@ import assert from 'node:assert/strict';
 import { SerialPortMock } from 'serialport';
 import { FormatHelper, SerialCollectorParams } from '../modules/collectors.js';
 import GenericSerialCollector from '../modules/collectors/genericSerial.js';
+import { parseSrsFrame } from '../modules/collectors/srsSerial.js';
 import { CapturingSRSCollector, srsParams } from './helpers.js';
+
+void test('parseSrsFrame: strict grammar accepts exactly the documented formats', () => {
+    //the two C22A stream formats
+    assert.deepEqual(parseSrsFrame('[01 00 00 00 00]'), { kind: 'radio', bytes: [1, 0, 0, 0, 0] });
+    assert.deepEqual(parseSrsFrame('{0f 01 00 00 00 1f}'), { kind: 'port', bytes: [15, 1, 0, 0, 0, 31] });
+    //uppercase hex and trailing whitespace are fine
+    assert.deepEqual(parseSrsFrame('[FF 00 00 00 0A]')?.bytes, [255, 0, 0, 0, 10]);
+    assert.ok(parseSrsFrame('[01 00 00 00 00] '));
+
+    //line-noise shapes that previously mis-decoded or half-decoded: all rejected
+    assert.equal(parseSrsFrame('[01 00 00 00 00}'), null, 'mismatched brackets');
+    assert.equal(parseSrsFrame('{01 00 00 00 00 00]'), null, 'mismatched brackets');
+    assert.equal(parseSrsFrame('[01  00 00 00 00]'), null, 'double space (was: misaligned states)');
+    assert.equal(parseSrsFrame('[01 0000 00 00]'), null, 'merged bytes (was: phantom port states)');
+    assert.equal(parseSrsFrame('[1 00 00 00 00]'), null, 'odd hex digits');
+    assert.equal(parseSrsFrame('[zz 00 00 00 00]'), null, 'non-hex');
+    assert.equal(parseSrsFrame('[01 00 00 00 00]x'), null, 'trailing garbage (was: accepted)');
+    assert.equal(parseSrsFrame(' [01 00 00 00 00]'), null, 'leading content');
+    assert.equal(parseSrsFrame('[01 00 00 00 00][80 00 00 00 00]'), null, 'merged frames');
+    assert.equal(parseSrsFrame('[01 00 00 00 00 ]'), null, 'space before bracket');
+    assert.equal(parseSrsFrame(''), null);
+    assert.equal(parseSrsFrame('hello'), null);
+});
 
 void test('srsSerial format ignores garbage, partial, and zero frames', () => {
     const c = new CapturingSRSCollector(srsParams('/test/fmt-garbage'));
@@ -76,6 +100,78 @@ void test('srsSerial format falls back to port-N labels without a portmap', () =
         out?.map(f => f.field),
         ['Port States: ', 'port-7:', 'LINK,INTERFACED']
     );
+});
+
+void test('srsSerial validates frame length: truncated/oversized dropped, bit-7 extras tolerated', () => {
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-length', { extendedOptions: { suppress: [] } }));
+    const fh = new FormatHelper();
+
+    //truncated frames (was: silent partial decode with misattributed states)
+    assert.equal(c.format('[01 00]', fh), null);
+    assert.equal(c.format('{0f 01 00}', fh), null);
+
+    //a C22A bit-7 extended port frame (group membership bytes appended) must
+    //keep decoding exactly like its 6-byte prefix - deployments running bit 7
+    //work today and must not regress
+    const plain = c.format('{0f 01 00 00 00 1f}', new FormatHelper());
+    const extended = c.format('{0f 01 00 00 00 1f 03 01 00 00 00}', new FormatHelper());
+    assert.ok(plain && extended);
+    assert.deepEqual(extended, plain);
+
+    //absurd lengths are garbage even when they parse
+    assert.equal(c.format(`[${Array(17).fill('01').join(' ')}]`, fh), null);
+});
+
+void test('srsSerial passes release-to-zero frames as CLEAR, suppressed by default', () => {
+    //default: identical to historical behavior - zero frames vanish
+    const dflt = new CapturingSRSCollector(srsParams('/test/fmt-clear-default'));
+    assert.equal(dflt.format('[00 00 00 00 00]', new FormatHelper()), null);
+    assert.equal(dflt.format('{00 00 00 00 00 00}', new FormatHelper()), null);
+
+    //opted in: the release event is finally visible
+    const show = new CapturingSRSCollector(srsParams('/test/fmt-clear-shown', { extendedOptions: { suppress: [] } }));
+    assert.deepEqual(show.format('[00 00 00 00 00]', new FormatHelper()), [
+        { suggestStyle: 0, field: 'Radio States: ', fieldType: 'STRING' },
+        { suggestStyle: 10, field: 'all clear', fieldType: 'STRING' }
+    ]);
+    assert.deepEqual(
+        show.format('{00 00 00 00 00 00}', new FormatHelper())?.map(f => f.field),
+        ['Port States: ', 'all clear']
+    );
+});
+
+void test('srsSerial counts dropped lines by reason; suppressed frames are not drops', () => {
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-drops'));
+    const fh = new FormatHelper();
+
+    c.format('garbage line', fh);
+    c.format('[01 00 00 00 00]x', fh);
+    c.format('[01 00]', fh);
+    c.format('[01 00 00 00 00]', fh); //suppressed (COR-only): intentional, not a drop
+    c.format('[00 00 00 00 00]', fh); //suppressed (CLEAR): intentional, not a drop
+
+    assert.equal(c.dropCounts.get('not-a-frame'), 2);
+    assert.equal(c.dropCounts.get('truncated'), 1);
+    assert.equal(c.dropCounts.get('oversized') ?? 0, 0);
+});
+
+void test('srsSerial falls back loudly (not fatally) on invalid portmap or suppress config', () => {
+    //mixed-type portmap: previously element 1+ leaked through as weird labels;
+    //now the whole map is rejected and port-N labels are used
+    const badMap = new CapturingSRSCollector(
+        srsParams('/test/fmt-badmap', { extendedOptions: { portmap: ['Alpha', 42], suppress: [] } })
+    );
+    assert.deepEqual(
+        badMap.format('[02 00 00 00 00]', new FormatHelper())?.map(f => f.field),
+        ['Radio States: ', 'port-1:', 'COR']
+    );
+
+    //invalid suppress falls back to the default (COR hidden), never to "show nothing"
+    const badSuppress = new CapturingSRSCollector(
+        srsParams('/test/fmt-badsuppress', { extendedOptions: { suppress: 'COR' } })
+    );
+    assert.equal(badSuppress.format('[01 00 00 00 00]', new FormatHelper()), null);
+    assert.ok(badSuppress.format('[01 00 01 00 00]', new FormatHelper()));
 });
 
 class MockGenericCollector extends GenericSerialCollector {

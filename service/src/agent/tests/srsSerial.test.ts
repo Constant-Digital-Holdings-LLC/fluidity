@@ -26,26 +26,25 @@ void test('SRS radio-state frame decodes to expected FormattedData', async () =>
     ]);
 });
 
-void test('simulator stream decodes through the collector: active frames render, zero frames drop', async () => {
+void test('simulator stream decodes through the collector: every frame renders with suppression off', async () => {
     const stream = srsLineStream(mulberry32(3));
     const lines = Array.from({ length: 120 }, () => stream.next().value.line);
 
-    //the collector renders any frame with a set bit; all-zero release/heartbeat
-    //frames decode to nothing and are intentionally dropped
-    const expectActive = lines.filter(l =>
+    const zeroFrames = lines.filter(l =>
         l
             .slice(1, -1)
             .split(' ')
-            .some(b => parseInt(b, 16) !== 0)
+            .every(b => parseInt(b, 16) === 0)
     );
-    assert.ok(expectActive.length > 0, 'sample should contain active frames');
-    assert.ok(expectActive.length < lines.length, 'sample should contain zero frames');
+    assert.ok(zeroFrames.length > 0, 'sample should contain release/heartbeat zero frames');
+    assert.ok(zeroFrames.length < lines.length, 'sample should contain active frames');
 
-    //suppress disabled: this test counts every decodable frame, incl. COR-only
+    //suppress disabled: every well-formed frame decodes - active frames as
+    //states, all-zero release/heartbeat frames as CLEAR ("all clear")
     const collector = new CapturingSRSCollector(srsParams('/test/srs-stream', { extendedOptions: { suppress: [] } }));
     const allCaptured = new Promise<void>(resolve => {
         collector.onCapture = () => {
-            if (collector.captured.length === expectActive.length) resolve();
+            if (collector.captured.length === lines.length) resolve();
         };
     });
 
@@ -58,9 +57,15 @@ void test('simulator stream decodes through the collector: active frames render,
 
     await allCaptured;
 
-    assert.equal(collector.captured.length, expectActive.length);
+    assert.equal(collector.captured.length, lines.length);
     collector.captured.forEach(formatted => {
         const heading = formatted[0]?.field;
         assert.ok(heading === 'Radio States: ' || heading === 'Port States: ');
     });
+    assert.equal(
+        collector.captured.filter(f => f[1]?.field === 'all clear').length,
+        zeroFrames.length,
+        'every zero frame surfaces as CLEAR'
+    );
+    assert.equal(collector.dropCounts.size, 0, 'no sim frame may be dropped as noise');
 });
