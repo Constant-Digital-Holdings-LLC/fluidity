@@ -21,17 +21,19 @@
        pink->peach mark gradient #fe8dc6 -> #fed1c7.
        color discipline: neutral chrome at rest - pink only carries meaning
        (selected filter, attention); cyan stays the data-identity color */
-    --surface-page: #241823;
-    /* the logo svg is background-free, so every cell (header included)
-       shares one dark surface tier; the brand plum survives as an accent
-       tier (scrollbar thumb etc.) */
+    /* graphite stage, plum as light and shading (TUI-grade contrast):
+       neutral dark surfaces let the packet palette pop; plum appears as
+       the page aurora, cell edge shading, hover tint, and scrollbar -
+       never as the field color. Borders are periwinkle (--color2), the
+       same color the TUI draws its rules with. */
+    --surface-page: #131316;
     --surface-brand: #53354a;
     --surface-brand-hi: #6b4862;
-    --surface-cell: #3a2637;
-    --surface-cell-hi: #473046;
+    --surface-cell: #1d1d21;
+    --surface-cell-hi: #271d2a;
     --accent-a: #fe8dc6;
     --accent-b: #fed1c7;
-    --line: rgba(255, 255, 255, 0.11);
+    --line: rgba(112, 108, 157, 0.32);
     --chip: rgba(255, 255, 255, 0.055);
     --chip-hover: rgba(255, 255, 255, 0.1);
     --chip-active: rgba(254, 141, 198, 0.13);
@@ -80,14 +82,16 @@
 }
 
 .bg-gradient {
-    background: rgb(58, 38, 55);
+    background: rgb(29, 29, 33);
+    /* 75% flat graphite, then a breath of plum at the edge (the original
+       gradient device, demoted from surface color to shading) */
     background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
 }
 
 body {
     color: var(--light);
     background-color: var(--surface-page);
-    background-image: radial-gradient(110rem 60rem at 85% -20%, #31202f 0%, var(--surface-page) 60%);
+    background-image: radial-gradient(110rem 60rem at 85% -20%, #2b1e2b 0%, var(--surface-page) 60%);
     background-attachment: fixed;
     font-size: 0.8rem;
     font-family: 'Outfit', sans-serif;
@@ -384,7 +388,7 @@ li i {
 }
 
 .fluidity-packet:hover {
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(83, 53, 74, 0.38); /* plum as interaction shading */
 }
 
 .fade-in {
