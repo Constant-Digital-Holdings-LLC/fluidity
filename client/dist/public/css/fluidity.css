@@ -565,7 +565,9 @@ li i {
         display: flex;
         gap: var(--small-gap);
         padding: 1rem;
-        align-items: center;
+        /* top-align so the first chip row sits level with the site rail's
+           first pill (centering pushed chips down vs the taller stats block) */
+        align-items: flex-start;
         justify-content: space-between;
     }
 
