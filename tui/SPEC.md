@@ -337,11 +337,15 @@ with no Node installed.
 
 ---
 
-## 12. Open questions
+## 12. Resolved decisions (2026-06-11)
 
-1. Should the TUI ship in the existing `npm test` suite from T1 (proposed:
-   yes — same runner, same glob)?
-2. Server `org` in the header would require either a public config endpoint
-   or reading the DOM config from `GET /` — worth it, or is host enough?
-3. Is 32-bit armv7 (older Pi OS) worth a community-supported build, or do
-   we document "use npx with an armv7 Node" as the path?
+1. **Tests: one suite.** TUI tests compile through the same tsc pipeline and
+   run inside the existing `npm test` invocation (additional glob); CI gates
+   them from T1.
+2. **Header: host only.** No new server endpoint; the header identifies the
+   instance by server host (e.g. `Fluidity · f-y.io`). The `org` name
+   remains a web-dashboard nicety.
+3. **armv7 (32-bit Pi OS): documented npx path.** Standalone binaries are
+   arm64-only. README/spec note for armv7: install an armv7 Node ≥ 20
+   (unofficial-builds/nvm) and run `npx fluidity-tui` — the code itself has
+   no architecture constraints.
