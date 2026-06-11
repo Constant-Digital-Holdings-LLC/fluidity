@@ -294,7 +294,9 @@ no `@ts-ignore` interop hacks left.
   `service/dist/`, and the service imports shared code from `client/dist/`.
   A `clean` deletes production config. Worth restructuring eventually;
   touching it mid-plan would churn every phase.
-- Client `FilterManager` encodes state in DOM id strings (breaks on site
-  names with regex metacharacters) — fix opportunistically if/when `ui.ts`
-  gets tests.
-- README typo pass.
+- Client `FilterManager` encodes state in DOM id strings — less fragile
+  than first assessed (ids with spaces round-trip fine, verified by the
+  jsdom tests, which now provide a safety net for any refactor).
+- srsSerial DTMF telemetry (`>p:c<`, C22A bit 2) — plugin can't parse it;
+  sim support would follow the plugin.
+- TUI `/` incremental search (deferred from T2); T3 standalone executables.

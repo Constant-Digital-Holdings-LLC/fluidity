@@ -1,6 +1,7 @@
 # Fluidity TUI — Specification
 
-Status: **draft for review** · Target: phase T1–T3 (see Milestones)
+Status: **living document — T1 (stream) and T2 (interactive) shipped
+2026-06-11; T3 (standalone executables) pending** (see Milestones)
 
 A terminal client for Fluidity. Connects to an existing Fluidity web service
 over HTTPS, renders the live packet stream in the terminal, and ships both as
@@ -49,11 +50,15 @@ tui/
       transport.ts   /FIFO fetch + /SSE stream + reconnect/merge
       caps.ts        terminal capability detection
       theme.ts       suggestStyle -> color, per capability tier
-      renderLine.ts  packet -> styled line (shared by both modes)
+      renderLine.ts  packet -> parts/styled line (shared by both modes)
       stream.ts      follow/pipe mode
-      screen.ts      interactive full-screen mode (alt buffer, chrome)
-      filters.ts     site/collector filter state (TUI-local)
-      input.ts       raw-mode keyboard handling
+      uiModel.ts     interactive state + key reducer (pure)
+      screen.ts      frame composition (pure) + terminal control
+      interactive.ts interactive orchestrator (transport/input/repaint)
+      keys.ts        raw-mode keyboard parsing
+      ansiText.ts    ANSI-aware measurement/truncation
+      filters.ts     site/collector filter logic (web semantics)
+    tests/           runs inside the main npm test suite
 ```
 
 - Root `package.json`: add `"#@tui/*": "./tui/dist/*"` import alias, a
@@ -164,8 +169,9 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
 │ …                                                                 │
 │                                                                   │
 ├───────────────────────────────────────────────────────────────────┤
-│ filters: site=Verdugo Pk ×  ·  [s]ite [c]ollector [x] clear       │
-└ [space] pause · [/] search · [g/G] top/end · [?] help · [q] quit ─┘
+│ sites: [1]VERDUGO PK 93  [2]LOOP CYN 7  [3]MT WILSON 64  +14 more  │
+│ [1-9] toggle  [Tab] collectors  [x] clear(1)  [space] [?] [q]      │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 - Header: `Fluidity - <server host>` left, connection state + packet count
@@ -174,6 +180,9 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
   reconnecting, `o` stopped.
 - Body: scrollback viewport (default 4000 packets, `--history` overrides;
   mirrors web `maxClientHistory` default), ANSI-aware line clipping.
+  Timestamp/site/description columns align to the widest values seen so
+  far (timestamps right-aligned), so fields share a column edge; the whole
+  window realigns as new sites appear. Stream/pipe mode stays unpadded.
 - Auto-scroll pinned to bottom; scrolling up unpins; `G` (or a filter
   change) re-pins.
 - **Bottom pane (full width): who is reporting in.** Lists sites (or
@@ -326,13 +335,13 @@ Exit codes: 0 user quit · 1 bad args · 2 cannot reach server at startup
 
 ## 11. Milestones
 
-**T1 — stream mode (MVP)**
+**T1 — stream mode (MVP)** ✅ shipped 2026-06-11
 `tui/` project, transport, caps/theme, `renderLine`, stream + `--json`,
 filters via flags, golden snapshots, transport tests. *Accept:* pointed at
 f-y.io, colored live stream on all four platforms; piped output is clean
 text; suite green in CI.
 
-**T2 — interactive mode**
+**T2 — interactive mode** ✅ shipped 2026-06-11
 Alt-screen chrome, scrollback, keyboard filters/search/pause, reconnect UX.
 *Accept:* the §4.4 layout works on Windows Terminal and the Pi console
 (16-color, ASCII-only degradation by design); terminal always restored.
