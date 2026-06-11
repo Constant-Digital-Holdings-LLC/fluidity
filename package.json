@@ -10,7 +10,8 @@
     "main": "app.js",
     "scripts": {
         "build": "tsc --build service/tsconfig.json",
-        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\"",
+        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
+        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --allow-external --exclude \"**/tests/**\" --exclude \"**/conf/**\" --reporter=text-summary --reporter=text node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",
@@ -27,6 +28,7 @@
         "@types/stacktrace-js": "2.0.3",
         "@typescript-eslint/eslint-plugin": "^5.52.0",
         "@typescript-eslint/parser": "^5.52.0",
+        "c8": "^11.0.0",
         "concurrently": "^7.6.0",
         "cross-env": "^7.0.3",
         "eslint": "^8.34.0",

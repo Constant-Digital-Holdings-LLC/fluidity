@@ -1,38 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { SerialPortMock } from 'serialport';
-import SRSserialCollector from '../modules/collectors/srsSerial.js';
-import { FormatHelper } from '../modules/collectors.js';
 import { srsLineStream, mulberry32 } from '#@sims/index.js';
-class TestSRSCollector extends SRSserialCollector {
-    captured = [];
-    onCapture;
-    openPort(path, baudRate) {
-        SerialPortMock.binding.createPort(path);
-        return new SerialPortMock({ path, baudRate });
-    }
-    send(data) {
-        const formatted = this.format(data, new FormatHelper());
-        if (formatted) {
-            this.captured.push(formatted);
-            this.onCapture?.(formatted);
-        }
-    }
-    get mockPort() {
-        return this.port;
-    }
-}
-const testParams = (path) => ({
-    plugin: 'srsSerial',
-    description: 'SRS sim under test',
-    site: 'test',
-    targets: [{ location: 'https://localhost:1/FIFO', key: 'testkey' }],
-    path,
-    baudRate: 9600
-});
+import { CapturingSRSCollector, srsParams } from './helpers.js';
 void test('SRS radio-state frame decodes to expected FormattedData', async () => {
-    const collector = new TestSRSCollector(testParams('/test/srs-decode'));
+    const collector = new CapturingSRSCollector(srsParams('/test/srs-decode'));
     const captured = new Promise(resolve => {
         collector.onCapture = resolve;
     });
@@ -56,7 +28,7 @@ void test('simulator stream decodes through the collector: active frames render,
         .some(b => parseInt(b, 16) !== 0));
     assert.ok(expectActive.length > 0, 'sample should contain active frames');
     assert.ok(expectActive.length < lines.length, 'sample should contain zero frames');
-    const collector = new TestSRSCollector(testParams('/test/srs-stream'));
+    const collector = new CapturingSRSCollector(srsParams('/test/srs-stream'));
     const allCaptured = new Promise(resolve => {
         collector.onCapture = () => {
             if (collector.captured.length === expectActive.length)

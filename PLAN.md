@@ -93,7 +93,27 @@ software; one end-to-end-ish collector test passes; `.ino` files preserved.
 
 ---
 
-## Phase 2 — Test coverage
+## Phase 2 — Test coverage ✅ DONE
+
+> Completed 2026-06-11. 33 tests passing, 83.8% line coverage overall
+> (`npm run test:coverage`). Implementation notes:
+> - Server DI: `makeController(conf, log)`, `makeRouter(conf, controller)`,
+>   and `makeApp(conf)` (`server/modules/expressApp.ts`, module-anchored
+>   views/static paths). `app.ts` is just the composition root + TLS listen.
+> - All four §2.3 bugs fixed with regression tests (the fixes landed with
+>   the refactor; the tests verify them): missing-key requests no longer
+>   sent, all 2xx accepted, invalid POST gets a 400, `toArray()` copies.
+>   Bonus: previously-unmatched socket errors (e.g. ETIMEDOUT) used to leave
+>   the post promise pending forever — now they reject; promise rejections
+>   are `Error`s, not strings. `PollingCollector` gained `stop()`.
+> - Integration: server tested over plain HTTP via `makeApp` (incl. SSE
+>   delivery and FIFO eviction); agent pipeline tested against a local
+>   HTTPS target using the repo dev certs (sim frame → wire packet).
+> - Coverage gaps (accepted): hamLive/vRep plugins (network/trivial),
+>   logger/config internals, `client/ui.ts` (DOM; needs jsdom — deferred).
+> - Tests still run with cwd `service/dist/agent` because agent modules
+>   load conf at module top-level; full conf DI for the agent deferred to
+>   phase 3 (it will churn with the dep work anyway).
 
 **Goal:** the behavior that matters is locked down so phase 3 upgrades can be
 done with confidence.

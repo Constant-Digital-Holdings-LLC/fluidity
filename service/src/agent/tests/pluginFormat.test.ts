@@ -1,0 +1,60 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { SerialPortMock } from 'serialport';
+import { FormatHelper, SerialCollectorParams } from '../modules/collectors.js';
+import GenericSerialCollector from '../modules/collectors/genericSerial.js';
+import { CapturingSRSCollector, srsParams } from './helpers.js';
+
+void test('srsSerial format ignores garbage, partial, and zero frames', () => {
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-garbage'));
+    const fh = new FormatHelper();
+
+    assert.equal(c.format('hello world', fh), null);
+    assert.equal(c.format('', fh), null);
+    assert.equal(c.format('[zz 00 00 00 00]', fh), null);
+    assert.equal(c.format('[00 00 00 00 00]', fh), null);
+    assert.equal(c.format('{00 00 00 00 00 00}', fh), null);
+    assert.equal(c.format('80 00 00 00 00', fh), null);
+    assert.equal(c.format('>0:5<', fh), null); //DTMF telemetry (C22A bit 2) - not parsed yet
+});
+
+void test('srsSerial format uses portmap names from extendedOptions', () => {
+    const c = new CapturingSRSCollector(
+        srsParams('/test/fmt-portmap', { extendedOptions: { portmap: ['Alpha', 'Bravo'] } })
+    );
+
+    const out = c.format('[02 00 00 00 00]', new FormatHelper());
+    assert.deepEqual(
+        out?.map(f => f.field),
+        ['Radio States: ', 'Bravo:', 'COR']
+    );
+});
+
+void test('srsSerial format falls back to port-N labels without a portmap', () => {
+    const c = new CapturingSRSCollector(srsParams('/test/fmt-fallback'));
+
+    const out = c.format('{80 00 00 00 00 80}', new FormatHelper());
+    assert.deepEqual(
+        out?.map(f => f.field),
+        ['Port States: ', 'port-7:', 'LINK,INTERFACED']
+    );
+});
+
+class MockGenericCollector extends GenericSerialCollector {
+    protected override openPort(path: string, baudRate: number): SerialPortMock {
+        SerialPortMock.binding.createPort(path);
+        return new SerialPortMock({ path, baudRate });
+    }
+}
+
+void test('genericSerial passes lines through unchanged', () => {
+    const params: SerialCollectorParams = {
+        ...srsParams('/test/fmt-generic'),
+        plugin: 'genericSerial'
+    };
+    const c = new MockGenericCollector(params);
+
+    assert.deepEqual(c.format('RFSwitch>cluster-cli enable', new FormatHelper()), [
+        { suggestStyle: 0, field: 'RFSwitch>cluster-cli enable', fieldType: 'STRING' }
+    ]);
+});

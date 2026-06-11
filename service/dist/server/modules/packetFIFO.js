@@ -1,24 +1,25 @@
-import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { counter } from '#@shared/modules/utils.js';
-const log = fetchLogger(await confFromFS());
-const count = counter();
 export class PacketFIFO {
     maxSize;
+    log;
     buffer;
-    constructor(maxSize) {
+    count;
+    constructor(maxSize, log = fetchLogger()) {
         this.maxSize = maxSize;
+        this.log = log;
         this.buffer = [];
+        this.count = counter();
     }
     push(fPacket) {
         if (this.buffer.length >= this.maxSize)
             this.buffer.shift();
-        fPacket.seq = count.next().value;
-        log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
+        fPacket.seq = this.count.next().value;
+        this.log.debug(`PacketFIFO received ${JSON.stringify(fPacket)}`);
         this.buffer.push(fPacket);
         return fPacket.seq;
     }
     toArray() {
-        return this.buffer;
+        return [...this.buffer];
     }
 }

@@ -135,13 +135,17 @@ export abstract class DataCollector implements DataCollectorPlugin {
         return new Promise((resolve, reject) => {
             if (method === 'POST') {
                 if (!key) {
-                    reject(`DataCollector: missing API key for ${uo.toString()}`);
+                    reject(new Error(`DataCollector: missing API key for ${uo.toString()}`));
+                    return;
                 }
 
-                if (key && !/^[a-zA-Z0-9]+$/.test(key)) {
+                if (!/^[a-zA-Z0-9]+$/.test(key)) {
                     reject(
-                        `Invalid key format - API keys should be alphanumeric\nConsier using the bin/genApiKey utility`
+                        new Error(
+                            `Invalid key format - API keys should be alphanumeric\nConsider using the bin/genApiKey utility`
+                        )
                     );
+                    return;
                 }
             }
 
@@ -166,33 +170,27 @@ export abstract class DataCollector implements DataCollectorPlugin {
                             log.warn('Server responded with: Unauthorized');
                             log.warn('Agent likely using invalidated api-key');
                         }
-                        if (res.statusCode && res.statusCode / 2 === 100) {
+                        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                             resolve(data);
                         } else {
                             req.end();
-                            reject(`makeReq() non 200 series response`);
+                            reject(new Error(`makeReq() non 200 series response (${res.statusCode ?? 'none'})`));
                         }
                     });
                     res.on('error', () => {
                         req.end();
-                        reject(`makeReq() request error`);
+                        reject(new Error(`makeReq() request error`));
                     });
                 }
             );
 
             req.on('error', e => {
-                if (isHttpError(e)) {
-                    if (e.code === 'ECONNREFUSED') {
-                        req.end();
-                        reject(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
-                    }
-                } else if (isSysError(e)) {
-                    if (e.code === 'ECONNRESET') {
-                        req.end();
-                        reject(`Connection RESET during ${e.syscall}`);
-                    }
+                req.end();
+                if (isHttpError(e) && e.code === 'ECONNREFUSED') {
+                    reject(new Error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`));
+                } else if (isSysError(e) && e.code === 'ECONNRESET') {
+                    reject(new Error(`Connection RESET during ${e.syscall}`));
                 } else {
-                    req.end();
                     reject(e);
                 }
             });
@@ -209,7 +207,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         });
     }
 
-    private async post(location: string, data: unknown, key: string): Promise<string> {
+    protected async post(location: string, data: unknown, key: string): Promise<string> {
         return await this.throttle<string>(async () => {
             return await this._reqJSON('POST', new URL(location), data, key);
         });
@@ -263,6 +261,7 @@ export interface WebJSONCollectorParams extends PollingCollectorParams {
 
 export abstract class PollingCollector extends DataCollector implements DataCollectorPlugin {
     protected pollIntervalSec: number;
+    protected timer: NodeJS.Timeout | undefined;
 
     constructor({ pollIntervalSec, ...params }: PollingCollectorParams) {
         super(params);
@@ -286,10 +285,14 @@ export abstract class PollingCollector extends DataCollector implements DataColl
         try {
             log.info(`started: ${this.params.plugin} [${this.params.description}]`);
             this.execPerInterval();
-            setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
+            this.timer = setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
         } catch (err) {
             log.error(err);
         }
+    }
+
+    stop(): void {
+        if (this.timer) clearTimeout(this.timer);
     }
 }
 

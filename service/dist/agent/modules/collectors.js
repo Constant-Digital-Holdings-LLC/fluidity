@@ -68,10 +68,12 @@ export class DataCollector {
         return new Promise((resolve, reject) => {
             if (method === 'POST') {
                 if (!key) {
-                    reject(`DataCollector: missing API key for ${uo.toString()}`);
+                    reject(new Error(`DataCollector: missing API key for ${uo.toString()}`));
+                    return;
                 }
-                if (key && !/^[a-zA-Z0-9]+$/.test(key)) {
-                    reject(`Invalid key format - API keys should be alphanumeric\nConsier using the bin/genApiKey utility`);
+                if (!/^[a-zA-Z0-9]+$/.test(key)) {
+                    reject(new Error(`Invalid key format - API keys should be alphanumeric\nConsider using the bin/genApiKey utility`));
+                    return;
                 }
             }
             const req = https.request({
@@ -92,34 +94,28 @@ export class DataCollector {
                         log.warn('Server responded with: Unauthorized');
                         log.warn('Agent likely using invalidated api-key');
                     }
-                    if (res.statusCode && res.statusCode / 2 === 100) {
+                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                         resolve(data);
                     }
                     else {
                         req.end();
-                        reject(`makeReq() non 200 series response`);
+                        reject(new Error(`makeReq() non 200 series response (${res.statusCode ?? 'none'})`));
                     }
                 });
                 res.on('error', () => {
                     req.end();
-                    reject(`makeReq() request error`);
+                    reject(new Error(`makeReq() request error`));
                 });
             });
             req.on('error', e => {
-                if (isHttpError(e)) {
-                    if (e.code === 'ECONNREFUSED') {
-                        req.end();
-                        reject(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`);
-                    }
+                req.end();
+                if (isHttpError(e) && e.code === 'ECONNREFUSED') {
+                    reject(new Error(`Connection REFUSED connecting to host ${e.address} on port ${e.port}`));
                 }
-                else if (isSysError(e)) {
-                    if (e.code === 'ECONNRESET') {
-                        req.end();
-                        reject(`Connection RESET during ${e.syscall}`);
-                    }
+                else if (isSysError(e) && e.code === 'ECONNRESET') {
+                    reject(new Error(`Connection RESET during ${e.syscall}`));
                 }
                 else {
-                    req.end();
                     reject(e);
                 }
             });
@@ -172,6 +168,7 @@ export class DataCollector {
 }
 export class PollingCollector extends DataCollector {
     pollIntervalSec;
+    timer;
     constructor({ pollIntervalSec, ...params }) {
         super(params);
         if (typeof pollIntervalSec !== 'number') {
@@ -186,11 +183,15 @@ export class PollingCollector extends DataCollector {
         try {
             log.info(`started: ${this.params.plugin} [${this.params.description}]`);
             this.execPerInterval();
-            setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
+            this.timer = setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
         }
         catch (err) {
             log.error(err);
         }
+    }
+    stop() {
+        if (this.timer)
+            clearTimeout(this.timer);
     }
 }
 export class WebJSONCollector extends PollingCollector {
