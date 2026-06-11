@@ -10,14 +10,15 @@ export const initialState = (cols, rows, serverHost, historyLimit) => ({
     seenCollectors: new Map(),
     filters: { sites: [], collectors: [] },
     group: 'sites',
+    columns: { time: 0, site: 0, desc: 0 },
     scrollOffset: 0,
     paused: false,
     pausedAtCount: 0,
     showHelp: false,
     quit: false
 });
-export const addPacket = (st, p, line) => {
-    st.entries.push({ site: p.site, plugin: p.plugin, line });
+export const addPacket = (st, p, parts) => {
+    st.entries.push({ site: p.site, plugin: p.plugin, parts });
     if (st.entries.length > st.historyLimit) {
         const overflow = st.entries.length - st.historyLimit;
         st.entries.splice(0, overflow);
@@ -26,6 +27,11 @@ export const addPacket = (st, p, line) => {
     }
     st.seenSites.set(p.site, (st.seenSites.get(p.site) ?? 0) + 1);
     st.seenCollectors.set(p.plugin, (st.seenCollectors.get(p.plugin) ?? 0) + 1);
+    st.columns = {
+        time: Math.max(st.columns.time, parts.time.length),
+        site: Math.max(st.columns.site, parts.site.length),
+        desc: Math.max(st.columns.desc, parts.desc.length)
+    };
 };
 export const visibleEntries = (st) => {
     const upTo = st.paused ? st.entries.slice(0, st.pausedAtCount) : st.entries;

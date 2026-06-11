@@ -59,28 +59,51 @@ const renderField = (f: FormattedData, o: RenderOpts): { text: string; trim: boo
     }
 };
 
-export const renderLine = (p: FluidityPacket, o: RenderOpts): string => {
+//the line decomposed so the interactive view can pad columns evenly:
+//time/site/desc are plain (sanitized) text, fields is the styled tail
+export interface RenderedParts {
+    time: string;
+    site: string;
+    desc: string;
+    fields: string;
+}
+
+export const renderParts = (p: FluidityPacket, o: RenderOpts): RenderedParts => {
+    let fields = '';
+    for (const f of p.formattedData) {
+        const { text, trim } = renderField(f, o);
+        fields += trim ? text : ` ${text}`;
+    }
+
+    return {
+        time: new Date(p.ts).toLocaleTimeString(o.locale ?? [], timeOpts(o.timeZone)),
+        site: sanitize(p.site),
+        desc: sanitize(p.description),
+        fields
+    };
+};
+
+//chrome parity with the web packet line, including its text transforms:
+//[time] SITE(description): fields
+export const composeChrome = (
+    parts: RenderedParts,
+    o: RenderOpts,
+    pad?: { time: number; site: number; desc: number }
+): string => {
     const tier = o.caps.tier;
     const c = (role: Parameters<typeof chromeDef>[0], text: string): string => paint(text, chromeDef(role), tier);
 
-    const ts = new Date(p.ts).toLocaleTimeString(o.locale ?? [], timeOpts(o.timeZone));
-
-    //chrome parity with the web packet line, including its text transforms:
-    //[time] SITE(description): fields
-    let line =
+    return (
         c('bracket', '[') +
-        c('timestamp', ts) +
+        c('timestamp', pad ? parts.time.padStart(pad.time) : parts.time) +
         c('bracket', ']') +
         ' ' +
-        c('site', sanitize(p.site).toUpperCase()) +
+        c('site', pad ? parts.site.toUpperCase().padEnd(pad.site) : parts.site.toUpperCase()) +
         c('separator', '(') +
-        c('description', sanitize(p.description).toLowerCase()) +
-        c('separator', '):');
-
-    for (const f of p.formattedData) {
-        const { text, trim } = renderField(f, o);
-        line += trim ? text : ` ${text}`;
-    }
-
-    return line;
+        c('description', pad ? parts.desc.toLowerCase().padEnd(pad.desc) : parts.desc.toLowerCase()) +
+        c('separator', '):') +
+        parts.fields
+    );
 };
+
+export const renderLine = (p: FluidityPacket, o: RenderOpts): string => composeChrome(renderParts(p, o), o);

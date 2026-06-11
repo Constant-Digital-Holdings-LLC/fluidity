@@ -35,22 +35,31 @@ const renderField = (f, o) => {
             return { text: paint(JSON.stringify(f.field), styleDef(0), tier), trim: false };
     }
 };
-export const renderLine = (p, o) => {
-    const tier = o.caps.tier;
-    const c = (role, text) => paint(text, chromeDef(role), tier);
-    const ts = new Date(p.ts).toLocaleTimeString(o.locale ?? [], timeOpts(o.timeZone));
-    let line = c('bracket', '[') +
-        c('timestamp', ts) +
-        c('bracket', ']') +
-        ' ' +
-        c('site', sanitize(p.site).toUpperCase()) +
-        c('separator', '(') +
-        c('description', sanitize(p.description).toLowerCase()) +
-        c('separator', '):');
+export const renderParts = (p, o) => {
+    let fields = '';
     for (const f of p.formattedData) {
         const { text, trim } = renderField(f, o);
-        line += trim ? text : ` ${text}`;
+        fields += trim ? text : ` ${text}`;
     }
-    return line;
+    return {
+        time: new Date(p.ts).toLocaleTimeString(o.locale ?? [], timeOpts(o.timeZone)),
+        site: sanitize(p.site),
+        desc: sanitize(p.description),
+        fields
+    };
 };
+export const composeChrome = (parts, o, pad) => {
+    const tier = o.caps.tier;
+    const c = (role, text) => paint(text, chromeDef(role), tier);
+    return (c('bracket', '[') +
+        c('timestamp', pad ? parts.time.padStart(pad.time) : parts.time) +
+        c('bracket', ']') +
+        ' ' +
+        c('site', pad ? parts.site.toUpperCase().padEnd(pad.site) : parts.site.toUpperCase()) +
+        c('separator', '(') +
+        c('description', pad ? parts.desc.toLowerCase().padEnd(pad.desc) : parts.desc.toLowerCase()) +
+        c('separator', '):') +
+        parts.fields);
+};
+export const renderLine = (p, o) => composeChrome(renderParts(p, o), o);
 //# sourceMappingURL=renderLine.js.map

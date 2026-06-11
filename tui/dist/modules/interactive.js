@@ -1,5 +1,5 @@
 import { follow } from './transport.js';
-import { renderLine } from './renderLine.js';
+import { renderParts } from './renderLine.js';
 import { parseKeys } from './keys.js';
 import { initialState, addPacket, handleKey } from './uiModel.js';
 import { composeFrame, drawFrame, enterScreen, leaveScreen } from './screen.js';
@@ -60,11 +60,11 @@ export const runInteractive = (o, onQuit) => {
     process.on('SIGTERM', quit);
     const handle = follow(o.base, { ...(o.insecure !== undefined ? { insecure: o.insecure } : {}) }, {
         onHistory: packets => packets.slice(-o.historyLimit).forEach(p => {
-            addPacket(st, p, renderLine(p, render));
+            addPacket(st, p, renderParts(p, render));
             scheduleRepaint();
         }),
         onPacket: p => {
-            addPacket(st, p, renderLine(p, render));
+            addPacket(st, p, renderParts(p, render));
             scheduleRepaint();
         },
         onState: state => {

@@ -1,6 +1,7 @@
 import { TermCaps } from './caps.js';
 import { paint, chromeDef, styleDef } from './theme.js';
 import { padEndAnsi, truncateAnsi, visibleLength } from './ansiText.js';
+import { composeChrome } from './renderLine.js';
 import { UIState, visibleEntries, viewportRows, pendingWhilePaused } from './uiModel.js';
 
 //frame composition is pure (testable without a pty); terminal control is at the bottom
@@ -53,7 +54,8 @@ export const composeFrame = (st: UIState, caps: TermCaps): string[] => {
         const slice = visible.slice(Math.max(0, end - vpRows), end);
         for (let i = 0; i < vpRows; i++) {
             const entry = slice[i];
-            rows.push(entry ? padEndAnsi(truncateAnsi(entry.line, w), w) : ' '.repeat(w));
+            const line = entry ? composeChrome(entry.parts, { caps }, st.columns) : undefined;
+            rows.push(line !== undefined ? padEndAnsi(truncateAnsi(line, w), w) : ' '.repeat(w));
         }
     }
 

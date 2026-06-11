@@ -2,13 +2,20 @@ import { FluidityPacket } from '#@shared/types.js';
 import { FilterSpec, matchesFilters } from './filters.js';
 import { ConnState } from './transport.js';
 import { Key } from './keys.js';
+import { RenderedParts } from './renderLine.js';
 
 //pure UI state + reducer; screen.ts turns this into a frame
 
 export interface Entry {
     site: string;
     plugin: string;
-    line: string; //pre-rendered, ANSI included
+    parts: RenderedParts; //fields pre-styled; chrome composed at paint time so columns align
+}
+
+export interface ColumnWidths {
+    time: number;
+    site: number;
+    desc: number;
 }
 
 export type FilterGroup = 'sites' | 'collectors';
@@ -25,6 +32,7 @@ export interface UIState {
     seenCollectors: Map<string, number>;
     filters: FilterSpec;
     group: FilterGroup;
+    columns: ColumnWidths; //widest seen so far; the whole window realigns as they grow
     scrollOffset: number; //lines up from the bottom; 0 = pinned (auto-scroll)
     paused: boolean;
     pausedAtCount: number;
@@ -43,6 +51,7 @@ export const initialState = (cols: number, rows: number, serverHost: string, his
     seenCollectors: new Map(),
     filters: { sites: [], collectors: [] },
     group: 'sites',
+    columns: { time: 0, site: 0, desc: 0 },
     scrollOffset: 0,
     paused: false,
     pausedAtCount: 0,
@@ -50,8 +59,8 @@ export const initialState = (cols: number, rows: number, serverHost: string, his
     quit: false
 });
 
-export const addPacket = (st: UIState, p: FluidityPacket, line: string): void => {
-    st.entries.push({ site: p.site, plugin: p.plugin, line });
+export const addPacket = (st: UIState, p: FluidityPacket, parts: RenderedParts): void => {
+    st.entries.push({ site: p.site, plugin: p.plugin, parts });
     if (st.entries.length > st.historyLimit) {
         const overflow = st.entries.length - st.historyLimit;
         st.entries.splice(0, overflow);
@@ -59,6 +68,12 @@ export const addPacket = (st: UIState, p: FluidityPacket, line: string): void =>
     }
     st.seenSites.set(p.site, (st.seenSites.get(p.site) ?? 0) + 1);
     st.seenCollectors.set(p.plugin, (st.seenCollectors.get(p.plugin) ?? 0) + 1);
+
+    st.columns = {
+        time: Math.max(st.columns.time, parts.time.length),
+        site: Math.max(st.columns.site, parts.site.length),
+        desc: Math.max(st.columns.desc, parts.desc.length)
+    };
 };
 
 export const visibleEntries = (st: UIState): Entry[] => {

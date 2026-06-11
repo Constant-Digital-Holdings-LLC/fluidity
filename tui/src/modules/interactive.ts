@@ -1,6 +1,6 @@
 import { follow, FollowHandle } from './transport.js';
 import { FilterSpec } from './filters.js';
-import { renderLine, RenderOpts } from './renderLine.js';
+import { renderParts, RenderOpts } from './renderLine.js';
 import { TermCaps } from './caps.js';
 import { parseKeys } from './keys.js';
 import { initialState, addPacket, handleKey, UIState } from './uiModel.js';
@@ -89,11 +89,11 @@ export const runInteractive = (o: InteractiveOpts, onQuit: () => void): FollowHa
         {
             onHistory: packets =>
                 packets.slice(-o.historyLimit).forEach(p => {
-                    addPacket(st, p, renderLine(p, render));
+                    addPacket(st, p, renderParts(p, render));
                     scheduleRepaint();
                 }),
             onPacket: p => {
-                addPacket(st, p, renderLine(p, render));
+                addPacket(st, p, renderParts(p, render));
                 scheduleRepaint();
             },
             onState: state => {

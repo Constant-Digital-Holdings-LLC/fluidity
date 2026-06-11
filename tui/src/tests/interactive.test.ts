@@ -44,11 +44,22 @@ const pkt = (seq: number, site: string, plugin = 'srsSerial'): FluidityPacket =>
     formattedData: []
 });
 
+const parts = (
+    fields: string,
+    site = 'S',
+    desc = 'd'
+): { time: string; site: string; desc: string; fields: string } => ({
+    time: '12:00:00',
+    site,
+    desc,
+    fields: ` ${fields}`
+});
+
 const populated = (): UIState => {
     const st = initialState(80, 12, 'localhost:3000', 100);
-    addPacket(st, pkt(1, 'Verdugo Pk'), 'line-1');
-    addPacket(st, pkt(2, 'Loop Cyn', 'genericSerial'), 'line-2');
-    addPacket(st, pkt(3, 'Verdugo Pk'), 'line-3');
+    addPacket(st, pkt(1, 'Verdugo Pk'), parts('line-1', 'Verdugo Pk'));
+    addPacket(st, pkt(2, 'Loop Cyn', 'genericSerial'), parts('line-2', 'Loop Cyn'));
+    addPacket(st, pkt(3, 'Verdugo Pk'), parts('line-3', 'Verdugo Pk'));
     return st;
 };
 
@@ -80,7 +91,7 @@ void test('pause freezes the viewport while buffering, resume re-pins', () => {
     const st = populated();
 
     handleKey(st, { name: 'pause' });
-    addPacket(st, pkt(4, 'Saddle Pk'), 'line-4');
+    addPacket(st, pkt(4, 'Saddle Pk'), parts('line-4', 'Saddle Pk'));
     assert.equal(visibleEntries(st).length, 3, 'frozen at pause point');
 
     handleKey(st, { name: 'pause' });
@@ -116,9 +127,27 @@ void test('composeFrame: bottom pane lists reporting sites with counts and selec
     assert.ok(!frame.join('').includes('\x1b'));
 });
 
+void test('viewport columns align to the widest seen site/description', () => {
+    const st = populated(); //sites: 'Verdugo Pk' (10) and 'Loop Cyn' (8)
+    const frame = composeFrame(st, MONO);
+    const body = frame.slice(1, st.rows - 3).filter(l => l.trim().length > 0);
+
+    //every line's fields start at the same column
+    const starts = body.map(l => l.indexOf('): line-'));
+    assert.ok(starts.length >= 3);
+    assert.ok(
+        starts.every(s => s === starts[0]),
+        `misaligned: ${JSON.stringify(starts)}`
+    );
+
+    //shorter site is padded out to the widest
+    const loopCyn = body.find(l => l.includes('LOOP CYN'));
+    assert.ok(loopCyn?.includes('LOOP CYN  ('), `site column padded: ${loopCyn ?? ''}`);
+});
+
 void test('composeFrame: scrolling and help overlay', () => {
     const st = initialState(40, 8, 'h', 100);
-    for (let i = 1; i <= 20; i++) addPacket(st, pkt(i, 'S'), `entry-${i}`);
+    for (let i = 1; i <= 20; i++) addPacket(st, pkt(i, 'S'), parts(`entry-${i}`));
 
     //pinned: newest at the bottom of the viewport
     let frame = composeFrame(st, MONO);
