@@ -168,28 +168,35 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
 └ [space] pause · [/] search · [g/G] top/end · [?] help · [q] quit ─┘
 ```
 
-- Header: app name + server org (from… the TUI has no DOM conf; org comes
-  from nothing today — header shows the server host; if we want org, that's
-  a server question, not a packet question — out of scope, host is fine).
-  Connection state: `● live` / `◌ reconnecting (3s)` / `○ offline` — in
-  ASCII fallback: `*` `~` `o`.
-- Body: scrollback (default 4000 packets, `--history` overrides; mirrors
-  web `maxClientHistory` default).
-- Auto-scroll pinned to bottom; any upward scroll unpins (web parity);
-  `G` re-pins. New-packet count shown while unpinned.
-- Footer: active filters as removable chips + key hints.
+- Header: `Fluidity - <server host>` left, connection state + packet count
+  right (right side wins when width is tight; scroll offset shown as `^N`,
+  pause as `PAUSED(+N)`). ASCII state glyphs: `*` live, `~` connecting/
+  reconnecting, `o` stopped.
+- Body: scrollback viewport (default 4000 packets, `--history` overrides;
+  mirrors web `maxClientHistory` default), ANSI-aware line clipping.
+- Auto-scroll pinned to bottom; scrolling up unpins; `G` (or a filter
+  change) re-pins.
+- **Bottom pane (full width): who is reporting in.** Lists sites (or
+  collectors — Tab switches) in first-seen order with live packet counts,
+  each numbered `[1]`-`[9]` for direct filter toggling. Selected entries
+  are highlighted (bold/underline cyan; `*`-marked in mono). Overflow shows
+  `+N more`. Sites render uppercase (web parity).
+- Hints line: the active keybindings + current filter count.
 
-### 4.5 Keybindings (interactive)
+### 4.5 Keybindings (interactive, as built)
 
 | key | action |
 |---|---|
 | `q` / `Ctrl-C` | quit (restore screen) |
-| `space` | pause/resume rendering (stream continues buffering) |
-| `s` / `c` | site / collector filter picker (list built from seen packets, like the web FilterManager) |
+| `1`–`9` | toggle the filter for the numbered item in the bottom pane |
+| `Tab` | switch the bottom pane between sites and collectors |
 | `x` | clear all filters |
-| `/` | incremental text search; `n`/`N` next/prev |
-| `↑↓ PgUp PgDn g G` | scroll; `G` re-enables auto-scroll |
-| `?` | help overlay |
+| `space` | pause/resume rendering (stream continues buffering; count shown) |
+| `j`/`k`, `↑↓`, `PgUp`/`PgDn` | scroll |
+| `g` / `G` | top / bottom (`G` re-enables auto-scroll) |
+| `?` | help overlay (any key dismisses) |
+
+Deferred to a follow-up: `/` incremental search with `n`/`N`.
 
 Filter semantics mirror the web client: selected sites OR'd, selected
 collectors OR'd, the two groups AND'd (intersection) — same behavior our

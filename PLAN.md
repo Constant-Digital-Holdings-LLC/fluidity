@@ -263,8 +263,17 @@ no `@ts-ignore` interop hacks left.
 
 ## TUI client (spec: tui/SPEC.md)
 
-> Milestones: T1 stream mode ✅ (2026-06-11) → T2 interactive → T3
+> Milestones: T1 stream mode ✅ → T2 interactive ✅ (both 2026-06-11) → T3
 > standalone binaries (Node SEA).
+>
+> **T2 done.** Alt-screen interactive mode (default on a TTY): scrollback
+> viewport with ANSI-aware clipping, full-width bottom pane listing
+> reporting sites/collectors with live counts, number-key filter toggles
+> (Tab switches group, x clears), j/k/arrows/PgUp/PgDn/g/G scrolling with
+> auto-scroll pinning, space pause with buffered count, ? help overlay,
+> 50ms repaint batching, crash-safe terminal restore. Pure
+> composeFrame/reducer model unit-tested (6 more tests, 81 total);
+> verified live in a pty against the dev stack. `/` search deferred.
 >
 > **T1 done.** `tui/` composite project, zero runtime deps. Modules: caps
 > (four-tier ladder), theme (CSS-parity palette + hexTo256), renderLine

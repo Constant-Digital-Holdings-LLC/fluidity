@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { detectCaps, ColorMode } from './modules/caps.js';
 import { shouldVerifyTLS, FollowHandle } from './modules/transport.js';
 import { runStream } from './modules/stream.js';
+import { runInteractive } from './modules/interactive.js';
 
 const HELP = `fluidity-tui - terminal client for Fluidity
 
@@ -86,6 +87,24 @@ const main = (): void => {
     }
 
     const caps = detectCaps(process.env, Boolean(process.stdout.isTTY), args.color as ColorMode);
+
+    //interactive on a real terminal; stream mode when piped or forced
+    const interactive = Boolean(process.stdout.isTTY) && Boolean(process.stdin.isTTY) && !args.follow && !args.json;
+
+    if (interactive) {
+        runInteractive(
+            {
+                base,
+                insecure: args.insecure,
+                filters: { sites: args.site, collectors: args.collector },
+                caps,
+                showUrls: args['show-urls'],
+                historyLimit: history
+            },
+            () => process.exit(0)
+        );
+        return;
+    }
 
     //spec §6: exit 2 if the server is unreachable at startup; once a
     //connection has ever succeeded, retry forever

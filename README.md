@@ -164,7 +164,7 @@ Fluidity includes a terminal client that renders the same live stream in your te
 
 `node tui/dist/app.js`
 
-(or `npx fluidity-tui` once installed). It defaults to `https://localhost:3000`; point it elsewhere with `--server https://your-host`. Useful flags: `--site`/`--collector` to filter, `--json` for raw packet NDJSON (pipe to `jq`), `--color never|16|256|truecolor` to override detection, `--show-urls` to print link targets. Output is plain text when piped. See `tui/SPEC.md` for the full design.
+(or `npx fluidity-tui` once installed). It defaults to `https://localhost:3000`; point it elsewhere with `--server https://your-host`. On a terminal you get the interactive view: a bottom pane lists every site reporting in with live counts — press `1`-`9` to filter by them, `Tab` to switch to collectors, `space` to pause, `?` for help. When piped (or with `--follow`/`--json`) it streams plain lines instead: `--json` emits raw packet NDJSON (pipe to `jq`), `--site`/`--collector` pre-filter, `--color never|16|256|truecolor` overrides detection. See `tui/SPEC.md` for the full design.
 
 If you want fancy syntax colarization/highlighting, plugins (collectors) are very easy to develop. I'm planning on writing a guide here soon on how to add plugins.
 
