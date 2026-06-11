@@ -6,7 +6,10 @@ export class PacketFIFO {
     protected buffer: FluidityPacket[];
     protected count: IterableIterator<number>;
 
-    constructor(protected maxSize: number, protected log: LoggerUtil = fetchLogger()) {
+    constructor(
+        protected maxSize: number,
+        protected log: LoggerUtil = fetchLogger()
+    ) {
         this.buffer = [];
         this.count = counter();
     }

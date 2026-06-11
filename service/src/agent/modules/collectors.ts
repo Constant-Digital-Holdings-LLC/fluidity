@@ -14,7 +14,7 @@ import {
     isObject
 } from '#@shared/types.js';
 
-import throttledQueue from 'throttled-queue';
+import { throttledQueue } from 'throttled-queue';
 
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -116,13 +116,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
 
-        //This module isn't working too well with es-iterop
-
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
+        this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
     }
 
     abstract start(): void;
@@ -217,7 +211,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
 
-        for await (const { location, key } of targets) {
+        for (const { location, key } of targets) {
             try {
                 await this.post(location, fPacket, key);
             } catch (err) {

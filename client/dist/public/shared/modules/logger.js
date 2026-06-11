@@ -106,7 +106,7 @@ export class LoggerUtil {
                     });
                 })
                     .catch((err) => {
-                    reject(err);
+                    reject(err instanceof Error ? err : new Error(String(err)));
                 });
             }
             else {

@@ -19,7 +19,7 @@ export function* counter(): IterableIterator<number> {
 export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
     return new Promise((resolve, reject) => {
         if (inBrowser()) {
-            return reject('function not suitable for browser execution, no FS');
+            return reject(new Error('function not suitable for browser execution, no FS'));
         } else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
                 import('url')
@@ -45,7 +45,7 @@ export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 export const isJSONString = (str: string) => {
     try {
         JSON.parse(str);
-    } catch (e) {
+    } catch {
         return false;
     }
     return true;

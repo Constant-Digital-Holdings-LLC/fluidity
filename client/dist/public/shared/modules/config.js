@@ -44,8 +44,8 @@ export class FSConfigUtil extends ConfigBase {
         });
     }
     loadFiles(cFiles) {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             if (!NODE_ENV) {
                 throw new Error('loadFiles() not applicable outside of node');
             }

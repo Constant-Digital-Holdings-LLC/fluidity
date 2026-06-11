@@ -93,7 +93,10 @@ void test('srs radio-state frames model single-port COR with release-to-zero', (
     const events = take(srsLineStream(mulberry32(23)), 300);
     const radio = events.map(e => e.line).filter(l => RADIO_FRAME.test(l));
 
-    assert.ok(radio.some(l => frameBytes(l).some(b => b !== 0)), 'sample should contain COR activity');
+    assert.ok(
+        radio.some(l => frameBytes(l).some(b => b !== 0)),
+        'sample should contain COR activity'
+    );
     assert.ok(
         radio.some(l => frameBytes(l).every(b => b === 0)),
         'sample should contain release/heartbeat zero frames'

@@ -119,7 +119,7 @@ class FilterManager {
                 this.applyVisibility(document.querySelectorAll('.fluidity-packet'));
                 resolve();
             } catch (err) {
-                reject(err);
+                reject(err instanceof Error ? err : new Error(String(err)));
             }
         });
     }

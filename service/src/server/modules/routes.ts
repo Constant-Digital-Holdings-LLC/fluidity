@@ -1,7 +1,21 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { FluidityController } from './controller.js';
-import { apiKeyAuth } from '@vpriem/express-api-key-auth';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
+
+//minimal X-Api-Key check, replacing @vpriem/express-api-key-auth
+//(its bundled express 4 typings clash with express 5)
+const apiKeyAuth =
+    (keys: string[]): RequestHandler =>
+    (req, res, next) => {
+        const key = req.header('x-api-key');
+
+        if (key && keys.includes(key)) {
+            next();
+            return;
+        }
+
+        res.status(401).json({ error: 'unauthorized' });
+    };
 
 export const makeRouter = (conf: MyConfigData | undefined, controller: FluidityController): Router => {
     const router = Router();

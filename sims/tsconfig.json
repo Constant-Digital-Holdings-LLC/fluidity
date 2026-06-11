@@ -7,7 +7,7 @@
         /* Modules */
         "target": "ES2022",
         "lib": ["ES2022"],
-        "module": "ES2022",
+        "module": "NodeNext",
         "rootDir": "./src",
         "moduleResolution": "NodeNext",
         "allowJs": false,

@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { apiKeyAuth } from '@vpriem/express-api-key-auth';
+const apiKeyAuth = (keys) => (req, res, next) => {
+    const key = req.header('x-api-key');
+    if (key && keys.includes(key)) {
+        next();
+        return;
+    }
+    res.status(401).json({ error: 'unauthorized' });
+};
 export const makeRouter = (conf, controller) => {
     const router = Router();
     router.get('/', (req, res) => {

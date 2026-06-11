@@ -1,5 +1,11 @@
-import type { StackFrame } from 'stacktrace-js';
 import type { Request, Response, NextFunction } from 'express';
+
+//the browser loads stacktrace.js from /external as a global; minimal typing for what we use
+interface StackFrame {
+    fileName?: string;
+    lineNumber?: number;
+}
+declare const StackTrace: { get(): Promise<StackFrame[]> };
 import { inBrowser, counter } from '#@shared/modules/utils.js';
 export const levelsArr = ['debug', 'info', 'warn', 'error', 'never'] as const;
 export type LogLevel = (typeof levelsArr)[number];
@@ -142,8 +148,8 @@ export class LoggerUtil implements Logger {
                             line: sf[4]?.lineNumber
                         });
                     })
-                    .catch((err: Error) => {
-                        reject(err);
+                    .catch((err: unknown) => {
+                        reject(err instanceof Error ? err : new Error(String(err)));
                     });
             } else {
                 try {

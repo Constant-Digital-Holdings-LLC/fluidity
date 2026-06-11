@@ -3,13 +3,12 @@ import { isFfluidityPacket } from '#@shared/types.js';
 import { PacketFIFO } from './packetFIFO.js';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger, LoggerUtil } from '#@shared/modules/logger.js';
-import SSE_pkg from 'express-sse-ts';
-const { default: ServerSideEvents } = SSE_pkg;
+import { ServerSideEvents } from './sse.js';
 
 export interface FluidityController {
-    GET(req: Request, res: Response): void;
-    POST(req: Request, res: Response): void;
-    SSE(req: Request, res: Response, next: NextFunction): void;
+    GET: (req: Request, res: Response) => void;
+    POST: (req: Request, res: Response) => void;
+    SSE: (req: Request, res: Response, next: NextFunction) => void;
 }
 
 export const makeController = (conf?: MyConfigData, log: LoggerUtil = fetchLogger(conf)): FluidityController => {

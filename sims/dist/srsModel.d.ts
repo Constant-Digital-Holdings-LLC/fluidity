@@ -21,6 +21,6 @@ export interface SrsSimConfig {
 }
 export declare const defaultSrsConfig: SrsSimConfig;
 export declare const radioFrame: (cor: number, pl: number, rcv: number, dtmf: number, ptt: number) => string;
-export declare const portFrame: (c: Pick<SrsSimConfig, 'linked' | 'loopback' | 'interfaced'>) => string;
+export declare const portFrame: (c: Pick<SrsSimConfig, "linked" | "loopback" | "interfaced">) => string;
 export declare function srsLineStream(rng: Rng, config?: Partial<SrsSimConfig>): Generator<TimedLine, never, unknown>;
 //# sourceMappingURL=srsModel.d.ts.map

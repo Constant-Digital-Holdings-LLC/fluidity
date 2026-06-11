@@ -181,10 +181,30 @@ bugs fixed; `npm test` is the regression gate for phase 3.
 
 ---
 
-## Phase 3 — Dependency modernization
+## Phase 3 — Dependency modernization ✅ DONE
 
-**Goal:** current toolchain and runtime deps, with the phase-2 suite as the
-safety net. Order within the phase = lowest risk first.
+> Completed 2026-06-11. `npm audit`: 0 vulnerabilities (was 15 incl. 1
+> critical). 33 tests green throughout; live e2e smoke verified on the new
+> stack. Implementation notes:
+> - Toolchain: TypeScript 5.9 (`module: NodeNext` now required and set in
+>   all three tsconfigs; client lib → ES2022), ESLint 9 flat config
+>   (`eslint.config.js`, typescript-eslint v8 + prettier 3; the deprecated
+>   standard-with-typescript stack was installed but never actually
+>   extended — dropped without behavior change), `npm run lint` added and
+>   clean, @types/node 24, `engines: node >=20`.
+> - Runtime: serialport 13 (SerialPortMock unchanged), express 5 +
+>   @types/express 5, ejs 6, stack-trace 1.0.0, throttled-queue 3 (proper
+>   ESM — the `@ts-ignore` interop hack is gone; new options-object API).
+> - Replaced with in-repo code: `express-sse-ts` (abandoned 2022) →
+>   `server/modules/sse.ts`; `@vpriem/express-api-key-auth` (bundled
+>   express-4 typings clash with express 5) → ~10-line middleware in
+>   routes.ts. Removed unused deps: `yaml`, `set-interval-async`,
+>   `@types/serialport`, `@types/stacktrace-js` (StackTrace browser global
+>   now declared locally in logger.ts).
+> - Deliberately not taken: TypeScript 6.0 / ESLint 10 (very new; the
+>   ecosystem plugins lag), @types/node 25 (24 = LTS), `es-module-shims`
+>   (browser asset is a committed copy under client/dist/public/external —
+>   upgrading means re-vendoring, separate task).
 
 ### 3.1 Toolchain (no runtime risk)
 

@@ -27,7 +27,7 @@ export const makeApp = (
 
     app.set('view engine', 'ejs');
     app.set('views', VIEWS_DIR);
-    app.use('', makeRouter(conf, controller));
+    app.use('/', makeRouter(conf, controller));
 
     app.use(
         express.static(PUBLIC_DIR, {

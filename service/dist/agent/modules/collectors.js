@@ -3,7 +3,7 @@ import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort, SerialPortMock } from 'serialport';
 import { simProfileFromPath, startFeeder } from '#@sims/index.js';
 import { isFfluidityPacket, isFluidityLink, isObject } from '#@shared/types.js';
-import throttledQueue from 'throttled-queue';
+import { throttledQueue } from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
 import https from 'https';
@@ -61,7 +61,7 @@ export class DataCollector {
             throw new Error(`DataCollector class constructor - invalid runtime params`);
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
-        this.throttle = throttledQueue(maxHttpsReqPerCollectorPerSec, 1000);
+        this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
     }
     _reqJSON(method, uo, data, key) {
         const { protocol, hostname, port, pathname } = uo;
@@ -136,7 +136,7 @@ export class DataCollector {
     async sendHttps(targets, fPacket) {
         log.debug(`to: ${JSON.stringify(targets)}`);
         log.debug(fPacket);
-        for await (const { location, key } of targets) {
+        for (const { location, key } of targets) {
             try {
                 await this.post(location, fPacket, key);
             }

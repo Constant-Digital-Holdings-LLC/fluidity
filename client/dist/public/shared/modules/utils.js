@@ -14,7 +14,7 @@ export function* counter() {
 export const prettyFsNotFound = (err) => {
     return new Promise((resolve, reject) => {
         if (inBrowser()) {
-            return reject('function not suitable for browser execution, no FS');
+            return reject(new Error('function not suitable for browser execution, no FS'));
         }
         else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
@@ -41,7 +41,7 @@ export const isJSONString = (str) => {
     try {
         JSON.parse(str);
     }
-    catch (e) {
+    catch (_a) {
         return false;
     }
     return true;

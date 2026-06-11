@@ -3,7 +3,7 @@ export const defaultSrsConfig = {
     loopback: 0x01,
     interfaced: 0x1f,
     activePorts: [0, 6],
-    heartbeatMs: 100000,
+    heartbeatMs: 100_000,
     rcvActProbability: 0.1,
     keyMinMs: 800,
     keyMaxMs: 8000,
@@ -11,8 +11,8 @@ export const defaultSrsConfig = {
     overGapMaxMs: 4000,
     oversMin: 2,
     oversMax: 8,
-    idleMinMs: 15000,
-    idleMaxMs: 180000
+    idleMinMs: 15_000,
+    idleMaxMs: 180_000
 };
 const hex = (b) => (b & 0xff).toString(16).padStart(2, '0');
 export const radioFrame = (cor, pl, rcv, dtmf, ptt) => `[${[cor, pl, rcv, dtmf, ptt].map(hex).join(' ')}]`;
@@ -24,11 +24,11 @@ export function* srsLineStream(rng, config) {
     let cor = 0;
     let rcv = 0;
     let hbRadioAt = c.heartbeatMs;
-    let hbPortAt = between(2000, 10000);
+    let hbPortAt = between(2000, 10_000);
     let keyed = false;
     let oversLeft = 0;
     let portIdx = 0;
-    let nextQsoAt = between(2000, 20000);
+    let nextQsoAt = between(2000, 20_000);
     for (;;) {
         const qsoAt = nextQsoAt;
         let at = qsoAt;
@@ -70,8 +70,7 @@ export function* srsLineStream(rng, config) {
             oversLeft--;
             portIdx++;
             nextQsoAt =
-                now +
-                    (oversLeft > 0 ? between(c.overGapMinMs, c.overGapMaxMs) : between(c.idleMinMs, c.idleMaxMs));
+                now + (oversLeft > 0 ? between(c.overGapMinMs, c.overGapMaxMs) : between(c.idleMinMs, c.idleMaxMs));
             yield { afterMs, line: radioFrame(0, 0, 0, 0, 0) };
         }
     }

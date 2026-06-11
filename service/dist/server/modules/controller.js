@@ -1,8 +1,7 @@
 import { isFfluidityPacket } from '#@shared/types.js';
 import { PacketFIFO } from './packetFIFO.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
-import SSE_pkg from 'express-sse-ts';
-const { default: ServerSideEvents } = SSE_pkg;
+import { ServerSideEvents } from './sse.js';
 export const makeController = (conf, log = fetchLogger(conf)) => {
     const sse = new ServerSideEvents();
     const fifo = new PacketFIFO(conf?.maxServerHistory ?? 300, log);

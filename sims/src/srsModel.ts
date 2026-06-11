@@ -123,8 +123,7 @@ export function* srsLineStream(rng: Rng, config?: Partial<SrsSimConfig>): Genera
             oversLeft--;
             portIdx++;
             nextQsoAt =
-                now +
-                (oversLeft > 0 ? between(c.overGapMinMs, c.overGapMaxMs) : between(c.idleMinMs, c.idleMaxMs));
+                now + (oversLeft > 0 ? between(c.overGapMinMs, c.overGapMaxMs) : between(c.idleMinMs, c.idleMaxMs));
             yield { afterMs, line: radioFrame(0, 0, 0, 0, 0) };
         }
     }

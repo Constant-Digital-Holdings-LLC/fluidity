@@ -153,10 +153,7 @@ void test('missing or malformed api key: request is never sent (regression: it u
         );
 
         await assert.rejects(collector.testPost(target.location, { probe: true }, ''), /missing API key/);
-        await assert.rejects(
-            collector.testPost(target.location, { probe: true }, 'not-alphanumeric!'),
-            /alphanumeric/
-        );
+        await assert.rejects(collector.testPost(target.location, { probe: true }, 'not-alphanumeric!'), /alphanumeric/);
 
         //give any stray request time to land before asserting none did
         await sleep(150);
