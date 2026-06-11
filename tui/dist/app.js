@@ -52,8 +52,14 @@ const main = () => {
         return;
     }
     if (args.version) {
-        const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-        process.stdout.write(`fluidity-tui ${pkg.version}\n`);
+        let version = process.env['FLUIDITY_TUI_VERSION'] ?? 'unknown';
+        try {
+            const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+            version = pkg.version;
+        }
+        catch {
+        }
+        process.stdout.write(`fluidity-tui ${version}\n`);
         return;
     }
     const colorModes = ['auto', 'never', '16', '256', 'truecolor'];

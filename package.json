@@ -21,7 +21,8 @@
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",
         "dev:server": "cd service/dist/server && cross-env NODE_ENV=development NODE_OPTIONS=--enable-source-maps concurrently -n tsc-service,nm-service --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" ",
-        "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently -n tsc-agent,nm-agent --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" "
+        "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently -n tsc-agent,nm-agent --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" ",
+        "build:tui-sea": "npm run build && node tui/scripts/build-sea.mjs"
     },
     "author": "Sean Lynch - KK6BEB",
     "license": "MIT",
@@ -33,11 +34,13 @@
         "c8": "^11.0.0",
         "concurrently": "^10.0.3",
         "cross-env": "^10.1.0",
+        "esbuild": "^0.28.0",
         "eslint": "^9.39.4",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.6",
         "jsdom": "^29.1.1",
         "nodemon": "^3.1.14",
+        "postject": "^1.0.0-alpha.6",
         "prettier": "^3.8.4",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.61.0"

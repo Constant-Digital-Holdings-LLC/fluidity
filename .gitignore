@@ -107,3 +107,6 @@ typings/
 # local conf
 service/dist/*/conf/prod_conf.json
 service/dist/*/conf/dev_conf.json
+
+# TUI standalone build output (binaries, ~100MB)
+tui/build/

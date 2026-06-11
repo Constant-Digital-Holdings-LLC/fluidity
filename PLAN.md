@@ -263,8 +263,15 @@ no `@ts-ignore` interop hacks left.
 
 ## TUI client (spec: tui/SPEC.md)
 
-> Milestones: T1 stream mode ✅ → T2 interactive ✅ (both 2026-06-11) → T3
-> standalone binaries (Node SEA).
+> Milestones: T1 stream mode ✅ → T2 interactive ✅ → T3 standalone
+> binaries ✅ (all 2026-06-11).
+>
+> **T3 done.** `npm run build:tui-sea` (tui/scripts/build-sea.mjs): esbuild
+> CJS bundle → SEA blob → postject injection into the node binary, with a
+> --version smoke test; verified linux-x64 binary (~124MB) streamed live
+> data with no Node installed. Release workflow (release.yml) builds five
+> targets on v* tags and attaches binaries. Process documented from the
+> verified steps in tui/BUILD.md.
 >
 > **T2 done.** Alt-screen interactive mode (default on a TTY): scrollback
 > viewport with ANSI-aware clipping, full-width bottom pane listing
@@ -299,4 +306,4 @@ no `@ts-ignore` interop hacks left.
   jsdom tests, which now provide a safety net for any refactor).
 - srsSerial DTMF telemetry (`>p:c<`, C22A bit 2) — plugin can't parse it;
   sim support would follow the plugin.
-- TUI `/` incremental search (deferred from T2); T3 standalone executables.
+- TUI `/` incremental search (deferred from T2).

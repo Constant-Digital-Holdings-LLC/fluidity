@@ -157,6 +157,8 @@ Fluidity includes a terminal client that renders the same live stream in your te
 
 (or `npx fluidity-tui` once installed). It defaults to `https://localhost:3000`; point it elsewhere with `--server https://your-host`. On a terminal you get the interactive view: packet columns align automatically, and a bottom pane lists every site reporting in with live counts — press `1`-`9` to filter by them, `Tab` to switch to collectors, `space` to pause, `?` for help. When piped (or with `--follow`/`--json`) it streams plain lines instead: `--json` emits raw packet NDJSON (pipe to `jq`), `--site`/`--collector` pre-filter, `--color never|16|256|truecolor` overrides detection. See `tui/SPEC.md` for the full design.
 
+The TUI can also be packaged as a single self-contained executable (no Node required on the target machine) — release tags build binaries for Linux (x64/arm64), macOS, and Windows automatically, or build your own with `npm run build:tui-sea` (see `tui/BUILD.md`).
+
 #### Simulated Devices & Testing
 
 The simulators live in **sims/** as a TypeScript library (`sims/src/`). Any serial collector can be pointed at a simulator by using a `sim://` path in its config (`sim://srs` for SRS controller telemetry, `sim://generic` for assorted serial console data). Simulated devices behave like real ones: same parsers, same plugins, same data path to the dashboard.

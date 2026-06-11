@@ -55,10 +55,18 @@ const main = (): void => {
         return;
     }
     if (args.version) {
-        const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
-            version: string;
-        };
-        process.stdout.write(`fluidity-tui ${pkg.version}\n`);
+        //npm install: read the repo package.json; SEA binary: the bundler
+        //statically defines FLUIDITY_TUI_VERSION (import.meta doesn't survive CJS)
+        let version = process.env['FLUIDITY_TUI_VERSION'] ?? 'unknown';
+        try {
+            const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+                version: string;
+            };
+            version = pkg.version;
+        } catch {
+            //bundled: fall through to the defined constant
+        }
+        process.stdout.write(`fluidity-tui ${version}\n`);
         return;
     }
 

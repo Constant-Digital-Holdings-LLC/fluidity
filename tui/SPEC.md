@@ -1,7 +1,7 @@
 # Fluidity TUI — Specification
 
-Status: **living document — T1 (stream) and T2 (interactive) shipped
-2026-06-11; T3 (standalone executables) pending** (see Milestones)
+Status: **living document — T1 (stream), T2 (interactive), and T3
+(standalone executables) all shipped 2026-06-11** (see Milestones)
 
 A terminal client for Fluidity. Connects to an existing Fluidity web service
 over HTTPS, renders the live packet stream in the terminal, and ships both as
@@ -346,7 +346,7 @@ Alt-screen chrome, scrollback, keyboard filters/search/pause, reconnect UX.
 *Accept:* the §4.4 layout works on Windows Terminal and the Pi console
 (16-color, ASCII-only degradation by design); terminal always restored.
 
-**T3 — standalone executables**
+**T3 — standalone executables** ✅ shipped 2026-06-11
 SEA pipeline + CI release artifacts for the five targets. *Accept:* a
 freshly flashed Pi OS box runs the downloaded binary against a LAN server
 with no Node installed.
