@@ -261,13 +261,23 @@ no `@ts-ignore` interop hacks left.
 >   `index.ts` (SSE wiring), `genApiKey` bin, logger location-tracing paths,
 >   config.ts error branches.
 
-## Next: TUI client (spec'd, not started)
+## TUI client (spec: tui/SPEC.md)
 
-> A terminal client (Linux/macOS/Windows/Raspberry Pi OS console) consuming
-> /FIFO + /SSE, with standalone executables via Node SEA. Full specification
-> in `tui/SPEC.md`. Milestones: T1 stream mode → T2 interactive → T3
-> standalone binaries. Zero runtime deps; second interpreter of the
-> FluidityPacket suggestion contract.
+> Milestones: T1 stream mode ✅ (2026-06-11) → T2 interactive → T3
+> standalone binaries (Node SEA).
+>
+> **T1 done.** `tui/` composite project, zero runtime deps. Modules: caps
+> (four-tier ladder), theme (CSS-parity palette + hexTo256), renderLine
+> (chrome parity, trim convention, OSC 8 links, control-char sanitization —
+> untrusted serial data can't inject escapes into the terminal), filters
+> (web OR/AND semantics), transport (node:https history+SSE follow with
+> backoff reconnect and seq+ts dedupe across server restarts, loopback TLS
+> auto-relaxation), stream mode with --json NDJSON. CLI per spec §6 incl.
+> localhost default and exit-code 2. 20 TUI tests in the main suite (75
+> total), incl. golden-capture rendering at all four tiers and a live
+> reconnect-after-restart transport test. Verified live against the dev
+> server + sim agent. Coverage gate adjusted to 78 lines (entry points
+> uncovered by design).
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

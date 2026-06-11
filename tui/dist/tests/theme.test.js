@@ -1,0 +1,28 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { paint, styleDef, chromeDef, hexTo256 } from '../modules/theme.js';
+void test('paint produces the right SGR per tier', () => {
+    const s3 = styleDef(3);
+    assert.equal(paint('x', s3, 'truecolor'), '\x1b[1;38;2;84;176;237mx\x1b[0m');
+    assert.equal(paint('x', s3, '256'), `\x1b[1;38;5;${hexTo256('#54b0ed')}mx\x1b[0m`);
+    assert.equal(paint('x', s3, '16'), '\x1b[1;94mx\x1b[0m');
+    assert.equal(paint('x', s3, 'mono'), 'x');
+    const s5 = styleDef(5);
+    assert.equal(paint('x', s5, '16'), '\x1b[2;35mx\x1b[0m');
+});
+void test('unknown styles fall back to style 0', () => {
+    assert.deepEqual(styleDef(42), styleDef(0));
+});
+void test('chrome roles match fluidity.css assignments', () => {
+    assert.equal(chromeDef('site').hex, '#00fdff');
+    assert.equal(chromeDef('bracket').hex, '#706c9d');
+    assert.equal(chromeDef('description').hex, '#999999');
+    assert.equal(chromeDef('description').bold, true);
+});
+void test('hexTo256 quantization', () => {
+    assert.equal(hexTo256('#000000'), 16);
+    assert.equal(hexTo256('#ffffff'), 231);
+    assert.equal(hexTo256('#999999'), 247);
+    assert.equal(hexTo256('#ff0000'), 196);
+});
+//# sourceMappingURL=theme.test.js.map

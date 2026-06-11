@@ -158,6 +158,14 @@ Run the test suite (no hardware required) with:
 
 `npm test`
 
+#### Terminal Client (TUI)
+
+Fluidity includes a terminal client that renders the same live stream in your terminal — including over SSH, and on the Raspberry Pi OS text console. With a local dev server running:
+
+`node tui/dist/app.js`
+
+(or `npx fluidity-tui` once installed). It defaults to `https://localhost:3000`; point it elsewhere with `--server https://your-host`. Useful flags: `--site`/`--collector` to filter, `--json` for raw packet NDJSON (pipe to `jq`), `--color never|16|256|truecolor` to override detection, `--show-urls` to print link targets. Output is plain text when piped. See `tui/SPEC.md` for the full design.
+
 If you want fancy syntax colarization/highlighting, plugins (collectors) are very easy to develop. I'm planning on writing a guide here soon on how to add plugins.
 
 Feel free to log an issue if you need assistance. For my amateur radio friends, I'm 'good on QRZ' -KK6BEB

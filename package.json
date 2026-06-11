@@ -13,10 +13,10 @@
         "node": ">=20"
     },
     "scripts": {
-        "build": "tsc --build service/tsconfig.json",
-        "lint": "eslint client/src service/src sims/src",
-        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
-        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --all --check-coverage --lines 80 --statements 80 --branches 75 --functions 80 --allow-external --src . --src ../server --src ../../../client/dist/public --src ../../../sims/dist --exclude \"**/tests/**\" --exclude \"**/conf/**\" --exclude \"**/external/**\" --exclude \"**/ssl/**\" --exclude \"**/*.d.ts\" --reporter=text-summary --reporter=text node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
+        "build": "tsc --build service/tsconfig.json tui/tsconfig.json",
+        "lint": "eslint client/src service/src sims/src tui/src",
+        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\" \"../server/tests/*.test.js\" \"../../../tui/dist/tests/*.test.js\"",
+        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --all --check-coverage --lines 78 --statements 78 --branches 75 --functions 80 --allow-external --src . --src ../server --src ../../../client/dist/public --src ../../../sims/dist --src ../../../tui/dist --exclude \"**/tests/**\" --exclude \"**/conf/**\" --exclude \"**/external/**\" --exclude \"**/ssl/**\" --exclude \"**/*.d.ts\" --reporter=text-summary --reporter=text node --test \"tests/*.test.js\" \"../server/tests/*.test.js\" \"../../../tui/dist/tests/*.test.js\"",
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",
@@ -48,5 +48,8 @@
         "serialport": "^13.0.0",
         "stack-trace": "^1.0.0",
         "throttled-queue": "^3.0.0"
+    },
+    "bin": {
+        "fluidity-tui": "./tui/dist/app.js"
     }
 }
