@@ -323,11 +323,18 @@ li i {
     margin-bottom: 0.35rem;
 }
 
+/* one line, no taller than a pill - so the bar's contents center cleanly
+   and still top-align with the site rail (same geometry either way) */
 #cell-stats {
     font-size: 0.8rem;
-    display: grid;
-    gap: 0.2rem;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+#cell-stats .stat-name:not(:first-child) {
+    margin-left: 0.9rem;
 }
 
 .stat-name {
@@ -661,9 +668,9 @@ li i {
         display: flex;
         gap: var(--small-gap);
         padding: 1rem;
-        /* top-align so the first chip row sits level with the site rail's
-           first pill (centering pushed chips down vs the taller stats block) */
-        align-items: flex-start;
+        /* pills are the tallest content in the bar (stats are one line), so
+           centering also keeps the chip row level with the site rail */
+        align-items: center;
         justify-content: space-between;
     }
 
@@ -717,5 +724,9 @@ li i {
 
     #cell-stats {
         gap: 0.5rem;
+    }
+
+    #cell-stats .stat-name:not(:first-child) {
+        margin-left: 1.2rem;
     }
 }
