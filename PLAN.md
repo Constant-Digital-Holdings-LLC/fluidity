@@ -235,6 +235,32 @@ no `@ts-ignore` interop hacks left.
 
 ---
 
+## Post-plan hardening (2026-06-11, after phase 3)
+
+> Coverage-gap closure pass. 55 tests passing; coverage now honestly measured
+> with `c8 --all` (counts unloaded files too): 83.2% lines / 78.7% branches,
+> gated in CI at 80/80/75/80.
+> - Golden replay test: all 298 captured production frames decode
+>   byte-identically to f-y.io's production output
+>   (`tests/goldenCapture.test.ts`).
+> - `hamLive` tested against synthetic nets + a real captured API response
+>   (`sims/fixtures/ham-live-livenets-2026-06-11.json`); `vRep` smoke-tested.
+> - Agent misconfiguration: `buildCollectors()` extracted from agent
+>   `app.ts` into `modules/runner.ts`; 8 tests cover bad site/targets/
+>   collectors/plugin-name. `SerialCollector` gained `stop()` (closes port,
+>   which stops the sim feeder).
+> - CI: `.github/workflows/ci.yml` — lint + coverage-gated tests on
+>   Node 20 and 24.
+> - Client UI tested under jsdom (`tests/ui.test.ts`): rendering, seq
+>   demarcation, filter render/click/clear/intersection. Enablers: `ui.ts`
+>   conf load is now `inBrowser()`-guarded, `#@client/*` alias, DOM lib
+>   added to service tsconfig, jsdom `innerText`/`scrollIntoView` shims.
+> - `--all` exposed and removed three stale committed dist artifacts with no
+>   source (`heartbeat.js`, `fifoController.js`, `packetBuffer.js`).
+> - Remaining accepted gaps: both `app.ts` entry composition roots, client
+>   `index.ts` (SSE wiring), `genApiKey` bin, logger location-tracing paths,
+>   config.ts error branches.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under

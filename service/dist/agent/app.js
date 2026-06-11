@@ -1,4 +1,4 @@
-import { isDataCollectorParams } from './modules/collectors.js';
+import { buildCollectors } from './modules/runner.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { fetchLogger } from '#@shared/modules/logger.js';
 process.on('unhandledRejection', (reason, promise) => {
@@ -13,53 +13,24 @@ if (!conf)
     throw new Error('Missing Fluidity Agent Config');
 const log = fetchLogger();
 log.debug(conf);
-if (conf) {
-    const { targets, site } = conf;
-    let startQueue = [];
-    try {
-        if (typeof site !== 'string') {
-            throw new Error(`in main config: a site name (string) must be defined for this agent (site: ${JSON.stringify(site)})`);
-        }
-        if (!targets) {
-            throw new Error(`in main config: no targets defined to publish to (targets: ${JSON.stringify(targets)})`);
-        }
-        if (!targets.every(({ location, key }) => {
-            return new URL(location).protocol === 'https:' && key;
-        })) {
-            throw new Error(`in main config: targets must be HTTPS and an Api Key needs to be specified: ${JSON.stringify(targets.map(t => t.location))}`);
-        }
-        if (Array.isArray(conf['collectors']) && conf['collectors'].length) {
-            startQueue = await Promise.all(conf['collectors'].map(async (collectorConfig) => {
-                const pluginParams = { site, targets, ...collectorConfig };
-                if (isDataCollectorParams(pluginParams)) {
-                    const { plugin } = pluginParams;
-                    const { default: Plugin } = (await import(`./modules/collectors/${plugin}.js`));
-                    return new Plugin(pluginParams);
-                }
-                else {
-                    throw new Error(`In plugin config processing: Invalid plugin params in conf: ${JSON.stringify(pluginParams, null, 2)}`);
-                }
-            }));
-        }
-        else {
-            throw new Error('In plugin config processing: no data collectors defined in configuration');
-        }
+let startQueue = [];
+try {
+    startQueue = await buildCollectors(conf);
+}
+catch (err) {
+    process.exitCode = 1;
+    log.error(err);
+}
+try {
+    if (startQueue.length) {
+        startQueue.forEach(p => p.start());
     }
-    catch (err) {
-        process.exitCode = 1;
-        log.error(err);
+    else {
+        throw new Error('no valid plugins in start queue');
     }
-    try {
-        if (startQueue.length) {
-            startQueue.forEach(p => p.start());
-        }
-        else {
-            throw new Error('no valid plugins in start queue');
-        }
-    }
-    catch (err) {
-        process.exitCode = 1;
-        log.error('In collector plugin execution: ');
-        log.error(err);
-    }
+}
+catch (err) {
+    process.exitCode = 1;
+    log.error('In collector plugin execution: ');
+    log.error(err);
 }

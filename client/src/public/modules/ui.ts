@@ -1,8 +1,11 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
+import { inBrowser } from '#@shared/modules/utils.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
 
-const conf = confFromDOM();
+//in the browser, conf is injected into the DOM by the server;
+//under test (node + jsdom) defaults apply
+const conf = inBrowser() ? confFromDOM() : undefined;
 const log = fetchLogger(conf);
 
 type FilterType = 'COLLECTOR' | 'SITE';

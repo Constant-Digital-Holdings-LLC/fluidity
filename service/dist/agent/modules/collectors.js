@@ -63,6 +63,7 @@ export class DataCollector {
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
     }
+    stop() { }
     _reqJSON(method, uo, data, key) {
         const { protocol, hostname, port, pathname } = uo;
         return new Promise((resolve, reject) => {
@@ -250,5 +251,13 @@ export class SerialCollector extends DataCollector {
     start() {
         this.parser.on('data', this.send.bind(this));
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+    }
+    stop() {
+        if (this.port.isOpen) {
+            this.port.close();
+        }
+        else {
+            this.port.once('open', () => this.port.close());
+        }
     }
 }

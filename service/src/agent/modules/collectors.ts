@@ -121,6 +121,9 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
     abstract start(): void;
 
+    //release any timers/handles so the process can exit cleanly
+    stop(): void {}
+
     abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
 
     private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: unknown, key?: string): Promise<string> {
@@ -285,7 +288,7 @@ export abstract class PollingCollector extends DataCollector implements DataColl
         }
     }
 
-    stop(): void {
+    override stop(): void {
         if (this.timer) clearTimeout(this.timer);
     }
 }
@@ -372,5 +375,13 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
     start(): void {
         this.parser.on('data', this.send.bind(this));
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+    }
+
+    override stop(): void {
+        if (this.port.isOpen) {
+            this.port.close();
+        } else {
+            this.port.once('open', () => this.port.close());
+        }
     }
 }

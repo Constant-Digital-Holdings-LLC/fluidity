@@ -1,7 +1,8 @@
 {
     "imports": {
         "#@shared/*": "./client/dist/public/shared/*",
-        "#@sims/*": "./sims/dist/*"
+        "#@sims/*": "./sims/dist/*",
+        "#@client/*": "./client/dist/public/*"
     },
     "type": "module",
     "name": "fluidity",
@@ -15,7 +16,7 @@
         "build": "tsc --build service/tsconfig.json",
         "lint": "eslint client/src service/src sims/src",
         "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
-        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --allow-external --exclude \"**/tests/**\" --exclude \"**/conf/**\" --reporter=text-summary --reporter=text node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
+        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --all --check-coverage --lines 80 --statements 80 --branches 75 --functions 80 --allow-external --src . --src ../server --src ../../../client/dist/public --src ../../../sims/dist --exclude \"**/tests/**\" --exclude \"**/conf/**\" --exclude \"**/external/**\" --exclude \"**/ssl/**\" --exclude \"**/*.d.ts\" --reporter=text-summary --reporter=text node --test \"tests/*.test.js\" \"../server/tests/*.test.js\"",
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",
@@ -26,6 +27,7 @@
     "license": "MIT",
     "devDependencies": {
         "@types/express": "^5.0.6",
+        "@types/jsdom": "^28.0.3",
         "@types/node": "^24.13.2",
         "@types/stack-trace": "^0.0.33",
         "c8": "^11.0.0",
@@ -34,6 +36,7 @@
         "eslint": "^9.39.4",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.6",
+        "jsdom": "^29.1.1",
         "prettier": "^3.8.4",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.61.0"
