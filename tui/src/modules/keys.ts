@@ -12,6 +12,7 @@ export type KeyName =
     | 'tab' //switch filter group
     | 'clear' //x
     | 'help' //?
+    | 'window' //w - cycle the rate strip's time window
     | 'digit'
     | 'other';
 
@@ -71,6 +72,9 @@ export const parseKeys = (chunk: Buffer): Key[] => {
                 break;
             case 'x':
                 keys.push({ name: 'clear' });
+                break;
+            case 'w':
+                keys.push({ name: 'window' });
                 break;
             case '?':
                 keys.push({ name: 'help' });

@@ -188,8 +188,16 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
 - **Bottom pane (full width): who is reporting in.** Lists sites (or
   collectors — Tab switches) in first-seen order with live packet counts,
   each numbered `[1]`-`[9]` for direct filter toggling. Selected entries
-  are highlighted (bold/underline cyan; `*`-marked in mono). Overflow shows
+  are highlighted (bold/underline brand pink, matching the web's
+  "pink = active"; `*`-marked in mono). Each site carries a liveness mark
+  (web parity, shape + color so mono still reads): `*` reporting within
+  ~2.5 min, `~` quiet up to ~7.5 min, `.` silent. Overflow shows
   `+N more`. Sites render uppercase (web parity).
+- **Header rate strip**: spare header width renders packet rate as a
+  CP437-safe shade ramp (`░▒▓█`) in the brand accent — the web sparkline's
+  console counterpart. `w` cycles 5m/1h/24h (60 buckets each, accumulating
+  in parallel); shared RateBuckets/window logic from the client module.
+  Omitted when the terminal is too narrow.
 - Hints line: the active keybindings + current filter count.
 
 ### 4.5 Keybindings (interactive, as built)
@@ -200,6 +208,7 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
 | `1`–`9` | toggle the filter for the numbered item in the bottom pane |
 | `Tab` | switch the bottom pane between sites and collectors |
 | `x` | clear all filters |
+| `w` | cycle the header rate strip window (5m / 1h / 24h) |
 | `space` | pause/resume rendering (stream continues buffering; count shown) |
 | `j`/`k`, `↑↓`, `PgUp`/`PgDn` | scroll |
 | `g` / `G` | top / bottom (`G` re-enables auto-scroll) |

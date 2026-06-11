@@ -23,6 +23,9 @@ export interface UIState {
     historyLimit: number;
     seenSites: Map<string, number>;
     seenCollectors: Map<string, number>;
+    siteLastSeen: Map<string, number>;
+    rateSeries: number[];
+    pulseWindowIdx: number;
     filters: FilterSpec;
     group: FilterGroup;
     columns: ColumnWidths;

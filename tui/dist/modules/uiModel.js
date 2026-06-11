@@ -1,3 +1,4 @@
+import { PULSE_WINDOWS } from '#@client/modules/pulse.js';
 import { matchesFilters } from './filters.js';
 export const initialState = (cols, rows, serverHost, historyLimit) => ({
     cols,
@@ -8,6 +9,9 @@ export const initialState = (cols, rows, serverHost, historyLimit) => ({
     historyLimit,
     seenSites: new Map(),
     seenCollectors: new Map(),
+    siteLastSeen: new Map(),
+    rateSeries: [],
+    pulseWindowIdx: 0,
     filters: { sites: [], collectors: [] },
     group: 'sites',
     columns: { time: 0, site: 0, desc: 0 },
@@ -27,6 +31,10 @@ export const addPacket = (st, p, parts) => {
     }
     st.seenSites.set(p.site, (st.seenSites.get(p.site) ?? 0) + 1);
     st.seenCollectors.set(p.plugin, (st.seenCollectors.get(p.plugin) ?? 0) + 1);
+    const seenAt = new Date(p.ts).getTime();
+    if (Number.isFinite(seenAt) && seenAt > (st.siteLastSeen.get(p.site) ?? 0)) {
+        st.siteLastSeen.set(p.site, seenAt);
+    }
     st.columns = {
         time: Math.max(st.columns.time, parts.time.length),
         site: Math.max(st.columns.site, parts.site.length),
@@ -96,6 +104,9 @@ export const handleKey = (st, key) => {
             break;
         case 'clear':
             st.filters = { sites: [], collectors: [] };
+            break;
+        case 'window':
+            st.pulseWindowIdx = (st.pulseWindowIdx + 1) % PULSE_WINDOWS.length;
             break;
         case 'help':
             st.showHelp = true;

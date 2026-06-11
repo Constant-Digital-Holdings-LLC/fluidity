@@ -46,6 +46,9 @@ export const parseKeys = (chunk) => {
             case 'x':
                 keys.push({ name: 'clear' });
                 break;
+            case 'w':
+                keys.push({ name: 'window' });
+                break;
             case '?':
                 keys.push({ name: 'help' });
                 break;
