@@ -18,17 +18,20 @@
     --dark: #52423d;
 
     /* chrome tokens, derived from the logo: deep plum field #53354a,
-       pink->peach mark gradient #fe8dc6 -> #fed1c7 */
-    --surface-page: #271a26;
+       pink->peach mark gradient #fe8dc6 -> #fed1c7.
+       color discipline: neutral chrome at rest - pink only carries meaning
+       (selected filter, attention); cyan stays the data-identity color */
+    --surface-page: #241823;
     --surface-cell: #53354a; /* the logo's own field - header melts into it */
     --surface-cell-hi: #6b4862;
     --accent-a: #fe8dc6;
     --accent-b: #fed1c7;
-    --line: rgba(255, 229, 255, 0.13);
-    --chip: rgba(255, 229, 255, 0.06);
-    --chip-hover: rgba(255, 229, 255, 0.12);
-    --chip-active: rgba(254, 141, 198, 0.16);
-    --chip-active-ring: rgba(254, 141, 198, 0.45);
+    --line: rgba(255, 255, 255, 0.11);
+    --chip: rgba(255, 255, 255, 0.055);
+    --chip-hover: rgba(255, 255, 255, 0.1);
+    --chip-active: rgba(254, 141, 198, 0.13);
+    --chip-active-ring: rgba(254, 141, 198, 0.4);
+    --icon-idle: rgba(255, 255, 255, 0.45);
 
     --small-gap: 0.5rem;
     --big-gap: 0.75rem;
@@ -81,7 +84,7 @@
 body {
     color: var(--light);
     background-color: var(--surface-page);
-    background-image: radial-gradient(110rem 60rem at 85% -20%, #3a2438 0%, var(--surface-page) 60%);
+    background-image: radial-gradient(110rem 60rem at 85% -20%, #31202f 0%, var(--surface-page) 60%);
     background-attachment: fixed;
     font-size: 0.8rem;
     font-family: 'Outfit', sans-serif;
@@ -145,7 +148,7 @@ a:focus-visible {
 }
 
 #logo-link:hover {
-    filter: drop-shadow(0 0 0.6rem rgba(254, 141, 198, 0.35));
+    filter: drop-shadow(0 0 0.6rem rgba(254, 141, 198, 0.22));
 }
 
 #container-main {
@@ -213,6 +216,20 @@ a:focus-visible {
     box-shadow: inset 0 0 0 1px var(--chip-active-ring);
 }
 
+/* icon state ladder: quiet at rest, warms on hover, brand pink when selected */
+#container-main li i {
+    color: var(--icon-idle);
+    transition: color 0.15s ease;
+}
+
+#container-main li:hover i {
+    color: var(--color9);
+}
+
+#container-main li:has(.clear-link:not(.display-none)) i {
+    color: var(--color6);
+}
+
 #container-main ul {
     /* list-style: none; */
     display: block;
@@ -224,6 +241,7 @@ a:focus-visible {
     margin: 0 3px;
 }
 
+/* outside the dashboard chrome (about page lists), icons keep the brand pink */
 li i {
     color: var(--color6);
 }
