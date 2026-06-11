@@ -220,7 +220,8 @@ jsdom tests pin for `FilterManager`.
 ```
 fluidity-tui [options]
 
-  --server URL        Fluidity service base URL (or FLUIDITY_SERVER env)
+  --server URL        Fluidity service base URL
+                      (default: FLUIDITY_SERVER env, else https://localhost:3000)
   --follow            force stream mode even on a TTY
   --json              raw FluidityPacket NDJSON (implies stream mode)
   --site NAME         pre-filter by site (repeatable)
@@ -232,10 +233,20 @@ fluidity-tui [options]
   --version, --help
 ```
 
+Server resolution order: `--server` > `FLUIDITY_SERVER` >
+`https://localhost:3000` (the dev server default — supports the README's
+"everything on one box" getting-started flow).
+
+TLS: verification is relaxed automatically for **loopback hosts only**
+(localhost, 127.0.0.1, ::1), with a one-line notice — the dev server ships
+self-signed certs, and MITM is not the loopback threat model. Any
+non-loopback server verifies the chain unless `--insecure` is explicit.
+
 Env: `FLUIDITY_SERVER`, `NO_COLOR` (forces mono, per no-color.org),
 `FORCE_COLOR` (overrides non-TTY detection).
 
-Exit codes: 0 user quit · 1 bad args · 2 cannot reach server at startup.
+Exit codes: 0 user quit · 1 bad args · 2 cannot reach server at startup
+(the error suggests `--server` if the default was used).
 
 ---
 
