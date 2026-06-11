@@ -295,6 +295,16 @@ no `@ts-ignore` interop hacks left.
 > server + sim agent. Coverage gate adjusted to 78 lines (entry points
 > uncovered by design).
 
+## UDP ingest for microcontrollers (spec'd, not started)
+
+> M5Stack/AVR/ARM devices publish packed structs over UDP to an agent
+> `udpStruct` collector, which validates/decodes and forwards over the
+> existing HTTPS path - the agent as protocol gateway, server untouched
+> (Heroku can't do UDP anyway). Full specification in `service/UDP-SPEC.md`
+> (wire format v1, SipHash auth option, validation/drop rules, sims,
+> firmware kit). Milestones U1 codec+collector -> U2 auth -> U3 firmware
+> examples. Open questions await markup in the spec.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under
