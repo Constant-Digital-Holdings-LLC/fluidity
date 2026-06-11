@@ -19,9 +19,24 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly maxServerHistory?: number;
 }
 
+//appVersion here is only a fallback: on node, confFromFS reads the real
+//version from the repo package.json; the browser receives it from the server
 const DEFAULTS: MyConfigData = {
     appName: 'Fluidity',
-    appVersion: '1.0.2'
+    appVersion: '2.0.0'
+};
+
+const versionFromPackageJson = async (): Promise<string | undefined> => {
+    try {
+        const { readFileSync } = await import('fs');
+        const { fileURLToPath } = await import('url');
+        //compiled location: client/dist/public/shared/modules/ -> repo root
+        const pkgPath = fileURLToPath(new URL('../../../../../package.json', import.meta.url));
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: unknown };
+        return typeof pkg.version === 'string' && pkg.version ? pkg.version : undefined;
+    } catch {
+        return undefined;
+    }
 };
 
 // config props which can be exposed to the client (browswer):
@@ -37,7 +52,8 @@ export const confFromDOM = (): MyConfigData => {
     }
 };
 export const confFromFS = async (): Promise<MyConfigData> => {
-    const c = { ...DEFAULTS, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
+    const appVersion = (await versionFromPackageJson()) ?? DEFAULTS.appVersion;
+    const c = { ...DEFAULTS, appVersion, ...(await FSConfigUtil.asyncNew<MyConfigData>()).conf };
     if (isConfigDataPopulated<MyConfigData>(c)) {
         return c;
     } else {
