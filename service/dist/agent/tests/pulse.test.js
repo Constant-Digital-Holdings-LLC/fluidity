@@ -1,6 +1,32 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RateBuckets, livenessOf, FRESH_MS, RECENT_MS } from '#@client/modules/pulse.js';
+import { RateBuckets, livenessOf, FRESH_MS, RECENT_MS, PULSE_WINDOWS, PULSE_BUCKETS, restoreWindowIdx } from '#@client/modules/pulse.js';
+void test('pulse windows: 5m/1h/24h, each fully covered by the bucket count', () => {
+    assert.deepEqual(PULSE_WINDOWS.map(w => w.label), ['5m', '1h', '24h']);
+    assert.equal(PULSE_WINDOWS[0].bucketMs * PULSE_BUCKETS, 5 * 60_000);
+    assert.equal(PULSE_WINDOWS[1].bucketMs * PULSE_BUCKETS, 60 * 60_000);
+    assert.equal(PULSE_WINDOWS[2].bucketMs * PULSE_BUCKETS, 24 * 60 * 60_000);
+});
+void test('restoreWindowIdx: persisted label or safe default', () => {
+    assert.equal(restoreWindowIdx('5m'), 0);
+    assert.equal(restoreWindowIdx('1h'), 1);
+    assert.equal(restoreWindowIdx('24h'), 2);
+    assert.equal(restoreWindowIdx('nonsense'), 0);
+    assert.equal(restoreWindowIdx(null), 0);
+    assert.equal(restoreWindowIdx(undefined), 0);
+});
+void test('points(): bucket-end timestamps ascend by bucketMs; head may sit in the future', () => {
+    const t0 = 1_000_000;
+    const rb = new RateBuckets(1000, 4, t0);
+    rb.note(t0 + 250);
+    const pts = rb.points(t0 + 250);
+    assert.equal(pts.length, 4);
+    assert.equal(pts.at(-1)?.t, t0 + 1000);
+    assert.equal(pts.at(-1)?.v, 1);
+    for (let i = 1; i < pts.length; i++) {
+        assert.equal(pts[i].t - pts[i - 1].t, 1000);
+    }
+});
 void test('RateBuckets: counts per bucket, oldest->newest series, gap zeroing', () => {
     const t0 = 1_000_000;
     const rb = new RateBuckets(1000, 5, t0);

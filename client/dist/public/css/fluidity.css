@@ -154,9 +154,17 @@ a:focus-visible {
     filter: drop-shadow(0 0 0.6rem rgba(254, 141, 198, 0.22));
 }
 
-/* live packet-rate sparkline (mobile keeps the header minimal) */
+/* live packet-rate sparkline (mobile keeps the header minimal);
+   clickable: cycles the time window (5m / 1h / 24h) */
 #pulse {
     display: none;
+    cursor: pointer;
+}
+
+#pulse:focus-visible {
+    outline: 2px solid var(--color9);
+    outline-offset: 3px;
+    border-radius: 4px;
 }
 
 /* site liveness: bright while reporting, dimming as the site goes quiet */

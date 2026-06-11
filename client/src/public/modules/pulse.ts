@@ -1,6 +1,7 @@
 //live-activity instrumentation: packet-rate sparkline + site liveness.
-//pure logic (RateBuckets, livenessOf) is separated from canvas drawing so it
-//runs under node/jsdom tests; nothing here touches the filtering engine.
+//pure logic (RateBuckets, livenessOf, window selection) is separated from
+//canvas drawing so it runs under node/jsdom tests; nothing here touches the
+//filtering engine.
 
 //ring buffer of per-interval packet counts
 export class RateBuckets {
@@ -48,6 +49,15 @@ export class RateBuckets {
         }
         return out;
     }
+
+    //series points stamped with each bucket's end time (newest may be in the
+    //future while its bucket is still filling - the renderer clips it at the
+    //right edge, which is what makes the line glide instead of snap)
+    points(now: number): PulsePoint[] {
+        const values = this.series(now);
+        const headEnd = (Math.floor(now / this.bucketMs) + 1) * this.bucketMs;
+        return values.map((v, i) => ({ t: headEnd - (values.length - 1 - i) * this.bucketMs, v }));
+    }
 }
 
 //sites emit at least the 100s port-state heartbeat, so: fresh allows one
@@ -64,11 +74,42 @@ export const livenessOf = (lastSeenMs: number, nowMs: number): Liveness => {
     return 'stale';
 };
 
-//sparkline in the logo's accent gradient (pink -> peach); no-ops where
-//canvas isn't available (jsdom)
-export const drawSparkline = (canvas: HTMLCanvasElement, series: number[]): void => {
+//selectable rate windows, cycled by clicking the sparkline
+export const PULSE_BUCKETS = 60;
+
+export interface PulseWindow {
+    label: string;
+    bucketMs: number;
+}
+
+export const PULSE_WINDOWS: readonly PulseWindow[] = [
+    { label: '5m', bucketMs: 5_000 },
+    { label: '1h', bucketMs: 60_000 },
+    { label: '24h', bucketMs: 1_440_000 }
+];
+
+export const restoreWindowIdx = (stored: unknown): number => {
+    const idx = PULSE_WINDOWS.findIndex(w => w.label === stored);
+    return idx === -1 ? 0 : idx;
+};
+
+export interface PulsePoint {
+    t: number;
+    v: number;
+}
+
+interface RenderOpts {
+    now: number;
+    windowMs: number;
+    label: string;
+}
+
+//time-based renderer: x is derived from each point's timestamp relative to
+//`now`, so successive frames scroll the waveform continuously leftward.
+//midpoint quadratic smoothing turns the polyline into a gentle spline.
+export const renderPulse = (canvas: HTMLCanvasElement, pts: PulsePoint[], opts: RenderOpts): void => {
     const ctx = canvas.getContext('2d');
-    if (!ctx || series.length < 2) return;
+    if (!ctx || pts.length < 2) return;
 
     const dpr = globalThis.devicePixelRatio ?? 1;
     const w = canvas.clientWidth || 220;
@@ -86,8 +127,9 @@ export const drawSparkline = (canvas: HTMLCanvasElement, series: number[]): void
     ctx.clearRect(0, 0, w, h);
 
     const pad = 2.5;
-    const max = Math.max(1, ...series);
-    const stepX = w / (series.length - 1);
+    const max = Math.max(1, ...pts.map(p => p.v));
+    const pxPerMs = w / opts.windowMs;
+    const xOf = (t: number): number => w - (opts.now - t) * pxPerMs;
     const yOf = (v: number): number => h - pad - (v / max) * (h - 2 * pad);
 
     const line = ctx.createLinearGradient(0, 0, w, 0);
@@ -99,41 +141,130 @@ export const drawSparkline = (canvas: HTMLCanvasElement, series: number[]): void
     fill.addColorStop(1, 'rgba(254, 141, 198, 0.02)');
 
     ctx.beginPath();
-    series.forEach((v, i) => {
-        const x = i * stepX;
-        const y = yOf(v);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
+    const first = pts[0];
+    if (!first) return;
+    ctx.moveTo(xOf(first.t), yOf(first.v));
+    for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const cur = pts[i];
+        if (!prev || !cur) continue;
+        const mx = (xOf(prev.t) + xOf(cur.t)) / 2;
+        const my = (yOf(prev.v) + yOf(cur.v)) / 2;
+        ctx.quadraticCurveTo(xOf(prev.t), yOf(prev.v), mx, my);
+    }
+    const last = pts[pts.length - 1];
+    if (last) ctx.lineTo(xOf(last.t), yOf(last.v));
+
     ctx.strokeStyle = line;
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
+    ctx.lineTo(xOf(last?.t ?? opts.now), h);
+    ctx.lineTo(xOf(first.t), h);
     ctx.closePath();
     ctx.fillStyle = fill;
     ctx.fill();
+
+    //active window label, top-right corner
+    ctx.font = '10px Outfit, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(255, 229, 255, 0.45)';
+    ctx.fillText(opts.label, w - 5, 3);
+};
+
+//compatibility/test surface: render an evenly spaced series
+export const drawSparkline = (canvas: HTMLCanvasElement, series: number[]): void => {
+    const now = series.length;
+    renderPulse(
+        canvas,
+        series.map((v, i) => ({ t: i + 1, v })),
+        { now, windowMs: Math.max(1, series.length - 1), label: '' }
+    );
 };
 
 export interface PulseHandle {
     note: () => void;
 }
 
-//5s buckets x 36 = the last three minutes of traffic
+const STORAGE_KEY = 'fluidityPulseWindow';
+
 export const startPulse = (canvas: HTMLCanvasElement): PulseHandle => {
     const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const buckets = new RateBuckets(5000, 36, Date.now());
-    const draw = (): void => drawSparkline(canvas, buckets.series(Date.now()));
 
-    setInterval(draw, reduced ? 5000 : 1000);
+    let stored: unknown;
+    try {
+        stored = globalThis.localStorage?.getItem(STORAGE_KEY);
+    } catch {
+        stored = undefined;
+    }
+    let windowIdx = restoreWindowIdx(stored);
+
+    //all windows accumulate in parallel so switching never loses history
+    const tracks = PULSE_WINDOWS.map(win => new RateBuckets(win.bucketMs, PULSE_BUCKETS, Date.now()));
+
+    const draw = (): void => {
+        const win = PULSE_WINDOWS[windowIdx];
+        const track = tracks[windowIdx];
+        if (!win || !track) return;
+        renderPulse(canvas, track.points(Date.now()), {
+            now: Date.now(),
+            windowMs: win.bucketMs * (PULSE_BUCKETS - 2),
+            label: win.label
+        });
+    };
+
+    const describe = (): void => {
+        const win = PULSE_WINDOWS[windowIdx];
+        canvas.setAttribute('aria-label', `Packet rate, last ${win?.label ?? ''} - activate to change the time window`);
+        canvas.title = `Packet rate (${win?.label ?? ''}) - click to change window`;
+    };
+
+    const cycle = (): void => {
+        windowIdx = (windowIdx + 1) % PULSE_WINDOWS.length;
+        try {
+            globalThis.localStorage?.setItem(STORAGE_KEY, PULSE_WINDOWS[windowIdx]?.label ?? '5m');
+        } catch {
+            //private mode etc - the choice just won't persist
+        }
+        describe();
+        draw();
+    };
+
+    canvas.setAttribute('role', 'button');
+    canvas.tabIndex = 0;
+    describe();
+    canvas.addEventListener('click', cycle);
+    canvas.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            cycle();
+        }
+    });
+
+    if (reduced) {
+        setInterval(draw, 5000);
+    } else {
+        const raf = globalThis.requestAnimationFrame;
+        if (typeof raf === 'function') {
+            const loop = (): void => {
+                draw();
+                raf(loop);
+            };
+            raf(loop);
+        } else {
+            setInterval(draw, 1000);
+        }
+    }
     draw();
 
     return {
         note: (): void => {
-            buckets.note(Date.now());
-            draw();
+            const now = Date.now();
+            tracks.forEach(t => t.note(now));
+            if (reduced) draw();
         }
     };
 };
