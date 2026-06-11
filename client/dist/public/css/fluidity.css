@@ -22,9 +22,9 @@
        color discipline: neutral chrome at rest - pink only carries meaning
        (selected filter, attention); cyan stays the data-identity color */
     --surface-page: #241823;
-    /* two surface tiers: the header keeps the logo's own field color (its
-       svg background is #53354a - darkening it would expose the logo's
-       bounding box); content cells sit darker so the data does the talking */
+    /* the logo svg is background-free, so every cell (header included)
+       shares one dark surface tier; the brand plum survives as an accent
+       tier (scrollbar thumb etc.) */
     --surface-brand: #53354a;
     --surface-brand-hi: #6b4862;
     --surface-cell: #3a2637;
@@ -82,13 +82,6 @@
 .bg-gradient {
     background: rgb(58, 38, 55);
     background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
-}
-
-/* the header alone keeps the logo's field: first 75% flat #53354a so the
-   logo's bounding box disappears into it */
-#container-logo-and-spinner.bg-gradient {
-    background: rgb(83, 53, 74);
-    background: linear-gradient(90deg, var(--surface-brand) 75%, var(--surface-brand-hi) 100%);
 }
 
 body {
