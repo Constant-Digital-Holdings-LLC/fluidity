@@ -261,6 +261,14 @@ no `@ts-ignore` interop hacks left.
 >   `index.ts` (SSE wiring), `genApiKey` bin, logger location-tracing paths,
 >   config.ts error branches.
 
+## Next: TUI client (spec'd, not started)
+
+> A terminal client (Linux/macOS/Windows/Raspberry Pi OS console) consuming
+> /FIFO + /SSE, with standalone executables via Node SEA. Full specification
+> in `tui/SPEC.md`. Milestones: T1 stream mode → T2 interactive → T3
+> standalone binaries. Zero runtime deps; second interpreter of the
+> FluidityPacket suggestion contract.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under
