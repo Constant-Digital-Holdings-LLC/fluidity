@@ -8,9 +8,11 @@ import { inject } from 'postject';
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 
-const root = new URL('../..', import.meta.url).pathname;
+//fileURLToPath, not URL.pathname: the latter yields "/D:/..." on Windows
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const outDir = join(root, 'tui', 'build');
 mkdirSync(outDir, { recursive: true });
 
