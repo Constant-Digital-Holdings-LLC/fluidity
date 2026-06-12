@@ -10,6 +10,18 @@ import { typeIn } from './typewriter.js';
 const conf = inBrowser() ? confFromDOM() : undefined;
 const log = fetchLogger(conf);
 
+//format a timestamp for display, but never render the literal "Invalid Date":
+//a malformed ts/DATE field (corruption, a misbehaving plugin) falls back to a
+//marker and a logged warning instead of silently corrupting the line
+const safeTime = (value: string, opts?: Intl.DateTimeFormatOptions): string => {
+    const d = new Date(value);
+    if (!Number.isFinite(d.getTime())) {
+        log.warn(`unparseable timestamp in packet: ${JSON.stringify(value)}`);
+        return '--:--';
+    }
+    return opts ? d.toLocaleTimeString([], opts) : d.toLocaleTimeString();
+};
+
 type FilterType = 'COLLECTOR' | 'SITE';
 
 interface FMHooks {
@@ -395,7 +407,7 @@ export class FluidityUI {
             const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
 
-            span.innerText = new Date(field).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            span.innerText = safeTime(field, { hour: '2-digit', minute: '2-digit' });
             span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
             dateFrag.appendChild(span);
             return dateFrag;
@@ -446,7 +458,7 @@ export class FluidityUI {
 
         const ts = document.createElement('span');
         ts.classList.add('date');
-        ts.innerText = new Date(fp.ts).toLocaleTimeString();
+        ts.innerText = safeTime(fp.ts);
         div.appendChild(ts);
 
         const cBracket = document.createElement('span');

@@ -29,6 +29,7 @@ export const prettyFsNotFound = (err) => {
                 })
                     .catch(() => {
                     console.error('Error in dynamic import of url module');
+                    resolve(undefined);
                 });
             }
             else {

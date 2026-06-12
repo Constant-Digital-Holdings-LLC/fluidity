@@ -103,7 +103,8 @@ export default class UdpStructCollector extends DataCollector {
     }
     start() {
         this.socket.on('error', err => {
-            log.error(`udpStruct [${this.params.description}]: socket error: ${err.message}`);
+            log.error(`udpStruct [${this.params.description}]: socket error on udp ${this.bindAddr ?? '0.0.0.0'}:${this.port} ` +
+                `- UDP ingest for this collector is offline: ${err.message}`);
         });
         this.socket.on('message', (msg, rinfo) => this.ingest(msg, rinfo));
         this.socket.on('listening', () => {

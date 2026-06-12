@@ -6,6 +6,14 @@ import { livenessOf } from './pulse.js';
 import { typeIn } from './typewriter.js';
 const conf = inBrowser() ? confFromDOM() : undefined;
 const log = fetchLogger(conf);
+const safeTime = (value, opts) => {
+    const d = new Date(value);
+    if (!Number.isFinite(d.getTime())) {
+        log.warn(`unparseable timestamp in packet: ${JSON.stringify(value)}`);
+        return '--:--';
+    }
+    return opts ? d.toLocaleTimeString([], opts) : d.toLocaleTimeString();
+};
 class FilterManager {
     constructor(hooks) {
         var _a;
@@ -326,7 +334,7 @@ export class FluidityUI {
         const markupDateType = (field, suggestStyle = 0) => {
             const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
-            span.innerText = new Date(field).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            span.innerText = safeTime(field, { hour: '2-digit', minute: '2-digit' });
             span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
             dateFrag.appendChild(span);
             return dateFrag;
@@ -366,7 +374,7 @@ export class FluidityUI {
         div.appendChild(oBracket);
         const ts = document.createElement('span');
         ts.classList.add('date');
-        ts.innerText = new Date(fp.ts).toLocaleTimeString();
+        ts.innerText = safeTime(fp.ts);
         div.appendChild(ts);
         const cBracket = document.createElement('span');
         cBracket.classList.add('bracket-close');

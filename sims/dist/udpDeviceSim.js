@@ -119,7 +119,9 @@ export const startUdpFleet = (options) => {
         const { min, max } = dev.heartbeatMs;
         const timer = setTimeout(() => {
             timers.delete(timer);
-            void fire(dev).then(() => schedule(dev));
+            void fire(dev)
+                .catch(() => undefined)
+                .finally(() => schedule(dev));
         }, min + Math.floor(rng() * (max - min)));
         timers.add(timer);
     };

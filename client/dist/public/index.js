@@ -19,8 +19,11 @@ fetch('/FIFO')
     .then(response => response.json())
     .then(data => {
     if (Array.isArray(data) && data.length)
-        if (data.every(() => isFfluidityPacket)) {
+        if (data.every(d => isFfluidityPacket(d))) {
             ui = new FluidityUI(data);
+        }
+        else {
+            log.warn('FIFO history contained a non-Fluidity packet; ignoring history');
         }
 })
     .catch(err => {

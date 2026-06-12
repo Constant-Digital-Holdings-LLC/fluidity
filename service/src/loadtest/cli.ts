@@ -23,15 +23,34 @@ const flag = (name: string): string | undefined => {
     return i !== -1 ? argv[i + 1] : undefined;
 };
 
+//validate numeric flags at the edge so a typo reports clearly here, rather
+//than surfacing as a downstream "NaN" or a cryptic emitter throw
+const numFlag = (name: string): number | undefined => {
+    const raw = flag(name);
+    if (raw === undefined) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+        console.error(`loadtest: --${name} must be a number, got "${raw ?? ''}"`);
+        process.exit(2);
+    }
+    return n;
+};
+
 const opts: LoadtestOptions = {};
-if (flag('rate')) opts.rate = Number(flag('rate'));
-if (flag('duration')) opts.durationSec = Number(flag('duration'));
-if (flag('devices')) opts.devices = Number(flag('devices'));
-if (flag('throttle')) opts.throttle = Number(flag('throttle'));
-if (flag('sse')) opts.sseClients = Number(flag('sse'));
+const rate = numFlag('rate');
+if (rate !== undefined) opts.rate = rate;
+const duration = numFlag('duration');
+if (duration !== undefined) opts.durationSec = duration;
+const devices = numFlag('devices');
+if (devices !== undefined) opts.devices = devices;
+const throttle = numFlag('throttle');
+if (throttle !== undefined) opts.throttle = throttle;
+const sse = numFlag('sse');
+if (sse !== undefined) opts.sseClients = sse;
 const secret = flag('secret');
 if (secret) opts.secret = secret;
-if (flag('seed')) opts.seed = Number(flag('seed'));
+const seed = numFlag('seed');
+if (seed !== undefined) opts.seed = seed;
 
 const mixArg = flag('mix');
 if (mixArg) {

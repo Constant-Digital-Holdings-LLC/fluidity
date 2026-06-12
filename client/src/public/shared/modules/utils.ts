@@ -31,7 +31,10 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
                         }
                     })
                     .catch(() => {
+                        //settle the outer promise even if the import fails, or
+                        //the awaiting caller (config loadFiles) hangs forever
                         console.error('Error in dynamic import of url module');
+                        resolve(undefined);
                     });
             } else {
                 return resolve(undefined);

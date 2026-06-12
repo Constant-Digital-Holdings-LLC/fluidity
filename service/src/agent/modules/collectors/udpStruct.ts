@@ -156,7 +156,13 @@ export default class UdpStructCollector extends DataCollector {
 
     start(): void {
         this.socket.on('error', err => {
-            log.error(`udpStruct [${this.params.description}]: socket error: ${err.message}`);
+            //a bind failure (EADDRINUSE/EACCES) lands here, not as a throw; make
+            //it loud - this collector's ingest is dead, though other collectors
+            //in the agent keep running
+            log.error(
+                `udpStruct [${this.params.description}]: socket error on udp ${this.bindAddr ?? '0.0.0.0'}:${this.port} ` +
+                    `- UDP ingest for this collector is offline: ${err.message}`
+            );
         });
 
         this.socket.on('message', (msg, rinfo) => this.ingest(msg, rinfo));

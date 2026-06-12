@@ -28,10 +28,14 @@ const es = new EventSource('/SSE');
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {
+        //note: `data.every(() => isFfluidityPacket)` (a thunk returning the
+        //guard) always passed - the guard was never actually called. Invoke it.
         if (Array.isArray(data) && data.length)
-            if (data.every(() => isFfluidityPacket)) {
-                //initialize with historical data
-                ui = new FluidityUI(data as FluidityPacket[]);
+            if (data.every(d => isFfluidityPacket(d))) {
+                //the guard above narrows `data` to FluidityPacket[] - no cast
+                ui = new FluidityUI(data);
+            } else {
+                log.warn('FIFO history contained a non-Fluidity packet; ignoring history');
             }
     })
     .catch(err => {

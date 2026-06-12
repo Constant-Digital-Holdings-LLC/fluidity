@@ -375,3 +375,24 @@ void test('drainRenderQueue: under the cap nothing is dropped; null render only 
     assert.equal(r2.dropped, 400 - 256, 'but the backlog is still shed to the cap');
     assert.equal(big.length, 256);
 });
+
+void test('malformed timestamps render a marker, never the literal "Invalid Date"', () => {
+    //seed history so the demarcation is set, then a live packet renders
+    const fresh = new FluidityUI([pkt(4999, 'Bad Clock', 'srsSerial')]);
+    //a packet whose ts is garbage (corruption, a misbehaving plugin)
+    fresh.packetAdd({
+        seq: 5000,
+        site: 'Bad Clock',
+        plugin: 'srsSerial',
+        ts: 'not-a-real-timestamp',
+        description: 'Bad Clock device',
+        formattedData: [str('payload'), { suggestStyle: 3, field: 'also-not-a-date', fieldType: 'DATE' }]
+    });
+
+    const el = byId('fp-seq-5000');
+    const text = el.textContent ?? '';
+    assert.ok(!text.includes('Invalid Date'), 'never shows the literal Invalid Date');
+    assert.match(text, /--:--/, 'falls back to a clear marker for the packet ts');
+    const dateSpan = el.querySelector('span.fp-date');
+    assert.equal(dateSpan?.textContent, '--:--', 'a malformed DATE field also falls back');
+});

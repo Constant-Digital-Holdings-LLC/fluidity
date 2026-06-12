@@ -157,20 +157,19 @@ export class LoggerUtil implements Logger {
                 } catch (err) {
                     import('stack-trace')
                         .then(v8Strace => {
-                            if (err instanceof Error) {
-                                const sf = v8Strace.parse(err);
-
-                                resolve({
-                                    file: sf[5]?.getFileName().split('/').slice(-1).toString(),
-                                    line: sf[5]?.getLineNumber()
-                                });
-                            }
+                            const sf = err instanceof Error ? v8Strace.parse(err) : [];
+                            //getFileName() can be null on synthetic frames -
+                            //guard it so this path can't throw into the catch
+                            resolve({
+                                file: sf[5]?.getFileName()?.split('/').slice(-1).toString(),
+                                line: sf[5]?.getLineNumber()
+                            });
                         })
-                        .catch(err => {
+                        .catch((e: unknown) => {
+                            //reject (don't swallow) so the awaiting caller settles
+                            //instead of hanging on an import/parse failure
                             console.error('Error dynamically importing stack-trace module');
-                            if (typeof err === 'string') {
-                                console.error(err);
-                            }
+                            reject(e instanceof Error ? e : new Error(String(e)));
                         });
                 }
             }

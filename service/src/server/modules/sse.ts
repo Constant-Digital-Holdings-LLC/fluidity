@@ -16,9 +16,16 @@ export class ServerSideEvents {
         res.write('retry: 5000\n\n');
 
         this.clients.add(res);
-        req.on('close', () => {
+
+        const drop = (): void => {
             this.clients.delete(res);
-        });
+        };
+        req.on('close', drop);
+        //a client socket can emit 'error' (reset, premature close) independently
+        //of 'close'; without a listener that error is unhandled and crashes the
+        //whole server, taking every other subscriber down with it. Drop the
+        //client instead - exactly the failure mode SSE fanout sees under churn.
+        res.on('error', drop);
     };
 
     send(data: string, event?: string, id?: number): void {
@@ -26,7 +33,13 @@ export class ServerSideEvents {
             (typeof id === 'number' ? `id: ${id}\n` : '') + (event ? `event: ${event}\n` : '') + `data: ${data}\n\n`;
 
         for (const client of this.clients) {
-            client.write(payload);
+            //a write can throw on an already-destroyed socket; isolate each
+            //client so one bad connection can't abort the broadcast to the rest
+            try {
+                client.write(payload);
+            } catch {
+                this.clients.delete(client);
+            }
         }
     }
 }

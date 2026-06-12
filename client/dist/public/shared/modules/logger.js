@@ -116,20 +116,16 @@ export class LoggerUtil {
                 catch (err) {
                     import('stack-trace')
                         .then(v8Strace => {
-                        var _a, _b;
-                        if (err instanceof Error) {
-                            const sf = v8Strace.parse(err);
-                            resolve({
-                                file: (_a = sf[5]) === null || _a === void 0 ? void 0 : _a.getFileName().split('/').slice(-1).toString(),
-                                line: (_b = sf[5]) === null || _b === void 0 ? void 0 : _b.getLineNumber()
-                            });
-                        }
+                        var _a, _b, _c;
+                        const sf = err instanceof Error ? v8Strace.parse(err) : [];
+                        resolve({
+                            file: (_b = (_a = sf[5]) === null || _a === void 0 ? void 0 : _a.getFileName()) === null || _b === void 0 ? void 0 : _b.split('/').slice(-1).toString(),
+                            line: (_c = sf[5]) === null || _c === void 0 ? void 0 : _c.getLineNumber()
+                        });
                     })
-                        .catch(err => {
+                        .catch((e) => {
                         console.error('Error dynamically importing stack-trace module');
-                        if (typeof err === 'string') {
-                            console.error(err);
-                        }
+                        reject(e instanceof Error ? e : new Error(String(e)));
                     });
                 }
             }

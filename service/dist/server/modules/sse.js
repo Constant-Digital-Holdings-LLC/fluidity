@@ -10,14 +10,21 @@ export class ServerSideEvents {
         });
         res.write('retry: 5000\n\n');
         this.clients.add(res);
-        req.on('close', () => {
+        const drop = () => {
             this.clients.delete(res);
-        });
+        };
+        req.on('close', drop);
+        res.on('error', drop);
     };
     send(data, event, id) {
         const payload = (typeof id === 'number' ? `id: ${id}\n` : '') + (event ? `event: ${event}\n` : '') + `data: ${data}\n\n`;
         for (const client of this.clients) {
-            client.write(payload);
+            try {
+                client.write(payload);
+            }
+            catch {
+                this.clients.delete(client);
+            }
         }
     }
 }

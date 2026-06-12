@@ -61,8 +61,6 @@ export const runInteractive = (o, onQuit) => {
         st.rows = out.rows || 24;
         scheduleRepaint();
     });
-    process.on('SIGINT', quit);
-    process.on('SIGTERM', quit);
     const handle = follow(o.base, { ...(o.insecure !== undefined ? { insecure: o.insecure } : {}) }, {
         onHistory: packets => packets.slice(-o.historyLimit).forEach(p => {
             addPacket(st, p, renderParts(p, render));
@@ -79,6 +77,8 @@ export const runInteractive = (o, onQuit) => {
             scheduleRepaint();
         }
     });
+    process.on('SIGINT', quit);
+    process.on('SIGTERM', quit);
     scheduleRepaint();
     return handle;
 };

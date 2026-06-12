@@ -90,9 +90,6 @@ export const runInteractive = (o: InteractiveOpts, onQuit: () => void): FollowHa
         scheduleRepaint();
     });
 
-    process.on('SIGINT', quit);
-    process.on('SIGTERM', quit);
-
     const handle = follow(
         o.base,
         { ...(o.insecure !== undefined ? { insecure: o.insecure } : {}) },
@@ -114,6 +111,12 @@ export const runInteractive = (o: InteractiveOpts, onQuit: () => void): FollowHa
             }
         }
     );
+
+    //registered only now that `handle` exists: quit() calls handle.stop(), so
+    //wiring these earlier let a Ctrl+C during startup hit the temporal dead
+    //zone (ReferenceError, skipped cleanup)
+    process.on('SIGINT', quit);
+    process.on('SIGTERM', quit);
 
     scheduleRepaint();
     return handle;

@@ -187,7 +187,12 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
         const timer = setTimeout(
             () => {
                 timers.delete(timer);
-                void fire(dev).then(() => schedule(dev));
+                //reschedule whether or not the send settled cleanly: a transient
+                //send error must not silently end this device's heartbeat.
+                //schedule() no-ops once stopped, so this can't spin after stop().
+                void fire(dev)
+                    .catch(() => undefined)
+                    .finally(() => schedule(dev));
             },
             min + Math.floor(rng() * (max - min))
         );
