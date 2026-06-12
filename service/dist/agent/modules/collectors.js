@@ -8,10 +8,16 @@ import { throttledQueue } from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
 import https from 'https';
+import { open, stat } from 'node:fs/promises';
+import { StringDecoder } from 'node:string_decoder';
 const NODE_ENV = nodeEnv();
 const MAX_PENDING_POSTS_ABS = 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
 const SERIAL_REOPEN_MS = 5_000;
+const LOG_FLEET_DEFAULT_THROTTLE = 1000;
+const TAIL_POLL_MS_DEFAULT = 300;
+const TAIL_CHUNK_BYTES = 64 * 1024;
+const TAIL_MAX_LINE_BYTES_DEFAULT = 64 * 1024;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const shouldVerifyTLS = (hostname) => !(NODE_ENV === 'development' && LOOPBACK_HOSTS.has(hostname));
 export const extOpt = (eo, key) => eo && key in eo ? eo[key] : undefined;
@@ -374,5 +380,146 @@ export class SerialCollector extends DataCollector {
         else {
             this.port.once('open', () => this.port.close());
         }
+    }
+}
+export class FileTailCollector extends DataCollector {
+    path;
+    fromStart;
+    pollMs;
+    maxLineBytes;
+    pos = 0;
+    ino;
+    decoder = new StringDecoder('utf8');
+    lineBuf = '';
+    timer;
+    stopped = false;
+    polling = false;
+    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }) {
+        super({
+            ...params,
+            maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
+        });
+        if (typeof path !== 'string' || !path) {
+            throw new Error(`file-tail collector requires a file path (string) for ${params.plugin}: ${params.description}`);
+        }
+        this.path = path;
+        this.fromStart = fromStart === true;
+        const pm = pollIntervalMs ?? TAIL_POLL_MS_DEFAULT;
+        if (typeof pm !== 'number' || !Number.isFinite(pm) || pm < 50) {
+            throw new Error(`file-tail collector pollIntervalMs must be a number >= 50 (${params.description})`);
+        }
+        this.pollMs = pm;
+        const ml = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
+        if (typeof ml !== 'number' || !Number.isInteger(ml) || ml < 1) {
+            throw new Error(`file-tail collector maxLineBytes must be a positive integer (${params.description})`);
+        }
+        this.maxLineBytes = ml;
+    }
+    format(data, fh) {
+        return fh.e(data).done;
+    }
+    start() {
+        log.info(`started: ${this.params.plugin} [${this.params.description}] tailing ${this.path}`);
+        this.scheduleNext(0);
+    }
+    stop() {
+        this.stopped = true;
+        if (this.timer)
+            clearTimeout(this.timer);
+    }
+    scheduleNext(delay) {
+        if (this.stopped)
+            return;
+        this.timer = setTimeout(() => void this.tick(), delay);
+    }
+    async tick() {
+        if (this.stopped || this.polling) {
+            this.scheduleNext(this.pollMs);
+            return;
+        }
+        this.polling = true;
+        try {
+            await this.poll();
+        }
+        catch (err) {
+            this.noteDrop('read-error');
+            log.debug(`${this.params.plugin} [${this.params.description}]: tail error on ${this.path}: ` +
+                `${err instanceof Error ? err.message : String(err)}`);
+        }
+        finally {
+            this.polling = false;
+            this.scheduleNext(this.pollMs);
+        }
+    }
+    async poll() {
+        let st;
+        try {
+            st = await stat(this.path);
+        }
+        catch (err) {
+            if (err.code === 'ENOENT')
+                return;
+            throw err;
+        }
+        if (!st.isFile())
+            return;
+        if (this.ino === undefined) {
+            this.ino = st.ino;
+            this.pos = this.fromStart ? 0 : st.size;
+        }
+        else if (st.ino !== this.ino) {
+            this.rollover();
+            this.ino = st.ino;
+            this.pos = 0;
+        }
+        else if (st.size < this.pos) {
+            this.rollover();
+            this.pos = 0;
+        }
+        if (st.size <= this.pos)
+            return;
+        await this.readDelta(st.size);
+    }
+    async readDelta(size) {
+        const fh = await open(this.path, 'r');
+        try {
+            const buf = Buffer.allocUnsafe(TAIL_CHUNK_BYTES);
+            while (this.pos < size && !this.stopped) {
+                const want = Math.min(TAIL_CHUNK_BYTES, size - this.pos);
+                const { bytesRead } = await fh.read(buf, 0, want, this.pos);
+                if (bytesRead <= 0)
+                    break;
+                this.ingest(buf.subarray(0, bytesRead));
+                this.pos += bytesRead;
+            }
+        }
+        finally {
+            await fh.close();
+        }
+    }
+    ingest(chunk) {
+        this.lineBuf += this.decoder.write(chunk);
+        let nl;
+        while ((nl = this.lineBuf.indexOf('\n')) !== -1) {
+            this.emitLine(this.lineBuf.slice(0, nl));
+            this.lineBuf = this.lineBuf.slice(nl + 1);
+        }
+        if (this.lineBuf.length > this.maxLineBytes) {
+            this.noteDrop('oversize-line');
+            this.emitLine(this.lineBuf);
+            this.lineBuf = '';
+        }
+    }
+    emitLine(raw) {
+        const line = raw.replace(/\r$/, '');
+        if (line.length)
+            this.send(line);
+    }
+    rollover() {
+        const tail = this.lineBuf + this.decoder.end();
+        if (tail.length)
+            this.emitLine(tail);
+        this.lineBuf = '';
+        this.decoder = new StringDecoder('utf8');
     }
 }

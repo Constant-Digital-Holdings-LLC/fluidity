@@ -22,6 +22,8 @@ const conf = await confFromFS();
 const log = fetchLogger(conf);
 import { IncomingMessage } from 'node:http';
 import https from 'https';
+import { open, stat } from 'node:fs/promises';
+import { StringDecoder } from 'node:string_decoder';
 
 const NODE_ENV: NodeEnv = nodeEnv();
 type SerialParser = ReadlineParser | RegexParser;
@@ -39,6 +41,20 @@ const REQUEST_TIMEOUT_MS = 10_000;
 //an unplugged device surfaces as a 'close' event; retry the open on this
 //cadence until it comes back
 const SERIAL_REOPEN_MS = 5_000;
+
+//file-tail source (L1). A log funnels many lines through one collector, so -
+//like udpStruct - default to a fleet rate, not the base per-device 2/s.
+const LOG_FLEET_DEFAULT_THROTTLE = 1000;
+//size-poll cadence: read the appended delta this often (fs.watch is
+//unreliable across platforms/filesystems, so poll-and-read-the-delta)
+const TAIL_POLL_MS_DEFAULT = 300;
+//bounded read per iteration so a huge delta (e.g. fromStart on a big file)
+//streams instead of allocating it whole - and exercises the cross-chunk
+//UTF-8 boundary the StringDecoder handles
+const TAIL_CHUNK_BYTES = 64 * 1024;
+//a newline-less run must not grow the line buffer without bound; flush it as
+//one (oversize) line past this and count it
+const TAIL_MAX_LINE_BYTES_DEFAULT = 64 * 1024;
 
 //mirror the TUI's verify policy (tui/src/modules/transport.ts): cert
 //verification is relaxed only for loopback targets in development - an env
@@ -585,5 +601,187 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
         } else {
             this.port.once('open', () => this.port.close());
         }
+    }
+}
+
+export interface FileTailCollectorParams extends DataCollectorParams {
+    path: string;
+    fromStart?: boolean; //default false: begin at EOF, like `tail -f`
+    pollIntervalMs?: number; //default 300
+    maxLineBytes?: number; //flush a newline-less run past this (default 64KiB)
+}
+
+//L1 file-tail source: follow a growing log file and emit each appended line.
+//Robustness is the whole job here - rotation (logrotate rename+recreate),
+//in-place truncation, partial lines at a read boundary, multibyte UTF-8 split
+//across reads (decoded as a stream), and start-at-EOF so a big existing file
+//is not replayed as a flood. Polls and reads the delta (fs.watch is
+//unreliable cross-platform). The tokenizer (L2) will override format(); L1
+//emits the whole line as one STRING field. Inherits the base backpressure
+//shed + dropCounts, and a fleet-style throttle default (a busy log easily
+//does thousands of lines/sec - the base 2/s would shed almost everything).
+export abstract class FileTailCollector extends DataCollector implements DataCollectorPlugin {
+    protected readonly path: string;
+    private readonly fromStart: boolean;
+    private readonly pollMs: number;
+    private readonly maxLineBytes: number;
+    private pos = 0;
+    private ino: number | undefined;
+    private decoder = new StringDecoder('utf8');
+    private lineBuf = '';
+    private timer: NodeJS.Timeout | undefined;
+    private stopped = false;
+    private polling = false;
+
+    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }: FileTailCollectorParams) {
+        super({
+            ...params,
+            maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
+        });
+
+        if (typeof path !== 'string' || !path) {
+            throw new Error(
+                `file-tail collector requires a file path (string) for ${params.plugin}: ${params.description}`
+            );
+        }
+        this.path = path;
+        this.fromStart = fromStart === true;
+
+        const pm = pollIntervalMs ?? TAIL_POLL_MS_DEFAULT;
+        if (typeof pm !== 'number' || !Number.isFinite(pm) || pm < 50) {
+            throw new Error(`file-tail collector pollIntervalMs must be a number >= 50 (${params.description})`);
+        }
+        this.pollMs = pm;
+
+        const ml = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
+        if (typeof ml !== 'number' || !Number.isInteger(ml) || ml < 1) {
+            throw new Error(`file-tail collector maxLineBytes must be a positive integer (${params.description})`);
+        }
+        this.maxLineBytes = ml;
+    }
+
+    //L1: the whole line as one STRING field (the line is already \r-stripped
+    //and non-empty by emitLine). L2 overrides this with the tokenizer.
+    format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
+    }
+
+    start(): void {
+        log.info(`started: ${this.params.plugin} [${this.params.description}] tailing ${this.path}`);
+        this.scheduleNext(0);
+    }
+
+    override stop(): void {
+        this.stopped = true;
+        if (this.timer) clearTimeout(this.timer);
+    }
+
+    private scheduleNext(delay: number): void {
+        if (this.stopped) return;
+        this.timer = setTimeout(() => void this.tick(), delay);
+    }
+
+    //one timer iteration: poll, then re-arm. A poll is async (file IO), so the
+    //`polling` guard prevents overlap, and re-arming in finally keeps the loop
+    //alive across a transient error (a missing file mid-rotation, an EACCES).
+    private async tick(): Promise<void> {
+        if (this.stopped || this.polling) {
+            this.scheduleNext(this.pollMs);
+            return;
+        }
+        this.polling = true;
+        try {
+            await this.poll();
+        } catch (err) {
+            this.noteDrop('read-error');
+            log.debug(
+                `${this.params.plugin} [${this.params.description}]: tail error on ${this.path}: ` +
+                    `${err instanceof Error ? err.message : String(err)}`
+            );
+        } finally {
+            this.polling = false;
+            this.scheduleNext(this.pollMs);
+        }
+    }
+
+    //protected so tests can drive a single iteration deterministically without
+    //the timer; start()/the timer is the production path.
+    protected async poll(): Promise<void> {
+        let st;
+        try {
+            st = await stat(this.path);
+        } catch (err) {
+            //not yet created, or a momentary gap mid-rotation - try next poll
+            if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+            throw err;
+        }
+        if (!st.isFile()) return;
+
+        if (this.ino === undefined) {
+            //first attach: start at EOF unless replaying from the beginning
+            this.ino = st.ino;
+            this.pos = this.fromStart ? 0 : st.size;
+        } else if (st.ino !== this.ino) {
+            //rotation: a fresh file at this path - read it from the start
+            this.rollover();
+            this.ino = st.ino;
+            this.pos = 0;
+        } else if (st.size < this.pos) {
+            //in-place truncation: the file shrank under our offset
+            this.rollover();
+            this.pos = 0;
+        }
+
+        if (st.size <= this.pos) return; //nothing appended
+        await this.readDelta(st.size);
+    }
+
+    private async readDelta(size: number): Promise<void> {
+        const fh = await open(this.path, 'r');
+        try {
+            const buf = Buffer.allocUnsafe(TAIL_CHUNK_BYTES);
+            while (this.pos < size && !this.stopped) {
+                const want = Math.min(TAIL_CHUNK_BYTES, size - this.pos);
+                const { bytesRead } = await fh.read(buf, 0, want, this.pos);
+                if (bytesRead <= 0) break;
+                this.ingest(buf.subarray(0, bytesRead));
+                this.pos += bytesRead;
+            }
+        } finally {
+            await fh.close();
+        }
+    }
+
+    private ingest(chunk: Buffer): void {
+        //decoder.write holds an incomplete multibyte sequence across chunks, so
+        //a UTF-8 char split at a read/poll boundary is never corrupted
+        this.lineBuf += this.decoder.write(chunk);
+
+        let nl: number;
+        while ((nl = this.lineBuf.indexOf('\n')) !== -1) {
+            this.emitLine(this.lineBuf.slice(0, nl));
+            this.lineBuf = this.lineBuf.slice(nl + 1);
+        }
+
+        //a stream with no newline must not grow the buffer without bound
+        if (this.lineBuf.length > this.maxLineBytes) {
+            this.noteDrop('oversize-line');
+            this.emitLine(this.lineBuf);
+            this.lineBuf = '';
+        }
+    }
+
+    private emitLine(raw: string): void {
+        const line = raw.replace(/\r$/, ''); //CRLF logs leave a trailing \r
+        if (line.length) this.send(line);
+    }
+
+    //on rotation/truncation the current file is gone/reset: surface any
+    //buffered partial line (it can never get its newline now) and start clean
+    private rollover(): void {
+        const tail = this.lineBuf + this.decoder.end();
+        if (tail.length) this.emitLine(tail);
+        this.lineBuf = '';
+        this.decoder = new StringDecoder('utf8');
     }
 }
