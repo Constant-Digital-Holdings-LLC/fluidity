@@ -192,19 +192,23 @@ a:focus-visible {
 }
 
 .live-dot--fresh {
-    /* pink = alive: the dot joins the sparkline and cursor family, and
-       liveness decays along the logo gradient (pink -> peach -> gray) */
+    /* the liveness arc cools as a site goes quiet: warm throbbing pink (alive,
+       part of the sparkline/cursor family) -> neutral solid white (idle, seen
+       recently) -> cool solid dark gray (offline). Loss of throb, then hue,
+       then brightness. */
     background: var(--accent-a);
     box-shadow: 0 0 6px rgba(254, 141, 198, 0.6);
     animation: livePulse 2.4s ease-in-out infinite;
 }
 
 .live-dot--recent {
-    background: var(--color9);
+    /* idle: solid, neutral white - present and clear, but no longer pulsing */
+    background: #e9ebf2;
 }
 
 .live-dot--stale {
-    background: rgba(255, 255, 255, 0.18);
+    /* offline: solid dark gray, dimmed but still a visible marker */
+    background: #4a4a54;
 }
 
 @keyframes livePulse {
