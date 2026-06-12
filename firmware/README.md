@@ -15,6 +15,7 @@ examples are the developer-facing on-ramp.
 | You are… | Start with |
 | --- | --- |
 | On **Arduino / ESP32 / AVR (C/C++)** | [`fluidity_udp.h`](fluidity_udp.h) — single dependency-free header (`flu_init` / `flu_set_field` / `flu_wire_size`, `flu_sign` behind `FLU_ENABLE_MAC`) |
+| On a **Linux/POSIX host (C, same box or LAN as the agent)** | [`flu_udp_posix.h`](flu_udp_posix.h) — adds the socket layer (`flu_udp_open` / `flu_udp_send` / `flu_udp_send_signed`); worked example [`examples/posix-telemetry.c`](examples/posix-telemetry.c) |
 | Want a **worked ESP32 sketch (MAC mode + NTP)** | [`../sims/arduino/udp-m5stack/`](../sims/arduino/udp-m5stack/) |
 | Want a **classic AVR + Ethernet sketch (open mode)** | [`../sims/arduino/udp-avr-w5500/`](../sims/arduino/udp-avr-w5500/) |
 | On **MicroPython / CircuitPython** | [`../sims/micropython/`](../sims/micropython/) — `fluidity_udp.py` (packing + SipHash) + `main.py` (Pico W / ESP32 example) |
