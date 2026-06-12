@@ -41,6 +41,12 @@
             "plugin": "genericSerial",
             "path": "sim://generic",
             "baudRate": 9600
+        },
+        {
+            "description": "LAN Sensors",
+            "plugin": "udpStruct",
+            "port": 17996,
+            "bind": "127.0.0.1"
         }
 
     ]

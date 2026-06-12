@@ -166,6 +166,23 @@ export class DataCollector {
             log.debug(`DataCollector: ignoring string: ${data}`);
         }
     }
+    sendPacket(formattedData, perPacket = {}) {
+        if (!formattedData.length)
+            return;
+        const { rawData = null, ...overrides } = perPacket;
+        const { site, plugin, description, targets } = this.params;
+        this.sendHttps(targets, {
+            site,
+            plugin,
+            description,
+            ts: new Date().toISOString(),
+            formattedData,
+            rawData,
+            ...overrides
+        }).catch(err => {
+            log.warn(err);
+        });
+    }
 }
 export class PollingCollector extends DataCollector {
     pollIntervalSec;

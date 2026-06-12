@@ -15,6 +15,8 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
 - `npm run test:coverage` — c8 with the thresholds CI enforces
 - `npm run lint` — ESLint flat config (`eslint.config.js`), all projects
 - `npm run dev:server` / `dev:agent` — tsc watch + nodemon
+- `npm run sim:udp` — fire a simulated UDP device fleet at the dev agent's
+  `udpStruct` collector on 17996 (`--once` for a single burst)
 
 ## Conventions and gotchas
 
@@ -33,6 +35,12 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
   C22A spec (PDFs in `tmp/`, untracked), behavior tuned to a production
   capture saved at `sims/fixtures/fy-io-fifo-capture-2026-06-11.json`
   (golden test data — `goldenCapture.test.ts` pins the decoder to it).
+- **UDP ingest** (`service/UDP-SPEC.md`): `udpStruct` collector decodes
+  packed flu_packet_v1 datagrams via `modules/udpCodec.ts`.
+  `sims/src/udpDeviceSim.ts` is an intentionally independent second
+  implementation of the wire format (firmware reference) — tests pin the
+  two byte-for-byte; don't "deduplicate" them. Loopback UDP drops part of
+  any unpaced burst — tests pace sends and retry sentinels by design.
 - **srsSerial suppression**: messages decoding to nothing but states in
   `extendedOptions.suppress` (default `["COR", "CLEAR"]` — CLEAR is the
   synthetic state for all-zero release frames) are dropped at the agent.

@@ -2,55 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import https from 'node:https';
-import { readFileSync } from 'node:fs';
 import { AddressInfo } from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { isFfluidityPacket, FluidityPacket } from '#@shared/types.js';
 import { WebJSONCollector } from '../modules/collectors.js';
-import { MockPortSRSCollector, srsParams } from './helpers.js';
-
-//tests run with cwd service/dist/agent; the repo dev certs live next door.
-//NODE_ENV=development makes the agent skip chain verification, like real dev use.
-const tlsOptions = {
-    key: readFileSync('../server/ssl/dev-server_key.pem'),
-    cert: readFileSync('../server/ssl/dev-server_cert.pem')
-};
-
-interface Target {
-    server: https.Server;
-    location: string;
-    received: unknown[];
-    next(): Promise<unknown>;
-}
-
-const startTarget = async (statusCode = 200): Promise<Target> => {
-    const received: unknown[] = [];
-    let waiters: ((p: unknown) => void)[] = [];
-
-    const server = https.createServer(tlsOptions, (req, res) => {
-        let body = '';
-        req.on('data', (c: string) => (body += c));
-        req.on('end', () => {
-            const parsed: unknown = JSON.parse(body);
-            received.push(parsed);
-            waiters.forEach(w => w(parsed));
-            waiters = [];
-            res.statusCode = statusCode;
-            res.end();
-        });
-    });
-
-    server.listen(0, '127.0.0.1');
-    await once(server, 'listening');
-    const { port } = server.address() as AddressInfo;
-
-    return {
-        server,
-        location: `https://localhost:${port}/FIFO`,
-        received,
-        next: () => new Promise(resolve => waiters.push(resolve))
-    };
-};
+import { MockPortSRSCollector, srsParams, startTarget, tlsOptions } from './helpers.js';
 
 void test('serial data flows through the collector onto the wire as a FluidityPacket', async () => {
     const target = await startTarget();

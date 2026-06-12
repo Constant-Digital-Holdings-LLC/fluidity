@@ -295,15 +295,30 @@ no `@ts-ignore` interop hacks left.
 > server + sim agent. Coverage gate adjusted to 78 lines (entry points
 > uncovered by design).
 
-## UDP ingest for microcontrollers (spec'd, not started)
+## UDP ingest for microcontrollers (U1 ✅ · U2/U3 pending)
 
 > M5Stack/AVR/ARM devices publish packed structs over UDP to an agent
 > `udpStruct` collector, which validates/decodes and forwards over the
 > existing HTTPS path - the agent as protocol gateway, server untouched
 > (Heroku can't do UDP anyway). Full specification in `service/UDP-SPEC.md`
 > (wire format v1, SipHash auth option, validation/drop rules, sims,
-> firmware kit). Milestones U1 codec+collector -> U2 auth -> U3 firmware
-> examples. Open questions await markup in the spec.
+> firmware kit). All open questions resolved in the spec (§11).
+>
+> **U1 done.** `udpCodec.ts` — pure flu_packet_v1 encode/decode,
+> exact-length-or-drop, strict UTF-8, typed drop reasons in §6 order; wire
+> layout pinned byte-for-byte and fuzzed (10k random + 2k corruption, zero
+> decodes/crashes). `collectors/udpStruct.ts` — open mode, `siteFromPacket`
+> default true, ±24h device-clock policy (`bad-time` counted, re-stamped),
+> per-source log damping with a bounded source table, `dropCounts` surface,
+> U2 options refused at startup (never silently unauthenticated); rides
+> a new `sendPacket()` per-packet identity seam in the `DataCollector`
+> base (existing `send()` untouched). `sims/udpDeviceSim.ts` — seeded
+> 3-device fleet (`npm run sim:udp`, `--once`) whose packer is a
+> deliberately independent wire implementation, proven byte-identical to
+> the agent encoder in tests. 23 new tests incl. dgram→HTTPS e2e and a
+> through-the-socket fuzz barrage (paced: loopback UDP drops ~25% of an
+> unpaced burst — the loss-tolerance doctrine, observed live). Stanzas in
+> dev conf + conf-examples. Next: U2 SipHash MAC, U3 firmware kit.
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

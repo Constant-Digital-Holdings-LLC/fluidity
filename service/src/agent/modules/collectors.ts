@@ -245,6 +245,34 @@ export abstract class DataCollector implements DataCollectorPlugin {
             log.debug(`DataCollector: ignoring string: ${data}`);
         }
     }
+
+    //per-packet construction seam for collectors whose wire format carries
+    //its own identity (udpStruct: site/plugin/description/ts arrive in each
+    //datagram). Builds an exact FluidityPacket - per-packet values win over
+    //collector params - and rides the same throttled HTTPS path as send().
+    protected sendPacket(
+        formattedData: FormattedData[],
+        perPacket: Partial<Pick<FluidityPacket, 'site' | 'plugin' | 'description' | 'ts'>> & {
+            rawData?: string | null;
+        } = {}
+    ): void {
+        if (!formattedData.length) return;
+
+        const { rawData = null, ...overrides } = perPacket;
+        const { site, plugin, description, targets } = this.params;
+
+        this.sendHttps(targets, {
+            site,
+            plugin,
+            description,
+            ts: new Date().toISOString(),
+            formattedData,
+            rawData,
+            ...overrides
+        }).catch(err => {
+            log.warn(err);
+        });
+    }
 }
 
 export interface PollingCollectorParams extends DataCollectorParams {

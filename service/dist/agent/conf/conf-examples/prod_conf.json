@@ -21,6 +21,15 @@
             "plugin": "genericSerial",
             "path": "/dev/tty.usbmodem11401",
             "baudRate": 9600
+        },
+        {
+            "description": "LAN Sensors",
+            "plugin": "udpStruct",
+            "port": 17996,
+            "bind": "192.168.1.10",
+            "extendedOptions": {
+                "siteFromPacket": true
+            }
         }
 
     ]

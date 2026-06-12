@@ -1,6 +1,7 @@
 # Fluidity UDP Ingest — Specification
 
-Status: **draft for review** · Targets milestones U1–U3 (see Milestones)
+Status: **U1 implemented** (codec, open-mode collector, sim, tests) ·
+U2 (MAC) and U3 (firmware kit) pending · all open questions resolved (§11)
 
 Microcontrollers (M5Stack/ESP32, Arduino, AVR, ARM) publish telemetry into
 Fluidity by sending a **packed C struct over UDP** to a Fluidity **agent**,

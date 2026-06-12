@@ -1,7 +1,56 @@
+import https from 'node:https';
+import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
+import { AddressInfo } from 'node:net';
 import { SerialPortMock } from 'serialport';
 import SRSserialCollector from '../modules/collectors/srsSerial.js';
 import { FormatHelper, SerialCollectorParams } from '../modules/collectors.js';
 import { FormattedData, PublishTarget } from '#@shared/types.js';
+
+//tests run with cwd service/dist/agent; the repo dev certs live next door.
+//NODE_ENV=development makes the agent skip chain verification, like real dev use.
+export const tlsOptions = {
+    key: readFileSync('../server/ssl/dev-server_key.pem'),
+    cert: readFileSync('../server/ssl/dev-server_cert.pem')
+};
+
+export interface TestTarget {
+    server: https.Server;
+    location: string;
+    received: unknown[];
+    next(): Promise<unknown>;
+}
+
+//local HTTPS publish target: collects every POSTed body and hands the next
+//one to whoever is awaiting it
+export const startTarget = async (statusCode = 200): Promise<TestTarget> => {
+    const received: unknown[] = [];
+    let waiters: ((p: unknown) => void)[] = [];
+
+    const server = https.createServer(tlsOptions, (req, res) => {
+        let body = '';
+        req.on('data', (c: string) => (body += c));
+        req.on('end', () => {
+            const parsed: unknown = JSON.parse(body);
+            received.push(parsed);
+            waiters.forEach(w => w(parsed));
+            waiters = [];
+            res.statusCode = statusCode;
+            res.end();
+        });
+    });
+
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const { port } = server.address() as AddressInfo;
+
+    return {
+        server,
+        location: `https://localhost:${port}/FIFO`,
+        received,
+        next: () => new Promise(resolve => waiters.push(resolve))
+    };
+};
 
 //opens a mock port instead of real hardware; exposes the protected post() for transport tests
 export class MockPortSRSCollector extends SRSserialCollector {
