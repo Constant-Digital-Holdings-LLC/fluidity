@@ -14,6 +14,8 @@ const safeTime = (value, opts) => {
     }
     return opts ? d.toLocaleTimeString([], opts) : d.toLocaleTimeString();
 };
+const PILL_LABEL_MAX = 15;
+const truncatePillLabel = (s) => (s.length > PILL_LABEL_MAX ? `${s.slice(0, PILL_LABEL_MAX)}..` : s);
 class FilterManager {
     constructor(hooks) {
         var _a;
@@ -228,12 +230,14 @@ class FilterManager {
         a.setAttribute('aria-pressed', 'false');
         typeIcon.classList.add('fa-solid');
         if (type === 'COLLECTOR') {
-            a.innerText = fp.plugin;
+            a.title = fp.plugin;
+            a.innerText = truncatePillLabel(fp.plugin);
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         }
         else if (type === 'SITE') {
-            a.innerText = fp.site;
+            a.title = fp.site;
+            a.innerText = truncatePillLabel(fp.site);
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
             const dot = document.createElement('span');
@@ -245,6 +249,17 @@ class FilterManager {
         li.appendChild(typeIcon);
         li.classList.add('filter-pill', 'fade-in');
         ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
+        this.syncPillWidth(ul);
+    }
+    syncPillWidth(ul) {
+        if (!ul)
+            return;
+        let max = 0;
+        ul.querySelectorAll('a.filter-link').forEach(a => {
+            var _a;
+            max = Math.max(max, ((_a = a.textContent) !== null && _a !== void 0 ? _a : '').length);
+        });
+        ul.style.setProperty('--label-ch', `${max}ch`);
     }
     renderFilterLinks(fp) {
         if (!this.collectorIndex.has(fp.plugin)) {

@@ -269,7 +269,7 @@ a:focus-visible {
     align-items: center;
     flex-wrap: nowrap;
     width: fit-content;
-    max-width: min(9rem, 100%);
+    max-width: 100%;
     font-size: 0.8rem;
     line-height: 1.2rem;
     padding: 0.12rem 0.55rem;
@@ -284,6 +284,10 @@ a:focus-visible {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    /* uniform within a group: --label-ch is set by the FilterManager to the
+       widest current label, so all pills match; ellipsis is the backstop if a
+       proportional glyph run slightly exceeds the ch estimate */
+    width: var(--label-ch, auto);
 }
 
 #container-main li i,
@@ -708,7 +712,9 @@ li i {
 
     #container-main {
         display: grid;
-        grid-template-columns: 9rem auto;
+        /* the site rail adapts to its widest (truncated) pill, floor 9rem,
+           so the column grows when one site name is longer than the rest */
+        grid-template-columns: minmax(9rem, max-content) auto;
     }
 
     #cell-sites {

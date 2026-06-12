@@ -323,3 +323,46 @@ void test('resync to an empty (freshly restarted) FIFO still renders the next pa
     u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial'));
     assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
 });
+void test('pills truncate long labels and share a uniform, adaptive width per group', () => {
+    const d = new JSDOM(`<!DOCTYPE html><html><body>
+      <div id="container-main">
+        <ul id="site-filter-list"></ul>
+        <ul id="collector-filter-list"></ul>
+        <span id="visibile-count"></span><span id="filter-count"></span>
+        <div id="loader"></div>
+        <div id="cell-data"><div id="history-data"></div><div id="current-data"></div><div id="end-data"></div></div>
+      </div></body></html>`);
+    d.window.HTMLElement.prototype.scrollIntoView = () => { };
+    Object.defineProperty(d.window.HTMLElement.prototype, 'innerText', {
+        get() {
+            return this.textContent ?? '';
+        },
+        set(value) {
+            this.textContent = value;
+        }
+    });
+    g['window'] = d.window;
+    g['document'] = d.window.document;
+    g['HTMLElement'] = d.window.HTMLElement;
+    g['Element'] = d.window.Element;
+    g['NodeList'] = d.window.NodeList;
+    g['MouseEvent'] = d.window.MouseEvent;
+    const longSite = 'a-very-long-site-name-indeed';
+    new FluidityUI([
+        pkt(1, longSite, 'genericSerial'),
+        pkt(2, 'gate-1', 'srsSerial'),
+        pkt(3, 'water-tank', 'genericSerial')
+    ]);
+    const link = (id) => {
+        const el = d.window.document.getElementById(id);
+        assert.ok(el, `missing #${id}`);
+        return el;
+    };
+    const longLink = link(`filter-site-${longSite}`);
+    assert.equal(longLink.title, longSite);
+    assert.equal(longLink.textContent, `${longSite.slice(0, 15)}..`);
+    assert.equal((longLink.textContent ?? '').length, 17);
+    assert.equal(link('filter-site-gate-1').textContent, 'gate-1');
+    assert.equal(d.window.document.getElementById('site-filter-list')?.style.getPropertyValue('--label-ch'), '17ch');
+    assert.equal(d.window.document.getElementById('collector-filter-list')?.style.getPropertyValue('--label-ch'), '13ch');
+});

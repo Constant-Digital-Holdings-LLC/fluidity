@@ -437,3 +437,62 @@ void test('resync to an empty (freshly restarted) FIFO still renders the next pa
     u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial')); //the very first new packet
     assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
 });
+
+//hermetic: a fresh DOM + globals so the pill-width assertions see a known set
+//of sites/collectors, independent of the shared `ui`'s accumulated state
+void test('pills truncate long labels and share a uniform, adaptive width per group', () => {
+    const d = new JSDOM(`<!DOCTYPE html><html><body>
+      <div id="container-main">
+        <ul id="site-filter-list"></ul>
+        <ul id="collector-filter-list"></ul>
+        <span id="visibile-count"></span><span id="filter-count"></span>
+        <div id="loader"></div>
+        <div id="cell-data"><div id="history-data"></div><div id="current-data"></div><div id="end-data"></div></div>
+      </div></body></html>`);
+    d.window.HTMLElement.prototype.scrollIntoView = (): void => {};
+    Object.defineProperty(d.window.HTMLElement.prototype, 'innerText', {
+        get(this: HTMLElement): string {
+            return this.textContent ?? '';
+        },
+        set(this: HTMLElement, value: string) {
+            this.textContent = value;
+        }
+    });
+    //point ui.ts's live document/window reads at this DOM (last test; no restore needed)
+    g['window'] = d.window;
+    g['document'] = d.window.document;
+    g['HTMLElement'] = d.window.HTMLElement;
+    g['Element'] = d.window.Element;
+    g['NodeList'] = d.window.NodeList;
+    g['MouseEvent'] = d.window.MouseEvent;
+
+    const longSite = 'a-very-long-site-name-indeed'; //28 chars
+    new FluidityUI([
+        pkt(1, longSite, 'genericSerial'), //widest site label after truncation
+        pkt(2, 'gate-1', 'srsSerial'), //short site, shorter collector
+        pkt(3, 'water-tank', 'genericSerial')
+    ]);
+
+    const link = (id: string): HTMLElement => {
+        const el = d.window.document.getElementById(id);
+        assert.ok(el, `missing #${id}`);
+        return el;
+    };
+
+    //full name in id + title; visible label truncated to 15 + '..'
+    const longLink = link(`filter-site-${longSite}`);
+    assert.equal(longLink.title, longSite);
+    assert.equal(longLink.textContent, `${longSite.slice(0, 15)}..`);
+    assert.equal((longLink.textContent ?? '').length, 17);
+    //a short name renders in full
+    assert.equal(link('filter-site-gate-1').textContent, 'gate-1');
+
+    //uniform + adaptive: each list's --label-ch is its widest current label
+    //sites: truncated long (17) vs gate-1 (6), water-tank (10) -> 17
+    assert.equal(d.window.document.getElementById('site-filter-list')?.style.getPropertyValue('--label-ch'), '17ch');
+    //collectors: genericSerial (13) vs srsSerial (9) -> 13
+    assert.equal(
+        d.window.document.getElementById('collector-filter-list')?.style.getPropertyValue('--label-ch'),
+        '13ch'
+    );
+});

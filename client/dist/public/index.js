@@ -21,7 +21,7 @@ es.addEventListener('open', () => {
         sseConnected = true;
         return;
     }
-    log.info('SSE reconnected; re-baselining in case the server restarted');
+    log.warn('SSE reconnected; re-baselining in case the server restarted');
     fetch('/FIFO')
         .then(response => response.json())
         .then(data => {

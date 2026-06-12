@@ -22,6 +22,12 @@ const safeTime = (value: string, opts?: Intl.DateTimeFormatOptions): string => {
     return opts ? d.toLocaleTimeString([], opts) : d.toLocaleTimeString();
 };
 
+//pills stay readable and uniform: cap the visible label and keep the full
+//name in a tooltip. Display-only - the pill id, the filter indexes, and all
+//filter matching use the untruncated site/plugin name.
+const PILL_LABEL_MAX = 15;
+const truncatePillLabel = (s: string): string => (s.length > PILL_LABEL_MAX ? `${s.slice(0, PILL_LABEL_MAX)}..` : s);
+
 type FilterType = 'COLLECTOR' | 'SITE';
 
 interface FMHooks {
@@ -277,11 +283,13 @@ class FilterManager {
         typeIcon.classList.add('fa-solid');
 
         if (type === 'COLLECTOR') {
-            a.innerText = fp.plugin;
+            a.title = fp.plugin;
+            a.innerText = truncatePillLabel(fp.plugin);
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         } else if (type === 'SITE') {
-            a.innerText = fp.site;
+            a.title = fp.site;
+            a.innerText = truncatePillLabel(fp.site);
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
 
@@ -296,6 +304,21 @@ class FilterManager {
         li.appendChild(typeIcon);
         li.classList.add('filter-pill', 'fade-in');
         ul?.appendChild(li);
+
+        //every pill in a group shares the widest label's width, so the pills
+        //are uniform and the column grows only when a longer name appears
+        this.syncPillWidth(ul);
+    }
+
+    //set --label-ch on the list to its widest current label; the pills' CSS
+    //width reads it, so all pills match and the rail/row adapts to the longest
+    private syncPillWidth(ul: HTMLElement | null): void {
+        if (!ul) return;
+        let max = 0;
+        ul.querySelectorAll('a.filter-link').forEach(a => {
+            max = Math.max(max, (a.textContent ?? '').length);
+        });
+        ul.style.setProperty('--label-ch', `${max}ch`);
     }
 
     public renderFilterLinks(fp: FluidityPacket) {

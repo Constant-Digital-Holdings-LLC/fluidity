@@ -36,7 +36,9 @@ es.addEventListener('open', () => {
         sseConnected = true;
         return;
     }
-    log.info('SSE reconnected; re-baselining in case the server restarted');
+    //warn, not info: a reconnect/re-baseline is adaptive, unexpected behavior
+    //the operator should see even at a normal (non-debug) log level
+    log.warn('SSE reconnected; re-baselining in case the server restarted');
     fetch('/FIFO')
         .then(response => response.json())
         .then(data => {
