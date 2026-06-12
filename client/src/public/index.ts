@@ -25,6 +25,28 @@ const pulse = pulseCanvas instanceof HTMLCanvasElement ? startPulse(pulseCanvas)
 
 const es = new EventSource('/SSE');
 
+//EventSource auto-reconnects after a drop. The first 'open' is the initial
+//connection (the /FIFO fetch below sets the baseline); a later 'open' is a
+//reconnect, after which the server may have restarted and reset its seq
+//counter - so re-fetch and re-baseline the demarcation, or the dashboard
+//would silently drop every new packet (lower seq) until a manual reload.
+let sseConnected = false;
+es.addEventListener('open', () => {
+    if (!sseConnected) {
+        sseConnected = true;
+        return;
+    }
+    log.info('SSE reconnected; re-baselining in case the server restarted');
+    fetch('/FIFO')
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data) && data.every(d => isFfluidityPacket(d)) && ui instanceof FluidityUI) {
+                ui.resync(data); //empty array (fresh FIFO) is fine - baselines to 0
+            }
+        })
+        .catch(err => log.error(err));
+});
+
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {

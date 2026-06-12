@@ -15,6 +15,22 @@ const RENDER_LIMITS = { budget: 48, cap: 256 };
 const pulseCanvas = document.getElementById('pulse');
 const pulse = pulseCanvas instanceof HTMLCanvasElement ? startPulse(pulseCanvas) : undefined;
 const es = new EventSource('/SSE');
+let sseConnected = false;
+es.addEventListener('open', () => {
+    if (!sseConnected) {
+        sseConnected = true;
+        return;
+    }
+    log.info('SSE reconnected; re-baselining in case the server restarted');
+    fetch('/FIFO')
+        .then(response => response.json())
+        .then(data => {
+        if (Array.isArray(data) && data.every(d => isFfluidityPacket(d)) && ui instanceof FluidityUI) {
+            ui.resync(data);
+        }
+    })
+        .catch(err => log.error(err));
+});
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {

@@ -447,6 +447,10 @@ export class FluidityUI {
         }
         return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
     }
+    resync(history) {
+        var _a, _b;
+        this.demarc = (_b = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq) !== null && _b !== void 0 ? _b : 0;
+    }
     packetAdd(fp) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {

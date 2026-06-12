@@ -413,3 +413,27 @@ void test('colorbar: the npm-run-colorbar packet renders every style with its fp
         assert.equal(span.textContent, `${style}:${name}`, `style ${style} carries its legend`);
     }
 });
+
+void test('resync re-baselines the demarcation so the stream survives a server restart', () => {
+    //a dashboard loaded against a server that had reached seq 9100
+    const restartUi = new FluidityUI([pkt(9100, 'Restart Site', 'srsSerial')]);
+
+    //server restarts: seq resets, so a "new" packet now carries a low seq.
+    //With the stale demarcation (9100) it is silently dropped - the bug.
+    restartUi.packetAdd(pkt(9001, 'Restart Site', 'srsSerial'));
+    assert.equal(byId('current-data').querySelector('#fp-seq-9001'), null, 'pre-resync: low-seq packet dropped');
+
+    //the SSE reconnect re-fetches the (now small) history and re-baselines
+    restartUi.resync([pkt(9000, 'Restart Site', 'srsSerial')]);
+
+    //the same packet now renders - the dashboard self-healed without a reload
+    restartUi.packetAdd(pkt(9001, 'Restart Site', 'srsSerial'));
+    assert.ok(dom.window.document.getElementById('fp-seq-9001'), 'post-resync: the live stream resumes');
+});
+
+void test('resync to an empty (freshly restarted) FIFO still renders the next packet', () => {
+    const u = new FluidityUI([pkt(9200, 'Fresh Site', 'srsSerial')]);
+    u.resync([]); //new server, empty FIFO -> demarc baselines to 0
+    u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial')); //the very first new packet
+    assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
+});

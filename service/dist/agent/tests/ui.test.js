@@ -309,3 +309,17 @@ void test('colorbar: the npm-run-colorbar packet renders every style with its fp
         assert.equal(span.textContent, `${style}:${name}`, `style ${style} carries its legend`);
     }
 });
+void test('resync re-baselines the demarcation so the stream survives a server restart', () => {
+    const restartUi = new FluidityUI([pkt(9100, 'Restart Site', 'srsSerial')]);
+    restartUi.packetAdd(pkt(9001, 'Restart Site', 'srsSerial'));
+    assert.equal(byId('current-data').querySelector('#fp-seq-9001'), null, 'pre-resync: low-seq packet dropped');
+    restartUi.resync([pkt(9000, 'Restart Site', 'srsSerial')]);
+    restartUi.packetAdd(pkt(9001, 'Restart Site', 'srsSerial'));
+    assert.ok(dom.window.document.getElementById('fp-seq-9001'), 'post-resync: the live stream resumes');
+});
+void test('resync to an empty (freshly restarted) FIFO still renders the next packet', () => {
+    const u = new FluidityUI([pkt(9200, 'Fresh Site', 'srsSerial')]);
+    u.resync([]);
+    u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial'));
+    assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
+});

@@ -549,6 +549,17 @@ export class FluidityUI {
         return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
     }
 
+    //re-baseline the live demarcation, called after an SSE reconnect: the
+    //server's seq counter resets to 1 on restart (deploy, dyno cycle, crash
+    //recovery), which would leave a stale (high) demarcation silently dropping
+    //every new packet until a manual reload. Re-point the gate at the current
+    //server's latest seq - no history re-render, so the stream just resumes.
+    //Empty new history -> 0, so the next packet (seq 1) still renders. This is
+    //the web's equivalent of the TUI's seq+ts restart tolerance.
+    public resync(history: FluidityPacket[]): void {
+        this.demarc = history.at(-1)?.seq ?? 0;
+    }
+
     public packetAdd(fp: FluidityPacket) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {

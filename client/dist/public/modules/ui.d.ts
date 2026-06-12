@@ -17,6 +17,7 @@ export declare class FluidityUI {
     private packetRender;
     private packetSet;
     private floodBypass;
+    resync(history: FluidityPacket[]): void;
     packetAdd(fp: FluidityPacket): void;
 }
 //# sourceMappingURL=ui.d.ts.map
