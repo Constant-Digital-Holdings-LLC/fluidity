@@ -8,6 +8,7 @@ export interface WatcherConfigData extends ConfigData, LoggerConfig {
     alerts?: unknown[]; //raw rule stanzas, validated by parseRules
     evalIntervalMs?: number; //silence/coalesce check cadence (default 1000)
     limits?: Partial<RunnerLimits>; //exec-pool bounds (merged over DEFAULT_LIMITS)
+    dryRun?: boolean; //log what would fire, never exec - for testing rules safely
 }
 
 export const confFromFS = async (): Promise<WatcherConfigData> => {

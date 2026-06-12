@@ -29,7 +29,9 @@ if (skipped.length)
 if (!rules.length)
     log.warn('watcher: no enabled alert rules - subscribing but nothing is armed');
 const limits = { ...DEFAULT_LIMITS, ...(conf.limits ?? {}) };
-const runner = new AlertRunner(limits, { log: (level, msg) => log[level](msg) });
+const runner = new AlertRunner(limits, { log: (level, msg) => log[level](msg), dryRun: conf.dryRun === true });
+if (conf.dryRun === true)
+    log.warn("watcher: dryRun enabled - alerts are logged, never exec'd");
 const matcher = new PatternMatcher(rules, event => runner.fire(event));
 const base = new URL(conf.watch);
 const handle = follow(base, { insecure: conf.insecure === true }, {

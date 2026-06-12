@@ -43,6 +43,7 @@ export interface RunnerDeps {
     spawn?: SpawnFn;
     now?: () => number;
     log?: (level: 'info' | 'warn' | 'error', msg: string) => void;
+    dryRun?: boolean; //log what would fire, never exec - for testing rules safely
 }
 
 export interface RunnerStats {
@@ -114,6 +115,7 @@ export class AlertRunner {
     private readonly spawn: SpawnFn;
     private readonly now: () => number;
     private readonly log: (level: 'info' | 'warn' | 'error', msg: string) => void;
+    private readonly dryRun: boolean;
     private readonly rt = new Map<string, RuleRt>();
     private readonly queue: Job[] = [];
     private readonly running = new Set<Running>();
@@ -136,6 +138,7 @@ export class AlertRunner {
         this.spawn = deps.spawn ?? realSpawn;
         this.now = deps.now ?? Date.now;
         this.log = deps.log ?? ((): void => undefined);
+        this.dryRun = deps.dryRun ?? false;
     }
 
     private rtFor(rule: ParsedRule): RuleRt {
@@ -229,6 +232,11 @@ export class AlertRunner {
 
     private run(job: Job): void {
         this.stats.fired++;
+        if (this.dryRun) {
+            this.stats.completed++;
+            this.log('info', `[dryRun] would exec ${job.rule.exec} ${job.args.join(' ')} :: ${job.message}`);
+            return;
+        }
         let child: SpawnedChild;
         try {
             child = this.spawn(job.rule.exec, job.args, job.env);

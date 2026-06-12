@@ -39,6 +39,7 @@ export class AlertRunner {
     spawn;
     now;
     log;
+    dryRun;
     rt = new Map();
     queue = [];
     running = new Set();
@@ -58,6 +59,7 @@ export class AlertRunner {
         this.spawn = deps.spawn ?? realSpawn;
         this.now = deps.now ?? Date.now;
         this.log = deps.log ?? (() => undefined);
+        this.dryRun = deps.dryRun ?? false;
     }
     rtFor(rule) {
         let s = this.rt.get(rule.name);
@@ -149,6 +151,11 @@ export class AlertRunner {
     }
     run(job) {
         this.stats.fired++;
+        if (this.dryRun) {
+            this.stats.completed++;
+            this.log('info', `[dryRun] would exec ${job.rule.exec} ${job.args.join(' ')} :: ${job.message}`);
+            return;
+        }
         let child;
         try {
             child = this.spawn(job.rule.exec, job.args, job.env);

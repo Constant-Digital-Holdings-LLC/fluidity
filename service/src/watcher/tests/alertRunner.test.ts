@@ -170,6 +170,17 @@ void test('a child past the timeout is killed', async () => {
     r.stop();
 });
 
+void test('dryRun logs what would fire and never spawns', () => {
+    const sp = new FakeSpawner();
+    const logs: string[] = [];
+    const r = new AlertRunner(limits(), { spawn: sp.fn, now: () => 0, dryRun: true, log: (_l, m) => logs.push(m) });
+    r.fire(ev(rule({ exec: '/opt/alert', args: ['--topic', 'x'], message: 'hi' })));
+    assert.equal(sp.calls.length, 0, 'nothing is spawned in dryRun');
+    assert.equal(r.stats.fired, 1);
+    assert.equal(r.stats.completed, 1);
+    assert.match(logs.join('\n'), /\[dryRun\] would exec \/opt\/alert --topic x :: hi/);
+});
+
 void test('injection-safe: untrusted packet text reaches a real child as inert data', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'flu-alert-'));
     try {
