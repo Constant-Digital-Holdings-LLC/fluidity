@@ -74,7 +74,9 @@ const renderField = (f: FormattedData, o: RenderOpts): { text: string; trim: boo
 
         case 'LINK': {
             if (!isFluidityLink(f.field)) {
-                return { text: paint(JSON.stringify(f.field), def, tier), trim };
+                //defensive: a malformed link is dumped as JSON, but JSON.stringify
+                //escapes only C0 - DEL/C1 bytes pass through - so sanitize it too
+                return { text: paint(sanitize(JSON.stringify(f.field)), def, tier), trim };
             }
             //the location feeds an OSC 8 sequence: sanitize so an embedded
             //BEL/ESC can't terminate the hyperlink early or inject
@@ -88,7 +90,8 @@ const renderField = (f: FormattedData, o: RenderOpts): { text: string; trim: boo
         }
 
         default:
-            return { text: paint(JSON.stringify(f.field), styleDef(0), tier), trim: false };
+            //an out-of-union fieldType: same defensive sanitize as the bad-LINK path
+            return { text: paint(sanitize(JSON.stringify(f.field)), styleDef(0), tier), trim: false };
     }
 };
 

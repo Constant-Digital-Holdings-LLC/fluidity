@@ -37,7 +37,7 @@ const renderField = (f, o) => {
         }
         case 'LINK': {
             if (!isFluidityLink(f.field)) {
-                return { text: paint(JSON.stringify(f.field), def, tier), trim };
+                return { text: paint(sanitize(JSON.stringify(f.field)), def, tier), trim };
             }
             const location = sanitize(f.field.location);
             const name = paint(sanitize(f.field.name), { ...def, underline: tier !== 'mono' }, tier);
@@ -48,7 +48,7 @@ const renderField = (f, o) => {
             };
         }
         default:
-            return { text: paint(JSON.stringify(f.field), styleDef(0), tier), trim: false };
+            return { text: paint(sanitize(JSON.stringify(f.field)), styleDef(0), tier), trim: false };
     }
 };
 export const renderParts = (p, o) => {
