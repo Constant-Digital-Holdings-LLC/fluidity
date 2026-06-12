@@ -457,7 +457,31 @@ branch pass. Highlights, by theme:
 > unimplemented (clients self-heal by refetch); the replay damper remains
 > a damper, not a transcript authenticator.
 
-## Log tailing + shared line tokenizer (L1/L2/L3 — planned)
+## Log tailing + shared line tokenizer (L1/L2/L3 ✅ done)
+
+> **Shipped 2026-06-12.** `logTail` collector + `FileTailCollector` source
+> base (collectors.ts) + shared `modules/tokenize.ts`, all three phases.
+> - **L1 source:** poll-and-read-the-delta (no fs.watch), start-at-EOF default,
+>   rotation (identity change) / in-place truncation (size shrink) /
+>   copytruncate / partial-line / stream-UTF-8 handling, fleet throttle
+>   default, backpressure + dropCounts, oversize-line cap.
+> - **L2 tokenizer:** json / logfmt / syslog / levelmsg detectors + auto, the
+>   PLAN palette mapping, http(s)→LINK (control-safe so the server can't 400
+>   it), user regex rules, ReDoS guards (line cap, bounded/anchored patterns).
+>   Shared by `logTail` (on by default) and `genericSerial` (opt-in); a plain
+>   line still yields one style-0 STRING, so adoption is risk-free.
+> - **L3 multiline:** indent or startPattern entry detection, coalesced into
+>   one packet; flush on next-entry / idle / rotation / stop; runaway cap.
+>   Joiner defaults to `\n` (faithful data); single-line renderers flatten it
+>   until clients render multi-line packets (the deferred client follow-on).
+> - **Cross-OS:** file identity falls back from inode to creation time
+>   (Windows/FAT report ino 0), size-shrink as the last-resort reset signal,
+>   leading-BOM stripping. `logTailCrossOS.test.ts` emulates each OS's stat
+>   behavior via a `statFile()` seam so the gotchas surface on Linux CI.
+> Deferred: a `log://` dev-sim source (tests drive real temp files today);
+> true multi-line rendering in the clients.
+>
+> Original design notes below.
 
 > The most universal collector: tail a growing file and turn each line into a
 > styled FluidityPacket. The key design move is that the **source** (file

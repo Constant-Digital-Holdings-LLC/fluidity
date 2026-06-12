@@ -77,6 +77,20 @@ Don't move rendering decisions serverward.
   parser (`parseSrsFrame`) is strict per the C22A docs: single-space hex,
   matched brackets, length-validated (bit-7 extended frames tolerated);
   rejected lines are counted in `collector.dropCounts`.
+- **Log tailing** (L1/L2/L3): `logTail` collector tails a growing file via
+  `FileTailCollector` (collectors.ts) — poll-and-read-the-delta (not
+  fs.watch), start-at-EOF, rotation/truncation/copytruncate/partial-line/
+  stream-UTF-8/BOM handling, fleet throttle default. File identity falls back
+  inode→creation-time so it survives Windows/FAT (ino 0); `statFile()` is the
+  seam `logTailCrossOS.test.ts` overrides to emulate other OSes' stat quirks
+  on Linux CI. The line **tokenizer** (`modules/tokenize.ts`, shared with
+  `genericSerial`) suggests `fieldType`/`suggestStyle` per token (clients
+  decide CSS/ANSI) — json/logfmt/syslog/levelmsg detectors, http(s)→LINK
+  (control-safe), user regex rules, ReDoS-bounded. On by default for
+  `logTail`, opt-in (`extendedOptions.tokenize`) for `genericSerial`; a plain
+  line still yields one style-0 STRING. Multiline (`extendedOptions` on
+  logTail) coalesces stack traces into one packet (joiner defaults `\n`;
+  single-line renderers flatten until clients render multi-line).
 - TUI has **zero runtime deps** (hand-rolled SSE client, ANSI, key parsing);
   keep it that way. Pure parts (`uiModel`, `composeFrame`, `renderLine`) are
   unit-tested; only thin orchestrators touch the terminal/process.

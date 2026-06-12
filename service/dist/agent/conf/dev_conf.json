@@ -1,9 +1,12 @@
 {
-    "targets": [{ "location": "https://localhost:3000/FIFO", "key": "184f451d98b79137dcb014abda5eb6c9" }],
+    "targets": [
+        {
+            "location": "https://localhost:3000/FIFO",
+            "key": "184f451d98b79137dcb014abda5eb6c9"
+        }
+    ],
     "site": "MyOffice",
     "logLevel": "debug",
-
-
     "collectors": [
         {
             "description": "Agent Report",
@@ -48,7 +51,18 @@
             "plugin": "udpStruct",
             "port": 17996,
             "bind": "127.0.0.1"
+        },
+        {
+            "description": "System Log (example - any growing log file)",
+            "plugin": "logTail",
+            "enabled": false,
+            "path": "/var/log/syslog",
+            "fromStart": false,
+            "extendedOptions": {
+                "tokenize": {
+                    "format": "auto"
+                }
+            }
         }
-
     ]
 }
