@@ -20,6 +20,12 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
 - `npm run sim:udp-stress` — rate-controlled barrage for load testing
   (`--rate --duration --devices --mix valid:70,garbage:30 --secret --seed`);
   sender-side counts are exact, seeded runs are deterministic
+- `npm run loadtest` — full e2e harness (emitter → real udpStruct collector →
+  real HTTPS → real `makeApp` server, optional SSE subscribers); prints
+  throughput/drops/backpressure/loop-lag/memory. `-- --rate N --duration S
+  --mix … --secret <hex> --sse K`. CPU profile: run
+  `service/dist/loadtest/cli.js` under `node --cpu-prof`. The same
+  `runLoadtest()` core is exercised by `udpEmission.test.ts` in the suite.
 
 ## Conventions and gotchas
 

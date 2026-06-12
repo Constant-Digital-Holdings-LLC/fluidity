@@ -373,6 +373,36 @@ no `@ts-ignore` interop hacks left.
 > synchronous 500-line flood test pins the arithmetic exactly (100
 > admitted, 400 shed).
 
+## E2E load + profiling session (findings + fixes)
+
+> A heavy multi-process slam (parallel emitters, in-process server +
+> agent + SSE subscribers, CPU profiles, decode microbench) was run and
+> then productized as `npm run loadtest` (service/src/loadtest/{harness,
+> cli}.ts; silent conf at service/dist/loadtest/conf). The harness core
+> is covered functionally in CI by udpEmission.test.ts. Findings, each
+> fixed and committed:
+> - **Browser hung under a live flood** while the TUI sailed through:
+>   index.ts did synchronous per-packet DOM work on every SSE message.
+>   Fixed with a requestAnimationFrame render pump (modules/rxPump.ts,
+>   drainRenderQueue) - bounded inserts/frame, oldest backlog shed past a
+>   cap, sparkline still counts every arrival. Verified 0/22 unresponsive
+>   probes at 6000/s (was a hard hang).
+> - **Typewriter trailed the data** above ~6/s: rate-aware bypass in
+>   FluidityUI (trailing-1s window) renders instant past the threshold.
+> - **MAC mode was the ingest ceiling** (~60k/s vs ~1.06M/s unsigned):
+>   BigInt SipHash allocated per op. Rewrote over 32-bit limbs - ~6x
+>   faster (~370k/s signed decode), still pinned to all 64 vectors + the
+>   C firmware cross-check.
+> - **In-flight backlog scaled as 2x throttle, no ceiling** -> ~1.6GB RSS
+>   at a 100k throttle in the slam. Hard-capped at 1024 posts.
+> Decode ceilings (single core, microbench): garbage reject 115M/s, valid
+> decode 1.06M/s, signed decode+MAC 370k/s. Loopback kernel rmem (208KB,
+> unraisable here) sheds before the agent at extreme offered rates - a
+> realistic first line of defense; the agent processes what the socket
+> delivers with the loop near idle. Observed SSE fanout tail latency
+> climbs under heavy post rate in a shared loop (separate processes in
+> prod); noted, not yet addressed.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under

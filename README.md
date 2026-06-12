@@ -176,6 +176,8 @@ A site named `hello` appears on the dashboard with the field "hi from netcat". F
 
 A software fleet of simulated UDP devices is also available for development: `npm run sim:udp` (add `--secret <hex32>` for signed traffic, `--once` for a single burst). For load testing there is a rate-controlled stress emitter — `npm run sim:udp-stress -- --rate 2000 --duration 10 --mix valid:50,garbage:50` — with exact sender-side counts to reconcile against the collector's drop counters; the agent sheds excess traffic as `backpressure` rather than queueing it (a bound shared by every collector type — serial, polling, and UDP alike), so a flood costs display lines, never memory.
 
+For full end-to-end load testing, `npm run loadtest` drives the whole pipeline in one command — the emitter fires real datagrams at a real agent collector, which posts over real HTTPS to a real server, with optional SSE subscribers measuring fanout latency — and reports throughput, drops, backpressure, event-loop lag, and memory (`-- --rate 20000 --duration 10 --mix valid:70,garbage:30 --secret <hex> --sse 16`). The same harness is exercised by the normal test suite, so the load tool stays honest.
+
 #### Simulated Devices & Testing
 
 The simulators live in **sims/** as a TypeScript library (`sims/src/`). Any serial collector can be pointed at a simulator by using a `sim://` path in its config (`sim://srs` for SRS controller telemetry, `sim://generic` for assorted serial console data). Simulated devices behave like real ones: same parsers, same plugins, same data path to the dashboard.

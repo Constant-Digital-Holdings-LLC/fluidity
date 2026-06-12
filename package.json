@@ -24,6 +24,7 @@
         "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently -n tsc-agent,nm-agent --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" ",
         "sim:udp": "node sims/dist/udpDeviceSim.js --port 17996",
         "sim:udp-stress": "node sims/dist/udpStressEmitter.js --port 17996",
+        "loadtest": "npm run build && cross-env NODE_ENV=development node service/dist/loadtest/cli.js",
         "build:tui-sea": "npm run build && node tui/scripts/build-sea.mjs"
     },
     "author": "Sean Lynch - KK6BEB",

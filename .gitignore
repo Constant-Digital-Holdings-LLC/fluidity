@@ -107,6 +107,10 @@ typings/
 # local conf
 service/dist/*/conf/prod_conf.json
 service/dist/*/conf/dev_conf.json
+# ...but the loadtest harness ships a secret-free, logLevel:never conf so the
+# tool (and CI's emission test) run quiet on a fresh clone
+!service/dist/loadtest/conf/prod_conf.json
+!service/dist/loadtest/conf/dev_conf.json
 
 # TUI standalone build output (binaries, ~100MB)
 tui/build/
