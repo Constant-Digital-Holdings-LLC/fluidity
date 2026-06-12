@@ -19,7 +19,8 @@ export const typeIn = (root: HTMLElement, opts?: TypeOpts): void => {
 
     if (reduced || typeof raf !== 'function' || active >= MAX_CONCURRENT) return;
 
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    //4 = NodeFilter.SHOW_TEXT (numeric to avoid relying on the global)
+    const walker = document.createTreeWalker(root, 4);
     const nodes: { node: Text; full: string }[] = [];
     let total = 0;
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

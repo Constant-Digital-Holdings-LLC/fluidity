@@ -7,7 +7,7 @@ export const typeIn = (root, opts) => {
     const now = (_d = opts === null || opts === void 0 ? void 0 : opts.now) !== null && _d !== void 0 ? _d : (() => performance.now());
     if (reduced || typeof raf !== 'function' || active >= MAX_CONCURRENT)
         return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(root, 4);
     const nodes = [];
     let total = 0;
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

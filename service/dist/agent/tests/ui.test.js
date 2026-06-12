@@ -141,6 +141,77 @@ void test('drawSparkline is harmless where canvas is unavailable (jsdom)', async
     const canvas = dom.window.document.createElement('canvas');
     assert.doesNotThrow(() => drawSparkline(canvas, [0, 1, 3, 2, 5]));
 });
+void test('typewriter reveals characters in document order across styled spans', async () => {
+    const { typeIn } = await import('#@client/modules/typewriter.js');
+    const root = dom.window.document.createElement('div');
+    root.innerHTML = '<span>AB</span><span>CD</span><a>EF</a>';
+    dom.window.document.body.appendChild(root);
+    const frames = [];
+    let clock = 1000;
+    typeIn(root, { cps: 1000, raf: cb => frames.push(cb), now: () => clock });
+    assert.equal(root.textContent, '', 'text blanked before typing starts');
+    clock = 1001;
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'AB');
+    clock = 1004;
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'ABCDE');
+    clock = 1010;
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'ABCDEF');
+    assert.equal(frames.length, 0, 'no frame scheduled after completion');
+    root.remove();
+});
+void test('typewriter no-ops to instant text without a frame source', async () => {
+    const { typeIn } = await import('#@client/modules/typewriter.js');
+    const root = dom.window.document.createElement('div');
+    root.innerHTML = '<span>hello</span>';
+    typeIn(root);
+    assert.equal(root.textContent, 'hello');
+});
+void test('renderPulse draws once sized, and does not clear-by-resize on repaint', async () => {
+    const { renderPulse } = await import('#@client/modules/pulse.js');
+    const calls = [];
+    const ctx = new Proxy({}, {
+        get: (_t, prop) => {
+            if (prop === 'createLinearGradient')
+                return () => ({ addColorStop: () => undefined });
+            return (...args) => {
+                calls.push(prop === 'fillText' ? `fillText:${String(args[0])}` : prop);
+            };
+        }
+    });
+    let width = 0;
+    let height = 0;
+    const canvas = {
+        getContext: () => ctx,
+        clientWidth: 200,
+        clientHeight: 30,
+        get width() {
+            return width;
+        },
+        set width(v) {
+            width = v;
+            calls.push('RESIZE');
+        },
+        get height() {
+            return height;
+        },
+        set height(v) {
+            height = v;
+        }
+    };
+    const pts = [
+        { t: 1000, v: 0 },
+        { t: 2000, v: 3 },
+        { t: 3000, v: 1 }
+    ];
+    renderPulse(canvas, pts, { now: 3000, windowMs: 2000, label: '5m' });
+    renderPulse(canvas, pts, { now: 3500, windowMs: 2000, label: '5m' });
+    assert.equal(calls.filter(c => c === 'RESIZE').length, 1, 'resize only when size truly changes');
+    assert.ok(calls.includes('stroke') && calls.includes('fill'), 'line and fill drawn');
+    assert.ok(calls.includes('fillText:5m'), 'window label drawn');
+});
 void test('site and collector filters intersect', async () => {
     click(byId('filter-site-Verdugo Pk'));
     click(byId('filter-collector-genericSerial'));

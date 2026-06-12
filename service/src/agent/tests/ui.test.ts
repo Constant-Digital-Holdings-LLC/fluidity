@@ -182,6 +182,94 @@ void test('drawSparkline is harmless where canvas is unavailable (jsdom)', async
     assert.doesNotThrow(() => drawSparkline(canvas, [0, 1, 3, 2, 5]));
 });
 
+void test('typewriter reveals characters in document order across styled spans', async () => {
+    const { typeIn } = await import('#@client/modules/typewriter.js');
+
+    const root = dom.window.document.createElement('div');
+    root.innerHTML = '<span>AB</span><span>CD</span><a>EF</a>';
+    dom.window.document.body.appendChild(root);
+
+    //deterministic clock + frame queue injected; frames stepped by hand
+    const frames: ((t: number) => void)[] = [];
+    let clock = 1000;
+    typeIn(root, { cps: 1000, raf: cb => frames.push(cb), now: () => clock });
+
+    assert.equal(root.textContent, '', 'text blanked before typing starts');
+
+    clock = 1001; //1ms at 1000cps -> 1 char (+1 floor bump = 2)
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'AB');
+
+    clock = 1004; //4ms -> 5 chars
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'ABCDE');
+
+    clock = 1010; //past the end: completes and stops scheduling
+    frames.shift()?.(clock);
+    assert.equal(root.textContent, 'ABCDEF');
+    assert.equal(frames.length, 0, 'no frame scheduled after completion');
+
+    root.remove();
+});
+
+void test('typewriter no-ops to instant text without a frame source', async () => {
+    const { typeIn } = await import('#@client/modules/typewriter.js');
+    const root = dom.window.document.createElement('div');
+    root.innerHTML = '<span>hello</span>';
+    typeIn(root); //no raf in jsdom: must leave text untouched
+    assert.equal(root.textContent, 'hello');
+});
+
+void test('renderPulse draws once sized, and does not clear-by-resize on repaint', async () => {
+    const { renderPulse } = await import('#@client/modules/pulse.js');
+
+    //duck-typed canvas: records sizing and 2d calls without a real raster
+    const calls: string[] = [];
+    const ctx = new Proxy(
+        {},
+        {
+            get: (_t, prop: string) => {
+                if (prop === 'createLinearGradient') return () => ({ addColorStop: () => undefined });
+                return (...args: unknown[]) => {
+                    calls.push(prop === 'fillText' ? `fillText:${String(args[0])}` : prop);
+                };
+            }
+        }
+    );
+    let width = 0;
+    let height = 0;
+    const canvas = {
+        getContext: () => ctx,
+        clientWidth: 200,
+        clientHeight: 30,
+        get width() {
+            return width;
+        },
+        set width(v: number) {
+            width = v;
+            calls.push('RESIZE');
+        },
+        get height() {
+            return height;
+        },
+        set height(v: number) {
+            height = v;
+        }
+    } as unknown as HTMLCanvasElement;
+
+    const pts = [
+        { t: 1000, v: 0 },
+        { t: 2000, v: 3 },
+        { t: 3000, v: 1 }
+    ];
+    renderPulse(canvas, pts, { now: 3000, windowMs: 2000, label: '5m' });
+    renderPulse(canvas, pts, { now: 3500, windowMs: 2000, label: '5m' });
+
+    assert.equal(calls.filter(c => c === 'RESIZE').length, 1, 'resize only when size truly changes');
+    assert.ok(calls.includes('stroke') && calls.includes('fill'), 'line and fill drawn');
+    assert.ok(calls.includes('fillText:5m'), 'window label drawn');
+});
+
 void test('site and collector filters intersect', async () => {
     //filter site=Verdugo Pk AND collector=genericSerial: nothing matches both
     click(byId('filter-site-Verdugo Pk'));
