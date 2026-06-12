@@ -55,6 +55,9 @@ const isHttpError = (e) => {
 export class DataCollector {
     params;
     throttle;
+    pendingPosts = 0;
+    maxPendingPosts;
+    shedTotal = 0;
     constructor(params) {
         this.params = params;
         if (!isDataCollectorParams(params))
@@ -62,6 +65,7 @@ export class DataCollector {
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
+        this.maxPendingPosts = Math.max(32, 2 * maxHttpsReqPerCollectorPerSec);
     }
     stop() { }
     _reqJSON(method, uo, data, key) {
@@ -146,20 +150,43 @@ export class DataCollector {
             }
         }
     }
+    dispatch(fPacket) {
+        if (this.pendingPosts >= this.maxPendingPosts) {
+            this.shedTotal++;
+            if (this.shedTotal <= 5 || this.shedTotal % 100 === 0) {
+                log.warn(`${this.params.plugin} [${this.params.description}]: upstream saturated ` +
+                    `(${this.pendingPosts} posts in flight) - shedding newest packet (total shed ${this.shedTotal})`);
+            }
+            return Promise.resolve();
+        }
+        this.pendingPosts++;
+        return this.sendHttps(this.params.targets, fPacket)
+            .catch(err => {
+            log.warn(err);
+        })
+            .finally(() => {
+            this.pendingPosts--;
+        });
+    }
+    get upstreamSaturated() {
+        return this.pendingPosts >= this.maxPendingPosts;
+    }
+    get backpressureShed() {
+        return this.shedTotal;
+    }
     send(data) {
         const { targets, keepRaw, ...rest } = this.params;
+        void targets;
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
         }
         const formattedData = this.format(data, new FormatHelper());
         if (Array.isArray(formattedData) && formattedData.length) {
-            this.sendHttps(targets, {
+            void this.dispatch({
                 ts: new Date().toISOString(),
                 formattedData,
                 rawData: keepRaw ? data : null,
                 ...rest
-            }).catch(err => {
-                log.warn(err);
             });
         }
         else {
@@ -170,8 +197,8 @@ export class DataCollector {
         if (!formattedData.length)
             return Promise.resolve();
         const { rawData = null, ...overrides } = perPacket;
-        const { site, plugin, description, targets } = this.params;
-        return this.sendHttps(targets, {
+        const { site, plugin, description } = this.params;
+        return this.dispatch({
             site,
             plugin,
             description,
@@ -179,8 +206,6 @@ export class DataCollector {
             formattedData,
             rawData,
             ...overrides
-        }).catch(err => {
-            log.warn(err);
         });
     }
 }

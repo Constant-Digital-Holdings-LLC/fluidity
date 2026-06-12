@@ -4,8 +4,8 @@ import { once } from 'node:events';
 import https from 'node:https';
 import { AddressInfo } from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { isFfluidityPacket, FluidityPacket } from '#@shared/types.js';
-import { WebJSONCollector } from '../modules/collectors.js';
+import { isFfluidityPacket, FluidityPacket, FormattedData } from '#@shared/types.js';
+import { DataCollector, FormatHelper, WebJSONCollector } from '../modules/collectors.js';
 import { MockPortSRSCollector, srsParams, startTarget, tlsOptions } from './helpers.js';
 
 void test('serial data flows through the collector onto the wire as a FluidityPacket', async () => {
@@ -114,6 +114,44 @@ void test('missing or malformed api key: request is never sent (regression: it u
         //give any stray request time to land before asserting none did
         await sleep(150);
         assert.equal(target.received.length, 0);
+    } finally {
+        target.server.close();
+    }
+});
+
+//any collector whose source outruns the throttle (serial line noise through
+//genericSerial, a tight poller, a UDP barrage) hits the same bounded
+//dispatch in the base class
+class FloodCollector extends DataCollector {
+    start(): void {}
+    format(data: string, fh: FormatHelper): FormattedData[] | null {
+        return fh.e(data).done;
+    }
+    flood(lines: number): void {
+        for (let i = 0; i < lines; i++) this.send(`line ${i}`);
+    }
+}
+
+void test('a line source that outruns the throttle is shed at the base class, never queued without bound', async () => {
+    const target = await startTarget();
+    try {
+        const collector = new FloodCollector({
+            plugin: 'floodTest',
+            description: 'line-noise burst',
+            site: 'test',
+            targets: [{ location: target.location, key: 'floodkey1' }],
+            maxHttpsReqPerCollectorPerSec: 50 //in-flight cap = max(32, 2x50) = 100
+        });
+
+        collector.flood(500);
+
+        //the burst is synchronous, so the arithmetic is exact: 100 admitted
+        //into the throttle queue, 400 shed
+        assert.equal(collector.backpressureShed, 400);
+
+        await sleep(2400); //admitted backlog drains at 50/s
+        assert.ok(target.received.length <= 100, `only the admitted lines publish (${target.received.length})`);
+        assert.ok(target.received.length >= 90, `the admitted lines DO publish (${target.received.length})`);
     } finally {
         target.server.close();
     }

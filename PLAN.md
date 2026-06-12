@@ -364,7 +364,14 @@ no `@ts-ignore` interop hacks left.
 > in-flight work. Tests: 1500pps mixed barrage with drop-counter
 > reconciliation (generous floors - loopback UDP sheds under load),
 > 800pps valid flood proving shedding + bounded publishing + survival,
-> seeded determinism, config validation.
+> seeded determinism, config validation. The bound was then HOISTED into
+> the DataCollector base (dispatch()), because the hazard was never
+> UDP-specific: genericSerial forwards every line, so line noise on a
+> serial port (~80+ lines/s vs the default 2/s throttle) or a tight
+> poller grows the same queue. All collectors now shed at the same
+> bound; backpressureShed is observable on every collector and a
+> synchronous 500-line flood test pins the arithmetic exactly (100
+> admitted, 400 shed).
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

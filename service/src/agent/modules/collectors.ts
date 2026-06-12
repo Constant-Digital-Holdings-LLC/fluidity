@@ -109,6 +109,9 @@ const isHttpError = (e: unknown): e is HttpError => {
 
 export abstract class DataCollector implements DataCollectorPlugin {
     private throttle: <T = unknown>(fn: () => T | Promise<T>) => Promise<T>;
+    private pendingPosts = 0;
+    private readonly maxPendingPosts: number;
+    private shedTotal = 0;
 
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
@@ -117,6 +120,11 @@ export abstract class DataCollector implements DataCollectorPlugin {
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
 
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
+
+        //the throttle queues without limit, so any source that can outrun it
+        //(UDP barrage, serial line noise through genericSerial, a tight
+        //poller) would grow memory forever; dispatch() sheds beyond this
+        this.maxPendingPosts = Math.max(32, 2 * maxHttpsReqPerCollectorPerSec);
     }
 
     abstract start(): void;
@@ -223,8 +231,48 @@ export abstract class DataCollector implements DataCollectorPlugin {
         }
     }
 
+    //every upstream publish flows through here. The backlog is bounded:
+    //when the throttled path is saturated, the newest packet is shed (and
+    //the shed is observable) - on a fire-and-forget display feed a flood
+    //must cost lines, never agent memory. The queue offers no cancellation,
+    //so shedding old work in favor of fresh is not an option.
+    private dispatch(fPacket: FluidityPacket): Promise<void> {
+        if (this.pendingPosts >= this.maxPendingPosts) {
+            this.shedTotal++;
+            if (this.shedTotal <= 5 || this.shedTotal % 100 === 0) {
+                log.warn(
+                    `${this.params.plugin} [${this.params.description}]: upstream saturated ` +
+                        `(${this.pendingPosts} posts in flight) - shedding newest packet (total shed ${this.shedTotal})`
+                );
+            }
+            return Promise.resolve();
+        }
+
+        this.pendingPosts++;
+        return this.sendHttps(this.params.targets, fPacket)
+            .catch(err => {
+                log.warn(err);
+            })
+            .finally(() => {
+                this.pendingPosts--;
+            });
+    }
+
+    //true while dispatch() would shed: collectors with richer accounting
+    //(udpStruct counts per source address) check this before building
+    protected get upstreamSaturated(): boolean {
+        return this.pendingPosts >= this.maxPendingPosts;
+    }
+
+    //total packets shed by the backpressure bound, for tests and surfaces
+    public get backpressureShed(): number {
+        return this.shedTotal;
+    }
+
     protected send(data: string): void {
+        //targets is pulled out only to keep it off the packet (rest sibling)
         const { targets, keepRaw, ...rest } = this.params;
+        void targets;
 
         for (const [key, value] of Object.entries(process.memoryUsage())) {
             log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
@@ -233,13 +281,11 @@ export abstract class DataCollector implements DataCollectorPlugin {
         const formattedData = this.format(data, new FormatHelper());
 
         if (Array.isArray(formattedData) && formattedData.length) {
-            this.sendHttps(targets, {
+            void this.dispatch({
                 ts: new Date().toISOString(),
                 formattedData,
                 rawData: keepRaw ? data : null,
                 ...rest
-            }).catch(err => {
-                log.warn(err);
             });
         } else {
             log.debug(`DataCollector: ignoring string: ${data}`);
@@ -249,9 +295,8 @@ export abstract class DataCollector implements DataCollectorPlugin {
     //per-packet construction seam for collectors whose wire format carries
     //its own identity (udpStruct: site/plugin/description/ts arrive in each
     //datagram). Builds an exact FluidityPacket - per-packet values win over
-    //collector params - and rides the same throttled HTTPS path as send().
-    //Resolves when the upstream attempt settles (never rejects), so callers
-    //can bound how much work they leave in flight.
+    //collector params - and rides the same bounded, throttled path as send().
+    //Resolves when the upstream attempt settles (never rejects).
     protected sendPacket(
         formattedData: FormattedData[],
         perPacket: Partial<Pick<FluidityPacket, 'site' | 'plugin' | 'description' | 'ts'>> & {
@@ -261,9 +306,9 @@ export abstract class DataCollector implements DataCollectorPlugin {
         if (!formattedData.length) return Promise.resolve();
 
         const { rawData = null, ...overrides } = perPacket;
-        const { site, plugin, description, targets } = this.params;
+        const { site, plugin, description } = this.params;
 
-        return this.sendHttps(targets, {
+        return this.dispatch({
             site,
             plugin,
             description,
@@ -271,8 +316,6 @@ export abstract class DataCollector implements DataCollectorPlugin {
             formattedData,
             rawData,
             ...overrides
-        }).catch(err => {
-            log.warn(err);
         });
     }
 }

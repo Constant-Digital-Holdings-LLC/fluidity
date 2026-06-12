@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import https from 'node:https';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { isFfluidityPacket } from '#@shared/types.js';
-import { WebJSONCollector } from '../modules/collectors.js';
+import { DataCollector, WebJSONCollector } from '../modules/collectors.js';
 import { MockPortSRSCollector, srsParams, startTarget, tlsOptions } from './helpers.js';
 void test('serial data flows through the collector onto the wire as a FluidityPacket', async () => {
     const target = await startTarget();
@@ -89,6 +89,36 @@ void test('missing or malformed api key: request is never sent (regression: it u
         await assert.rejects(collector.testPost(target.location, { probe: true }, 'not-alphanumeric!'), /alphanumeric/);
         await sleep(150);
         assert.equal(target.received.length, 0);
+    }
+    finally {
+        target.server.close();
+    }
+});
+class FloodCollector extends DataCollector {
+    start() { }
+    format(data, fh) {
+        return fh.e(data).done;
+    }
+    flood(lines) {
+        for (let i = 0; i < lines; i++)
+            this.send(`line ${i}`);
+    }
+}
+void test('a line source that outruns the throttle is shed at the base class, never queued without bound', async () => {
+    const target = await startTarget();
+    try {
+        const collector = new FloodCollector({
+            plugin: 'floodTest',
+            description: 'line-noise burst',
+            site: 'test',
+            targets: [{ location: target.location, key: 'floodkey1' }],
+            maxHttpsReqPerCollectorPerSec: 50
+        });
+        collector.flood(500);
+        assert.equal(collector.backpressureShed, 400);
+        await sleep(2400);
+        assert.ok(target.received.length <= 100, `only the admitted lines publish (${target.received.length})`);
+        assert.ok(target.received.length >= 90, `the admitted lines DO publish (${target.received.length})`);
     }
     finally {
         target.server.close();

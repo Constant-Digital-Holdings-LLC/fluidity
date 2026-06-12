@@ -10,7 +10,6 @@ const DAMP_AFTER = 5;
 const DAMP_EVERY = 100;
 const MAX_SOURCES = 1024;
 const MAX_DEVICES = 4096;
-const MIN_PENDING_POSTS = 32;
 const DAY_MS = 24 * 60 * 60 * 1000;
 export default class UdpStructCollector extends DataCollector {
     port;
@@ -25,13 +24,10 @@ export default class UdpStructCollector extends DataCollector {
     counts = new Map();
     sourceDrops = new Map();
     seqState = new Map();
-    maxPending;
-    inFlight = 0;
     sourceTableFull = false;
     seqTableFull = false;
     constructor(params) {
         super(params);
-        this.maxPending = Math.max(MIN_PENDING_POSTS, 2 * (params.maxHttpsReqPerCollectorPerSec ?? 2));
         const { port, bind } = params;
         if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) {
             throw new Error(`udpStruct [${params.description}]: port must be an integer 0..65535`);
@@ -224,19 +220,16 @@ export default class UdpStructCollector extends DataCollector {
             field: f.text,
             fieldType: 'STRING'
         }));
-        if (this.inFlight >= this.maxPending) {
+        if (this.upstreamSaturated) {
             this.note('backpressure', rinfo, msg.length);
             return;
         }
-        this.inFlight++;
         void this.sendPacket(formattedData, {
             site: this.siteFromPacket ? p.site : this.params.site,
             plugin: p.plugin,
             description: p.description || p.plugin,
             ts: ts ?? new Date().toISOString(),
             rawData: this.params.keepRaw ? msg.toString('hex') : null
-        }).finally(() => {
-            this.inFlight--;
         });
     }
 }

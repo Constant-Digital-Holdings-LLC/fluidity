@@ -35,10 +35,6 @@ const MAX_SOURCES = 1024;
 //holds the shared secret and the window is moot anyway
 const MAX_DEVICES = 4096;
 
-//in-flight upstream floor (see ingest): even with a tiny throttle, allow a
-//small burst before shedding load
-const MIN_PENDING_POSTS = 32;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default class UdpStructCollector extends DataCollector {
@@ -54,18 +50,11 @@ export default class UdpStructCollector extends DataCollector {
     private readonly counts = new Map<UdpCountReason, number>();
     private readonly sourceDrops = new Map<string, number>();
     private readonly seqState = new Map<string, { last: number; lastReject: number | null }>();
-    private readonly maxPending: number;
-    private inFlight = 0;
     private sourceTableFull = false;
     private seqTableFull = false;
 
     constructor(params: UdpStructCollectorParams) {
         super(params);
-
-        //bounded upstream backlog: the HTTPS throttle queues without limit,
-        //so a flood of *valid* packets would otherwise grow memory forever.
-        //Scale with the configured throttle; shed (and count) beyond it.
-        this.maxPending = Math.max(MIN_PENDING_POSTS, 2 * (params.maxHttpsReqPerCollectorPerSec ?? 2));
 
         const { port, bind } = params;
 
@@ -332,27 +321,22 @@ export default class UdpStructCollector extends DataCollector {
             fieldType: 'STRING'
         }));
 
-        //bounded backlog: when the throttled upstream path is saturated, shed
-        //the *newest* packet and count it. Dropping beats queueing on a
-        //fire-and-forget display feed - a flood must cost lines, never memory
-        //(and the queue offers no cancellation, so shedding old work is not
-        //an option anyway)
-        if (this.inFlight >= this.maxPending) {
+        //the base class bounds the upstream backlog and would shed this
+        //packet anyway; checking first lets the drop carry its source
+        //address into the counters like every other UDP drop reason
+        if (this.upstreamSaturated) {
             this.note('backpressure', rinfo, msg.length);
             return;
         }
 
         //s7 mapping: identity comes from the datagram (site only when
         //siteFromPacket, the default); empty description renders as plugin
-        this.inFlight++;
         void this.sendPacket(formattedData, {
             site: this.siteFromPacket ? p.site : this.params.site,
             plugin: p.plugin,
             description: p.description || p.plugin,
             ts: ts ?? new Date().toISOString(),
             rawData: this.params.keepRaw ? msg.toString('hex') : null
-        }).finally(() => {
-            this.inFlight--;
         });
     }
 }

@@ -226,6 +226,9 @@ beats a misparsed one (same doctrine as the serial decoder).
    beyond it the newest packet is shed and counted. A flood of valid
    packets must cost lines, never agent memory (and the throttle queue
    offers no cancellation, so shedding old work is not an option).
+   The bound lives in the `DataCollector` base, so EVERY collector is
+   protected — serial line noise through genericSerial or a tight poller
+   hits the same shed; udpStruct merely adds per-source attribution to it.
 
 All drops are counted by reason in `collector.dropCounts` (same surface the
 hardened srsSerial exposes) and logged at debug with source address. A
