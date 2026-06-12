@@ -1,11 +1,13 @@
 # Fluidity — project guide
 
-Real-time serial data aggregator. Four components in one monorepo:
+Real-time serial data aggregator. Five components in one monorepo:
 **Agent** (`service/src/agent`) reads serial devices via plugins — and acts as
 a UDP forwarding gateway for microcontrollers (`udpStruct` collector, see UDP
 ingest below) — and POSTs packets over HTTPS · **Web Service**
 (`service/src/server`) keeps a FIFO and broadcasts via SSE · **Dashboard**
-(`client/src/public`) and **TUI** (`tui/src`) render. Core design rule: plugins
+(`client/src/public`) and **TUI** (`tui/src`) render · **Watcher**
+(`service/src/watcher`) is a standalone SSE subscriber that fires alert
+programs on patterns/silence (see Watcher below). Core design rule: plugins
 *suggest* (`fieldType`, `suggestStyle` on each `FluidityPacket`), the server
 relays without interpreting, each client decides presentation (CSS vs ANSI).
 Don't move rendering decisions serverward.
@@ -91,6 +93,19 @@ Don't move rendering decisions serverward.
   line still yields one style-0 STRING. Multiline (`extendedOptions` on
   logTail) coalesces stack traces into one packet (joiner defaults `\n`;
   single-line renderers flatten until clients render multi-line).
+- **Watcher** (`service/src/watcher`, `npm run start:watcher`): a standalone
+  SSE subscriber — NOT server code, by design (a watchdog must outlive what it
+  watches, and exec risk stays out of the hardened ingest path). `sseFollow`
+  reconciles `/FIFO` + dedups (a service-side reimpl of the TUI transport —
+  build order forbids service→tui imports); `PatternMatcher` (pure, clock
+  injected) gates `silence` on connection state and judges absence by packet
+  `ts`, never local arrival, so a dropped pipe isn't a dead site; `AlertRunner`
+  bounds exec (concurrency cap + shed queue + per-rule cooldown/coalesce +
+  token bucket + timeout + circuit breaker). **Security:** untrusted packet
+  text reaches alert programs only as data (stdin/FLU_* env/argv array,
+  `shell:false`) and the child gets a minimal PATH+FLU_* env — the server's
+  TLS/API-key env is never inherited; misconfigured rules throw at startup.
+  Config under `service/dist/watcher/conf/` (example in `conf-examples/`).
 - TUI has **zero runtime deps** (hand-rolled SSE client, ANSI, key parsing);
   keep it that way. Pure parts (`uiModel`, `composeFrame`, `renderLine`) are
   unit-tested; only thin orchestrators touch the terminal/process.

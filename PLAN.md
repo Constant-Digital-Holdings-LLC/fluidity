@@ -557,8 +557,20 @@ branch pass. Highlights, by theme:
 > shipper has a fiddly "multiline" config; line-per-packet is correct for most
 > logs, so this is a fair deferral until a real need.
 
-## Watcher — pattern alerting via a server subscriber (W1/W2/W3 — planned)
+## Watcher — pattern alerting via a server subscriber (W1/W2/W3 — done)
 
+> **Status (2026-06-12): built and tested.** `service/src/watcher/` is a
+> standalone SSE subscriber — `npm run start:watcher`, own config under
+> `service/dist/watcher/conf/` (example in `conf-examples/`). W1 = `sseFollow`
+> (reconcile `/FIFO` + seq/ts dedup, jittered backoff reconnect, connection
+> state) → W2 = `PatternMatcher` (pure, connection-gated silence judged by
+> packet `ts`, reconcile-without-arming) → W3 = `AlertRunner` (concurrency cap
+> + shed queue, per-rule cooldown/coalesce, token bucket, exec timeout, circuit
+> breaker; `shell:false` + clean PATH+FLU_* env so untrusted packet text is
+> inert; `dryRun`). All acceptance criteria covered by `tests/` (rules, matcher
+> fake-clock, runner protections + a real-spawn injection test, sseFollow
+> against a live `makeApp` server). Deferred items below still stand.
+>
 > Register patterns of interest and, when a pattern fires at a frequency (a
 > storm) or a heartbeat goes silent for a duration, exec a registered program
 > with a configured message on stdin (first use: NTFY on a missing heartbeat /
