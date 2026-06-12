@@ -33,6 +33,7 @@ void test('keys: parses vim keys, arrows, page keys, digits and controls', () =>
         { name: 'tab' }
     ]);
     assert.deepEqual(parseKeys(Buffer.from('3')), [{ name: 'digit', digit: 3 }]);
+    assert.deepEqual(parseKeys(Buffer.from('w')), [{ name: 'window' }]);
 });
 
 const pkt = (seq: number, site: string, plugin = 'srsSerial'): FluidityPacket => ({
@@ -143,6 +144,49 @@ void test('viewport columns align to the widest seen site/description', () => {
     //shorter site is padded out to the widest
     const loopCyn = body.find(l => l.includes('LOOP CYN'));
     assert.ok(loopCyn?.includes('LOOP CYN  ('), `site column padded: ${loopCyn ?? ''}`);
+});
+
+void test('rate strip renders in the header and w cycles its window', () => {
+    const st = populated();
+    st.rateSeries = [0, 2, 5, 1, 0, 3];
+
+    let frame = composeFrame(st, MONO);
+    const header = frame[0] ?? '';
+    assert.ok(header.includes('['), 'strip brackets present');
+    assert.ok(header.includes('█'), 'peak cell rendered');
+    assert.ok(header.includes(']5m'), 'window label shown');
+    assert.ok((frame[st.rows - 1] ?? '').includes('[w] 5m'), 'hint shows the window key');
+
+    handleKey(st, { name: 'window' });
+    frame = composeFrame(st, MONO);
+    assert.ok((frame[0] ?? '').includes(']1h'));
+    handleKey(st, { name: 'window' });
+    assert.equal(st.pulseWindowIdx, 2);
+    handleKey(st, { name: 'window' });
+    assert.equal(st.pulseWindowIdx, 0, 'wraps back to 5m');
+
+    //narrow terminals omit the strip rather than corrupt the header
+    st.cols = 40;
+    const narrow = composeFrame(st, MONO)[0] ?? '';
+    assert.ok(!narrow.includes('['), 'no strip when there is no room');
+});
+
+void test('site entries carry liveness marks; selected pills keep the mono marker', () => {
+    const st = populated(); //packet ts 2026-06-11T12:00Z - long stale vs real now
+    st.siteLastSeen.set('Verdugo Pk', Date.now()); //this one is reporting right now
+
+    const frame = composeFrame(st, MONO);
+    const pane = frame[st.rows - 2] ?? '';
+    assert.ok(pane.includes('*[1]VERDUGO PK'), 'fresh site marked *');
+    assert.ok(pane.includes('.[2]LOOP CYN'), 'quiet site marked .');
+
+    handleKey(st, { name: 'digit', digit: 1 });
+    const selected = composeFrame(st, MONO)[st.rows - 2] ?? '';
+    assert.ok(selected.includes('*[1]VERDUGO PK'), 'liveness mark survives selection');
+
+    //mono frames stay escape-free with marks and strip present
+    st.rateSeries = [1, 2, 3];
+    assert.ok(!composeFrame(st, MONO).join('').includes('\x1b'));
 });
 
 void test('composeFrame: scrolling and help overlay', () => {

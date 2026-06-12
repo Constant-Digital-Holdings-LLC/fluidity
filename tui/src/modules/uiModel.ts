@@ -1,4 +1,5 @@
 import { FluidityPacket } from '#@shared/types.js';
+import { PULSE_WINDOWS } from '#@client/modules/pulse.js';
 import { FilterSpec, matchesFilters } from './filters.js';
 import { ConnState } from './transport.js';
 import { Key } from './keys.js';
@@ -30,6 +31,11 @@ export interface UIState {
     //insertion-ordered registries of who has reported, with packet counts
     seenSites: Map<string, number>;
     seenCollectors: Map<string, number>;
+    //liveness, from packet timestamps (minute-scale thresholds shrug off skew)
+    siteLastSeen: Map<string, number>;
+    //rate strip: series provided by the orchestrator before each repaint
+    rateSeries: number[];
+    pulseWindowIdx: number;
     filters: FilterSpec;
     group: FilterGroup;
     columns: ColumnWidths; //widest seen so far; the whole window realigns as they grow
@@ -49,6 +55,9 @@ export const initialState = (cols: number, rows: number, serverHost: string, his
     historyLimit,
     seenSites: new Map(),
     seenCollectors: new Map(),
+    siteLastSeen: new Map(),
+    rateSeries: [],
+    pulseWindowIdx: 0,
     filters: { sites: [], collectors: [] },
     group: 'sites',
     columns: { time: 0, site: 0, desc: 0 },
@@ -68,6 +77,11 @@ export const addPacket = (st: UIState, p: FluidityPacket, parts: RenderedParts):
     }
     st.seenSites.set(p.site, (st.seenSites.get(p.site) ?? 0) + 1);
     st.seenCollectors.set(p.plugin, (st.seenCollectors.get(p.plugin) ?? 0) + 1);
+
+    const seenAt = new Date(p.ts).getTime();
+    if (Number.isFinite(seenAt) && seenAt > (st.siteLastSeen.get(p.site) ?? 0)) {
+        st.siteLastSeen.set(p.site, seenAt);
+    }
 
     st.columns = {
         time: Math.max(st.columns.time, parts.time.length),
@@ -146,6 +160,9 @@ export const handleKey = (st: UIState, key: Key): void => {
             break;
         case 'clear':
             st.filters = { sites: [], collectors: [] };
+            break;
+        case 'window':
+            st.pulseWindowIdx = (st.pulseWindowIdx + 1) % PULSE_WINDOWS.length;
             break;
         case 'help':
             st.showHelp = true;

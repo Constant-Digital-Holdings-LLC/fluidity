@@ -2,6 +2,8 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
+import { livenessOf } from './pulse.js';
+import { typeIn } from './typewriter.js';
 
 //in the browser, conf is injected into the DOM by the server;
 //under test (node + jsdom) defaults apply
@@ -17,6 +19,7 @@ interface FMHooks {
 class FilterManager {
     private siteIndex: Map<string, Set<number>>;
     private collectorIndex: Map<string, Set<number>>;
+    private siteLastSeen: Map<string, number>;
     private sitesClicked: Set<string>;
     private collectorsClicked: Set<string>;
     private filterCount: number;
@@ -24,6 +27,7 @@ class FilterManager {
     constructor(private hooks?: FMHooks) {
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
+        this.siteLastSeen = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
         this.filterCount = 0;
@@ -139,65 +143,73 @@ class FilterManager {
         }
     }
 
+    //each pill is a toggle: clicking anywhere on it selects/deselects the
+    //filter (same interaction model as the TUI's digit keys). Selection is
+    //expressed as a class on the pill; the set algebra below is unchanged.
     private clickHandler(e: MouseEvent): void {
         const extractUnique = (type: FilterType, id: string): string | undefined => {
-            const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
 
             if (Array.isArray(match) && match.length) {
                 return match[1];
             }
             return;
         };
-        if (e.target instanceof Element) {
-            if (e.target.classList.contains('filter-link')) {
-                e.preventDefault();
-                if (e.target.previousElementSibling?.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('display-none');
-                }
-            }
-            if (e.target.classList.contains('clear-link')) {
-                e.preventDefault();
-                e.target.classList.add('display-none');
-            }
 
-            if (e.target.classList.contains('collector-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.add(collector);
-            }
-            if (e.target.classList.contains('collector-clear-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.delete(collector);
-            }
+        if (!(e.target instanceof Element)) return;
 
-            if (e.target.classList.contains('site-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.add(site);
-            }
+        const pill = e.target.closest('li.filter-pill');
+        if (!(pill instanceof Element)) return;
 
-            if (e.target.classList.contains('site-clear-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.delete(site);
-            }
+        e.preventDefault();
 
-            this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+        const link = pill.querySelector('a.filter-link');
+        if (!(link instanceof Element)) return;
 
-            if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.loader(true);
-                this.applyVisibilityAll()
-                    .then(() => {
-                        this.loader(false);
-                    })
-                    .catch(err => {
-                        this.loader(false);
-                        log.error(err);
-                    });
-                this.renderFilterStats();
-                this.hooks?.onLinkClick();
-            }
+        const isCollector = link.classList.contains('collector-filter-link');
+        const name = extractUnique(isCollector ? 'COLLECTOR' : 'SITE', link.id);
+        if (name === undefined) return;
+
+        const selections = isCollector ? this.collectorsClicked : this.sitesClicked;
+        const nowSelected = !selections.has(name);
+        nowSelected ? selections.add(name) : selections.delete(name);
+
+        pill.classList.toggle('filter-selected', nowSelected);
+        link.setAttribute('aria-pressed', String(nowSelected));
+
+        this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+
+        this.loader(true);
+        this.applyVisibilityAll()
+            .then(() => {
+                this.loader(false);
+            })
+            .catch(err => {
+                this.loader(false);
+                log.error(err);
+            });
+        this.renderFilterStats();
+        this.hooks?.onLinkClick();
+    }
+
+    //liveness uses the packet's own timestamp (agent clock); the minute-scale
+    //thresholds shrug off reasonable clock skew
+    public refreshLiveness(now: number = Date.now()): void {
+        for (const [site, seen] of this.siteLastSeen) {
+            const dot = document.getElementById(`live-site-${site}`);
+            if (!dot) continue;
+            dot.classList.remove('live-dot--fresh', 'live-dot--recent', 'live-dot--stale');
+            dot.classList.add(`live-dot--${livenessOf(seen, now)}`);
         }
     }
 
     private index(fp: FluidityPacket): void {
+        const seenAt = new Date(fp.ts).getTime();
+        if (Number.isFinite(seenAt)) {
+            const prev = this.siteLastSeen.get(fp.site) ?? 0;
+            if (seenAt > prev) this.siteLastSeen.set(fp.site, seenAt);
+        }
+
         if (fp.seq) {
             //index packet by site
             if (this.siteIndex.has(fp.site)) {
@@ -224,39 +236,35 @@ class FilterManager {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
 
         const li = document.createElement('li');
-        const xIcon = document.createElement('i');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
 
-        xIcon.classList.add(
-            'fa-solid',
-            'fa-circle-xmark',
-            `${type.toLocaleLowerCase()}-clear-filter-link`,
-            'clear-link',
-            'display-none'
-        );
-
         a.href = '#0';
         a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        a.setAttribute('role', 'button');
+        a.setAttribute('aria-pressed', 'false');
 
         typeIcon.classList.add('fa-solid');
 
         if (type === 'COLLECTOR') {
-            xIcon.id = `clear-collector-${fp.plugin}`;
             a.innerText = fp.plugin;
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         } else if (type === 'SITE') {
-            xIcon.id = `clear-site-${fp.site}`;
             a.innerText = fp.site;
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
+
+            //liveness dot: bright while the site reports, dimming as it goes quiet
+            const dot = document.createElement('span');
+            dot.classList.add('live-dot');
+            dot.id = `live-site-${fp.site}`;
+            li.appendChild(dot);
         }
 
-        li.appendChild(xIcon);
         li.appendChild(a);
         li.appendChild(typeIcon);
-        li.classList.add('fade-in');
+        li.classList.add('filter-pill', 'fade-in');
         ul?.appendChild(li);
     }
 
@@ -290,11 +298,21 @@ export class FluidityUI {
         });
 
         this.packetSet('history', history);
+        this.fm.refreshLiveness();
+
+        //keep dots decaying while the stream is quiet. unref where available
+        //(node/jsdom tests) so the timer never holds the process open
+        const tick = setInterval(() => this.fm.refreshLiveness(), 15_000);
+        (tick as unknown as { unref?: () => void }).unref?.();
 
         document.getElementById('logo-link')?.addEventListener('click', e => {
             e.preventDefault();
             this.autoScroll();
         });
+    }
+
+    public refreshLiveness(now?: number): void {
+        now === undefined ? this.fm.refreshLiveness() : this.fm.refreshLiveness(now);
     }
 
     private scrollReset(): void {
@@ -482,7 +500,9 @@ export class FluidityUI {
 
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
-                        current.lastChild.classList.add('fade-in');
+                        //live lines type in fast (history renders instantly);
+                        //no-ops to instant text under reduced motion or tests
+                        typeIn(current.lastChild);
                     }
                 }
 
@@ -495,6 +515,7 @@ export class FluidityUI {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
                 this.packetSet('current', [fp]);
+                this.fm.refreshLiveness();
             }
         }
     }

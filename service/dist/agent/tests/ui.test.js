@@ -89,29 +89,67 @@ void test('LINK and DATE fields render as anchor and time elements', () => {
     assert.ok(el.querySelector('span.fp-date'), 'DATE field should render a date span');
     assert.ok(el.querySelector('span.fp-color-2'), 'STRING style class applied');
 });
-void test('clicking a site filter hides other sites; clearing restores them', async () => {
+const click = (el) => {
+    el.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+};
+void test('pills are toggles: click filters, click again to clear', async () => {
     const siteLink = byId('filter-site-Verdugo Pk');
-    siteLink.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    const pill = siteLink.closest('li');
+    assert.ok(pill);
+    click(siteLink);
     await sleep(20);
     assert.ok(!byId('fp-seq-1').classList.contains('display-none'), 'matching site stays visible');
     assert.ok(byId('fp-seq-2').classList.contains('display-none'), 'other site hidden');
     assert.equal(byId('filter-count').textContent, '1');
-    const clear = byId('clear-site-Verdugo Pk');
-    assert.ok(!clear.classList.contains('display-none'), 'clear control revealed after filtering');
-    clear.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    assert.ok(pill.classList.contains('filter-selected'), 'pill shows selected state');
+    assert.equal(siteLink.getAttribute('aria-pressed'), 'true');
+    click(siteLink);
     await sleep(20);
-    assert.ok(!byId('fp-seq-2').classList.contains('display-none'), 'cleared filter restores visibility');
+    assert.ok(!byId('fp-seq-2').classList.contains('display-none'), 'second click restores visibility');
+    assert.equal(byId('filter-count').textContent, '0');
+    assert.ok(!pill.classList.contains('filter-selected'));
+    assert.equal(siteLink.getAttribute('aria-pressed'), 'false');
+});
+void test('the whole pill is the click target, not just the label', async () => {
+    const pill = byId('filter-site-Verdugo Pk').closest('li');
+    assert.ok(pill);
+    const typeIcon = pill.querySelector('i.fa-tower-cell');
+    assert.ok(typeIcon, 'site pill carries its type icon');
+    click(typeIcon);
+    await sleep(20);
+    assert.ok(pill.classList.contains('filter-selected'));
+    assert.equal(byId('filter-count').textContent, '1');
+    click(pill);
+    await sleep(20);
+    assert.ok(!pill.classList.contains('filter-selected'));
     assert.equal(byId('filter-count').textContent, '0');
 });
+void test('site pills carry a liveness dot that decays as the site goes quiet', () => {
+    const dot = byId('live-site-Verdugo Pk');
+    assert.ok(dot.classList.contains('live-dot'));
+    const seen = new Date('2026-06-11T12:00:00.000Z').getTime();
+    ui.refreshLiveness(seen + 60_000);
+    assert.ok(dot.classList.contains('live-dot--fresh'), 'reported a minute ago: fresh');
+    ui.refreshLiveness(seen + 5 * 60_000);
+    assert.ok(dot.classList.contains('live-dot--recent'), 'five minutes quiet: recent');
+    assert.ok(!dot.classList.contains('live-dot--fresh'));
+    ui.refreshLiveness(seen + 30 * 60_000);
+    assert.ok(dot.classList.contains('live-dot--stale'), 'half an hour quiet: stale');
+});
+void test('drawSparkline is harmless where canvas is unavailable (jsdom)', async () => {
+    const { drawSparkline } = await import('#@client/modules/pulse.js');
+    const canvas = dom.window.document.createElement('canvas');
+    assert.doesNotThrow(() => drawSparkline(canvas, [0, 1, 3, 2, 5]));
+});
 void test('site and collector filters intersect', async () => {
-    byId('filter-site-Verdugo Pk').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-    byId('filter-collector-genericSerial').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    click(byId('filter-site-Verdugo Pk'));
+    click(byId('filter-collector-genericSerial'));
     await sleep(20);
     ['fp-seq-1', 'fp-seq-2', 'fp-seq-3', 'fp-seq-4'].forEach(id => {
         assert.ok(byId(id).classList.contains('display-none'), `${id} should be hidden by intersection`);
     });
-    byId('clear-site-Verdugo Pk').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-    byId('clear-collector-genericSerial').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    click(byId('filter-site-Verdugo Pk'));
+    click(byId('filter-collector-genericSerial'));
     await sleep(20);
     assert.equal(byId('filter-count').textContent, '0');
 });

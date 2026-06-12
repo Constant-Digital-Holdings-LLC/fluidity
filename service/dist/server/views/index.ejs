@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#53354a" />
 
   <link rel="stylesheet" href="/css/normalize.css" />
   <link href="/css/fontawesome.css" rel="stylesheet" />
@@ -31,22 +32,13 @@
 
   <script type="module" src="/index.js"></script>
   <!--/Modules-->
-
-  <style>
-    #about-link {
-      display: block;
-      text-align: center;
-      margin-top: 10px;
-
-    }
-  </style>
 </head>
 
 <body>
   <div id="container-main" class="container">
     <div id="container-logo-and-spinner" class="container bg-gradient cell">
       <a id="logo-link" href=""><img src="img/logo.svg" id="logo" /></a>
-
+      <canvas id="pulse"></canvas>
       <span id="loader"></span>
     </div>
     <div id="cell-sites" class="cell bg-gradient">

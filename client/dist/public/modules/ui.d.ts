@@ -6,6 +6,7 @@ export declare class FluidityUI {
     private highestScrollPos;
     private lastVh;
     constructor(history: FluidityPacket[]);
+    refreshLiveness(now?: number): void;
     private scrollReset;
     private autoScroll;
     private autoScrollRequest;

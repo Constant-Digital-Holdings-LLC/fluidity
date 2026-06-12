@@ -1,0 +1,1 @@
+{"version":3,"file":"typewriter.d.ts","sourceRoot":"","sources":["../../../src/public/modules/typewriter.ts"],"names":[],"mappings":"AAKA,MAAM,WAAW,QAAQ;IACrB,GAAG,CAAC,EAAE,MAAM,CAAC;IACb,GAAG,CAAC,EAAE,CAAC,EAAE,EAAE,CAAC,GAAG,EAAE,MAAM,KAAK,IAAI,KAAK,IAAI,CAAC;IAC1C,GAAG,CAAC,EAAE,MAAM,MAAM,CAAC;CACtB;AAKD,eAAO,MAAM,MAAM,GAAI,MAAM,WAAW,EAAE,OAAO,QAAQ,KAAG,IAgD3D,CAAC"}

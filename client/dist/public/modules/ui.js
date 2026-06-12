@@ -2,6 +2,8 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { isFluidityLink } from '#@shared/types.js';
+import { livenessOf } from './pulse.js';
+import { typeIn } from './typewriter.js';
 const conf = inBrowser() ? confFromDOM() : undefined;
 const log = fetchLogger(conf);
 class FilterManager {
@@ -10,6 +12,7 @@ class FilterManager {
         this.hooks = hooks;
         this.siteIndex = new Map();
         this.collectorIndex = new Map();
+        this.siteLastSeen = new Map();
         this.sitesClicked = new Set();
         this.collectorsClicked = new Set();
         this.filterCount = 0;
@@ -117,58 +120,62 @@ class FilterManager {
         }
     }
     clickHandler(e) {
-        var _a, _b;
+        var _a;
         const extractUnique = (type, id) => {
-            const match = id.match(new RegExp(`(?:filter|clear)-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
                 return match[1];
             }
             return;
         };
-        if (e.target instanceof Element) {
-            if (e.target.classList.contains('filter-link')) {
-                e.preventDefault();
-                if ((_a = e.target.previousElementSibling) === null || _a === void 0 ? void 0 : _a.classList.contains('clear-link')) {
-                    e.target.previousElementSibling.classList.remove('display-none');
-                }
-            }
-            if (e.target.classList.contains('clear-link')) {
-                e.preventDefault();
-                e.target.classList.add('display-none');
-            }
-            if (e.target.classList.contains('collector-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.add(collector);
-            }
-            if (e.target.classList.contains('collector-clear-filter-link')) {
-                const collector = extractUnique('COLLECTOR', e.target.id);
-                collector && this.collectorsClicked.delete(collector);
-            }
-            if (e.target.classList.contains('site-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.add(site);
-            }
-            if (e.target.classList.contains('site-clear-filter-link')) {
-                const site = extractUnique('SITE', e.target.id);
-                site && this.sitesClicked.delete(site);
-            }
-            this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
-            if (e.target.classList.contains('filter-link') || e.target.classList.contains('clear-link')) {
-                this.loader(true);
-                this.applyVisibilityAll()
-                    .then(() => {
-                    this.loader(false);
-                })
-                    .catch(err => {
-                    this.loader(false);
-                    log.error(err);
-                });
-                this.renderFilterStats();
-                (_b = this.hooks) === null || _b === void 0 ? void 0 : _b.onLinkClick();
-            }
+        if (!(e.target instanceof Element))
+            return;
+        const pill = e.target.closest('li.filter-pill');
+        if (!(pill instanceof Element))
+            return;
+        e.preventDefault();
+        const link = pill.querySelector('a.filter-link');
+        if (!(link instanceof Element))
+            return;
+        const isCollector = link.classList.contains('collector-filter-link');
+        const name = extractUnique(isCollector ? 'COLLECTOR' : 'SITE', link.id);
+        if (name === undefined)
+            return;
+        const selections = isCollector ? this.collectorsClicked : this.sitesClicked;
+        const nowSelected = !selections.has(name);
+        nowSelected ? selections.add(name) : selections.delete(name);
+        pill.classList.toggle('filter-selected', nowSelected);
+        link.setAttribute('aria-pressed', String(nowSelected));
+        this.filterCount = this.sitesClicked.size + this.collectorsClicked.size;
+        this.loader(true);
+        this.applyVisibilityAll()
+            .then(() => {
+            this.loader(false);
+        })
+            .catch(err => {
+            this.loader(false);
+            log.error(err);
+        });
+        this.renderFilterStats();
+        (_a = this.hooks) === null || _a === void 0 ? void 0 : _a.onLinkClick();
+    }
+    refreshLiveness(now = Date.now()) {
+        for (const [site, seen] of this.siteLastSeen) {
+            const dot = document.getElementById(`live-site-${site}`);
+            if (!dot)
+                continue;
+            dot.classList.remove('live-dot--fresh', 'live-dot--recent', 'live-dot--stale');
+            dot.classList.add(`live-dot--${livenessOf(seen, now)}`);
         }
     }
     index(fp) {
+        var _a;
+        const seenAt = new Date(fp.ts).getTime();
+        if (Number.isFinite(seenAt)) {
+            const prev = (_a = this.siteLastSeen.get(fp.site)) !== null && _a !== void 0 ? _a : 0;
+            if (seenAt > prev)
+                this.siteLastSeen.set(fp.site, seenAt);
+        }
         if (fp.seq) {
             if (this.siteIndex.has(fp.site)) {
                 const old = this.siteIndex.get(fp.site);
@@ -193,29 +200,30 @@ class FilterManager {
     renderType(type, fp) {
         const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
         const li = document.createElement('li');
-        const xIcon = document.createElement('i');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
-        xIcon.classList.add('fa-solid', 'fa-circle-xmark', `${type.toLocaleLowerCase()}-clear-filter-link`, 'clear-link', 'display-none');
         a.href = '#0';
         a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        a.setAttribute('role', 'button');
+        a.setAttribute('aria-pressed', 'false');
         typeIcon.classList.add('fa-solid');
         if (type === 'COLLECTOR') {
-            xIcon.id = `clear-collector-${fp.plugin}`;
             a.innerText = fp.plugin;
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         }
         else if (type === 'SITE') {
-            xIcon.id = `clear-site-${fp.site}`;
             a.innerText = fp.site;
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
+            const dot = document.createElement('span');
+            dot.classList.add('live-dot');
+            dot.id = `live-site-${fp.site}`;
+            li.appendChild(dot);
         }
-        li.appendChild(xIcon);
         li.appendChild(a);
         li.appendChild(typeIcon);
-        li.classList.add('fade-in');
+        li.classList.add('filter-pill', 'fade-in');
         ul === null || ul === void 0 ? void 0 : ul.appendChild(li);
     }
     renderFilterLinks(fp) {
@@ -230,7 +238,7 @@ class FilterManager {
 }
 export class FluidityUI {
     constructor(history) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         this.history = history;
         this.highestScrollPos = 0;
         this.lastVh = window.innerHeight;
@@ -239,10 +247,16 @@ export class FluidityUI {
             onLinkClick: this.scrollReset.bind(this)
         });
         this.packetSet('history', history);
-        (_b = document.getElementById('logo-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', e => {
+        this.fm.refreshLiveness();
+        const tick = setInterval(() => this.fm.refreshLiveness(), 15000);
+        (_c = (_b = tick).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
+        (_d = document.getElementById('logo-link')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', e => {
             e.preventDefault();
             this.autoScroll();
         });
+    }
+    refreshLiveness(now) {
+        now === undefined ? this.fm.refreshLiveness() : this.fm.refreshLiveness(now);
     }
     scrollReset() {
         this.highestScrollPos = 0;
@@ -403,7 +417,7 @@ export class FluidityUI {
                     }
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
-                        current.lastChild.classList.add('fade-in');
+                        typeIn(current.lastChild);
                     }
                 }
                 this.autoScrollRequest();
@@ -414,6 +428,7 @@ export class FluidityUI {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
                 this.packetSet('current', [fp]);
+                this.fm.refreshLiveness();
             }
         }
     }

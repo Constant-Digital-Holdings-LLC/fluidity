@@ -1,3 +1,4 @@
+import { RateBuckets, PULSE_WINDOWS, PULSE_BUCKETS } from '#@client/modules/pulse.js';
 import { follow } from './transport.js';
 import { renderParts } from './renderLine.js';
 import { parseKeys } from './keys.js';
@@ -10,12 +11,14 @@ export const runInteractive = (o, onQuit) => {
     const out = process.stdout;
     const st = initialState(out.columns || 80, out.rows || 24, o.base.host, o.historyLimit);
     st.filters = o.filters;
+    const tracks = PULSE_WINDOWS.map(win => new RateBuckets(win.bucketMs, PULSE_BUCKETS, Date.now()));
     let dirty = true;
     let timer;
     const repaint = () => {
         if (!dirty)
             return;
         dirty = false;
+        st.rateSeries = tracks[st.pulseWindowIdx]?.series(Date.now()) ?? [];
         drawFrame(out, composeFrame(st, caps));
     };
     const scheduleRepaint = () => {
@@ -25,9 +28,11 @@ export const runInteractive = (o, onQuit) => {
             repaint();
         }, REPAINT_MS);
     };
+    const slowTick = setInterval(() => scheduleRepaint(), 5000);
     const cleanup = () => {
         if (timer)
             clearTimeout(timer);
+        clearInterval(slowTick);
         process.stdin.setRawMode?.(false);
         process.stdin.pause();
         leaveScreen(out);
@@ -64,6 +69,8 @@ export const runInteractive = (o, onQuit) => {
             scheduleRepaint();
         }),
         onPacket: p => {
+            const now = Date.now();
+            tracks.forEach(t => t.note(now));
             addPacket(st, p, renderParts(p, render));
             scheduleRepaint();
         },
