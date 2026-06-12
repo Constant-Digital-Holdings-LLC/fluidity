@@ -4,7 +4,7 @@
 
 :root {
     /* packet palette - the suggestion contract (TUI parity, pinned by tests).
-       these values must not change */
+       change only in lockstep with tui/src/modules/theme.ts STYLES */
     --color1: #53354a;
     --color2: #706c9d;
     --color3: #54b0ed;
@@ -15,7 +15,9 @@
     --color8: tan;
     --color9: peachpuff;
     --light: #ffe5ff;
-    --dark: #52423d;
+    /* the quiet tone (all clear, closed): lightened from #52423d, which sat
+       under 2:1 on the graphite cells - receding is fine, unreadable is not */
+    --dark: #7d6a5f;
 
     /* chrome tokens, derived from the logo: deep plum field #53354a,
        pink->peach mark gradient #fe8dc6 -> #fed1c7.

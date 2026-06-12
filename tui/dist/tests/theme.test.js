@@ -19,6 +19,11 @@ void test('chrome roles match fluidity.css assignments', () => {
     assert.equal(chromeDef('description').hex, '#999999');
     assert.equal(chromeDef('description').bold, true);
 });
+void test('style 10 (the quiet tone) stays legible on a black background', () => {
+    assert.equal(styleDef(10).hex, '#7d6a5f');
+    assert.equal(styleDef(10).dim, undefined);
+    assert.equal(paint('x', styleDef(10), '16'), '\x1b[90mx\x1b[0m');
+});
 void test('hexTo256 quantization', () => {
     assert.equal(hexTo256('#000000'), 16);
     assert.equal(hexTo256('#ffffff'), 231);

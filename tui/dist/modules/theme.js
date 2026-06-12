@@ -9,7 +9,7 @@ const STYLES = [
     { hex: '#999999', ansi16: 90 },
     { hex: '#d2b48c', ansi16: 33 },
     { hex: '#ffdab9', ansi16: 93 },
-    { hex: '#52423d', ansi16: 90, dim: true }
+    { hex: '#7d6a5f', ansi16: 90 }
 ];
 const CHROME = {
     timestamp: STYLES[0],

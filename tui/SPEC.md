@@ -126,7 +126,7 @@ default palette on a dark background:
 | 7 | `--color7` | `#999999` | bright black (90) | |
 | 8 | `--color8` | `tan` (#d2b48c) | yellow (33) | |
 | 9 | `--color9` | `peachpuff` (#ffdab9) | bright yellow (93) | |
-| 10 | `--dark` | `#52423d` | bright black (90) | dim |
+| 10 | `--dark` | `#7d6a5f` | bright black (90) | |
 
 Chrome roles (timestamp, brackets, site, description, separators) get their
 own theme entries derived the same way from `fluidity.css`.

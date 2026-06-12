@@ -23,7 +23,9 @@ const STYLES = [
     { hex: '#999999', ansi16: 90 }, //7
     { hex: '#d2b48c', ansi16: 33 }, //8 tan
     { hex: '#ffdab9', ansi16: 93 }, //9 peachpuff
-    { hex: '#52423d', ansi16: 90, dim: true } //10 --dark
+    //10 --dark, the quiet tone: lightened from #52423d (under 2:1 on black)
+    //and no longer dimmed, so the 16-color tier can read it too
+    { hex: '#7d6a5f', ansi16: 90 } //10 --dark
 ] as const satisfies readonly StyleDef[];
 
 //packet chrome parity with fluidity.css (.site, .description, .bracket-*, .colon)

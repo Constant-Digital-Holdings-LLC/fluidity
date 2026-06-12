@@ -25,6 +25,14 @@ void test('chrome roles match fluidity.css assignments', () => {
     assert.equal(chromeDef('description').bold, true); //web: bolder
 });
 
+void test('style 10 (the quiet tone) stays legible on a black background', () => {
+    //lightened from #52423d, which sat under 2:1 contrast; parity with
+    //fluidity.css --dark, and never dimmed (16-color tiers must read it)
+    assert.equal(styleDef(10).hex, '#7d6a5f');
+    assert.equal(styleDef(10).dim, undefined);
+    assert.equal(paint('x', styleDef(10), '16'), '\x1b[90mx\x1b[0m');
+});
+
 void test('hexTo256 quantization', () => {
     assert.equal(hexTo256('#000000'), 16);
     assert.equal(hexTo256('#ffffff'), 231);
