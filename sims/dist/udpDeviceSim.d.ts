@@ -18,6 +18,10 @@ export interface UdpFleetOptions {
     seed?: number;
     once?: boolean;
     secret?: string;
+    heartbeatMs?: {
+        min: number;
+        max: number;
+    };
 }
 export interface UdpFleetHandle {
     stop(): void;

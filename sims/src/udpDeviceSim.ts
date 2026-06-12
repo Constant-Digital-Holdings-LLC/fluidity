@@ -139,6 +139,9 @@ export interface UdpFleetOptions {
     seed?: number;
     once?: boolean; //one datagram per device, then stop (smoke scripts)
     secret?: string; //32 hex chars: sign every datagram (MAC mode devices)
+    //override every device's heartbeat cadence (the defaults are 8-18s, true
+    //to real telemetry); set a small range for fast demos and tests
+    heartbeatMs?: { min: number; max: number };
 }
 
 export interface UdpFleetHandle {
@@ -183,7 +186,7 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
 
     const schedule = (dev: SimDevice): void => {
         if (stopped) return;
-        const { min, max } = dev.heartbeatMs;
+        const { min, max } = options?.heartbeatMs ?? dev.heartbeatMs;
         const timer = setTimeout(
             () => {
                 timers.delete(timer);

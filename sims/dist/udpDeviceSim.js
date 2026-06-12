@@ -116,7 +116,7 @@ export const startUdpFleet = (options) => {
     const schedule = (dev) => {
         if (stopped)
             return;
-        const { min, max } = dev.heartbeatMs;
+        const { min, max } = options?.heartbeatMs ?? dev.heartbeatMs;
         const timer = setTimeout(() => {
             timers.delete(timer);
             void fire(dev)

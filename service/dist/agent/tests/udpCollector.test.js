@@ -265,6 +265,28 @@ void test('udp: sim fleet once-mode burst decodes cleanly via the agent codec', 
         server.close();
     }
 });
+void test('udp: sim fleet continuous mode reschedules each device past its first beat', async () => {
+    const server = dgram.createSocket('udp4');
+    const bySite = new Map();
+    server.on('message', msg => {
+        const r = decodeFluPacket(Buffer.from(msg));
+        if (r.ok)
+            bySite.set(r.packet.site, (bySite.get(r.packet.site) ?? 0) + 1);
+    });
+    await new Promise(resolve => server.bind(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    const fleet = startUdpFleet({ host: '127.0.0.1', port, seed: 7, heartbeatMs: { min: 8, max: 16 } });
+    try {
+        for (let waited = 0; waited < 60 && (bySite.get('gate-1') ?? 0) < 4; waited++)
+            await sleep(20);
+        assert.ok((bySite.get('gate-1') ?? 0) >= 4, `gate-1 rescheduled repeatedly (${bySite.get('gate-1')} beats)`);
+        assert.ok(bySite.size >= 3, 'every device in the fleet is publishing');
+    }
+    finally {
+        fleet.stop();
+        server.close();
+    }
+});
 const SECRET = 'a0a1a2a3a4a5a6a7a8a9aaabacadaeaf';
 const KEY = sipKeyFromHex(SECRET);
 const tick = (site, deviceSeq, text) => packFluPacket({ site, plugin: 'm5-env', deviceSeq, fields: [{ style: 0, text }] });

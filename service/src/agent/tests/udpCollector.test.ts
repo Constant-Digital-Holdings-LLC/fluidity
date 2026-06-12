@@ -327,6 +327,33 @@ void test('udp: sim fleet once-mode burst decodes cleanly via the agent codec', 
     }
 });
 
+void test('udp: sim fleet continuous mode reschedules each device past its first beat', async () => {
+    //continuous mode (not --once): every device fires immediately, then keeps
+    //rescheduling on its heartbeat. With a fast heartbeat override we can watch
+    //a device emit several datagrams - the path the audit's reschedule fix
+    //guards (a send error must not silently end a device's heartbeat).
+    const server = dgram.createSocket('udp4');
+    const bySite = new Map<string, number>();
+    server.on('message', msg => {
+        const r = decodeFluPacket(Buffer.from(msg));
+        if (r.ok) bySite.set(r.packet.site, (bySite.get(r.packet.site) ?? 0) + 1);
+    });
+    await new Promise<void>(resolve => server.bind(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+
+    const fleet = startUdpFleet({ host: '127.0.0.1', port, seed: 7, heartbeatMs: { min: 8, max: 16 } });
+    try {
+        //~250ms at an 8-16ms cadence is well over a dozen beats per device
+        for (let waited = 0; waited < 60 && (bySite.get('gate-1') ?? 0) < 4; waited++) await sleep(20);
+
+        assert.ok((bySite.get('gate-1') ?? 0) >= 4, `gate-1 rescheduled repeatedly (${bySite.get('gate-1')} beats)`);
+        assert.ok(bySite.size >= 3, 'every device in the fleet is publishing');
+    } finally {
+        fleet.stop();
+        server.close();
+    }
+});
+
 //---- U2: authentication and replay ----
 
 const SECRET = 'a0a1a2a3a4a5a6a7a8a9aaabacadaeaf';
