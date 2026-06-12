@@ -397,9 +397,12 @@ export class FluidityUI {
     }
 
     private autoScroll(): void {
-        document
-            .getElementById('end-data')
-            ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        //pin the newest line flush to the bottom. scrollIntoView({block:'nearest'})
+        //only scrolled until the sentinel was marginally visible, so it
+        //undershot the true bottom by ~45px (a dead strip below the last line);
+        //setting scrollTop to scrollHeight lands exactly at the bottom.
+        const el = document.getElementById('cell-data');
+        if (el) el.scrollTop = el.scrollHeight;
     }
 
     private autoScrollRequest(): void {

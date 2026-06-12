@@ -307,9 +307,9 @@ export class FluidityUI {
         this.autoScroll();
     }
     autoScroll() {
-        var _a;
-        (_a = document
-            .getElementById('end-data')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        const el = document.getElementById('cell-data');
+        if (el)
+            el.scrollTop = el.scrollHeight;
     }
     autoScrollRequest() {
         var _a;
