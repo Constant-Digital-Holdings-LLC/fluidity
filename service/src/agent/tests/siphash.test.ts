@@ -148,19 +148,28 @@ void test('sipKeyFromHex parses 32 hex chars and rejects everything else', () =>
 });
 
 void test('siphash24 throughput is far beyond the 1k datagrams/s requirement', () => {
-    //catastrophe guard only (CI boxes vary): 2000 max-size MACs in <5s.
-    //The measured rate is logged for the Pi-derating eyeball.
+    //catastrophe guard only (CI boxes vary). Warm the JIT first so the logged
+    //rate reflects steady state (the limb rewrite is allocation-free and hot
+    //here); a cold loop under-reports by ~10x.
     const msg = Uint8Array.from({ length: 229 }, (_, i) => i & 0xff);
-    const started = Date.now();
     let sink = 0;
-    for (let i = 0; i < 2000; i++) {
+    for (let i = 0; i < 50_000; i++) {
+        msg[0] = i & 0xff;
+        sink ^= siphash24(REF_KEY, msg)[0] ?? 0;
+    }
+
+    const iters = 200_000;
+    const started = Date.now();
+    for (let i = 0; i < iters; i++) {
         msg[0] = i & 0xff;
         sink ^= siphash24(REF_KEY, msg)[0] ?? 0;
     }
     const elapsed = Date.now() - started;
+    const perSec = Math.round(iters / (elapsed / 1000));
 
     assert.ok(sink >= 0); //keep the loop honest
     assert.equal(siphash24(REF_KEY, msg).length, SIP_MAC_BYTES);
-    assert.ok(elapsed < 5000, `2000 MACs took ${elapsed}ms`);
-    console.log(`siphash24: ${Math.round(2000 / (elapsed / 1000))} MACs/s over 229-byte messages`);
+    //even a slow CI core clears 50k/s; the limb impl does ~10x that
+    assert.ok(perSec > 50_000, `siphash too slow: ${perSec}/s`);
+    console.log(`siphash24: ${(perSec / 1000).toFixed(0)}k MACs/s over 229-byte messages (warm)`);
 });
