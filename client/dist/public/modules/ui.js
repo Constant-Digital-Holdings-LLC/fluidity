@@ -3,6 +3,7 @@ import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { isFluidityLink } from '#@shared/types.js';
 import { livenessOf } from './pulse.js';
+import { typeIn } from './typewriter.js';
 const conf = inBrowser() ? confFromDOM() : undefined;
 const log = fetchLogger(conf);
 class FilterManager {
@@ -416,7 +417,7 @@ export class FluidityUI {
                     }
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
-                        current.lastChild.classList.add('fade-in');
+                        typeIn(current.lastChild);
                     }
                 }
                 this.autoScrollRequest();

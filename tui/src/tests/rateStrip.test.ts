@@ -6,7 +6,7 @@ void test('downsample: max-pooling preserves spikes', () => {
     assert.deepEqual(downsample([1, 9, 0, 0, 2, 3], 3), [9, 0, 3]);
     assert.deepEqual(downsample([1, 2], 4), [1, 2]); //fewer points than cells: as-is
     assert.deepEqual(downsample([5, 5, 5], 0), []);
-    assert.equal(downsample(new Array(60).fill(1), 24).length, 24);
+    assert.equal(downsample(new Array<number>(60).fill(1), 24).length, 24);
 });
 
 void test('stripOf: silence is space, peak is full block, levels in between', () => {

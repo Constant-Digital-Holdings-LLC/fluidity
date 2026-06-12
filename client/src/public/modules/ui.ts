@@ -3,6 +3,7 @@ import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
 import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
 import { livenessOf } from './pulse.js';
+import { typeIn } from './typewriter.js';
 
 //in the browser, conf is injected into the DOM by the server;
 //under test (node + jsdom) defaults apply
@@ -499,7 +500,9 @@ export class FluidityUI {
 
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
-                        current.lastChild.classList.add('fade-in');
+                        //live lines type in fast (history renders instantly);
+                        //no-ops to instant text under reduced motion or tests
+                        typeIn(current.lastChild);
                     }
                 }
 
