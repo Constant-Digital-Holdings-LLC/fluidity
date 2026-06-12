@@ -452,6 +452,11 @@ li i {
     border-radius: 6px;
     line-height: 1.35;
     transition: background-color 0.15s ease;
+    /* long comma/slash-separated tokens (NMEA sentences, SRS port-state lines)
+       have no spaces to wrap at and would push the stream wider than a phone,
+       showing a horizontal scrollbar. break anywhere so a packet wraps to more
+       lines instead of overflowing. overflow-wrap inherits to the field spans. */
+    overflow-wrap: anywhere;
 }
 
 .fluidity-packet:hover {
@@ -502,6 +507,9 @@ li i {
 .fluidity-packet .fp-line {
     display: inline-block;
     margin-left: 0.3rem;
+    /* keep the inline-block within the cell so a long field wraps rather than
+       widening the row past the viewport */
+    max-width: 100%;
 }
 
 .fluidity-packet .fp-trim {
