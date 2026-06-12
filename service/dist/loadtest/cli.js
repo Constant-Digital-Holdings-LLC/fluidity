@@ -1,12 +1,9 @@
 import { fileURLToPath } from 'node:url';
+import { arg } from '#@sims/cliArgs.js';
+import { parseMix } from '#@sims/udpStressEmitter.js';
 process.chdir(fileURLToPath(new URL('.', import.meta.url)));
-const argv = process.argv.slice(2);
-const flag = (name) => {
-    const i = argv.indexOf(`--${name}`);
-    return i !== -1 ? argv[i + 1] : undefined;
-};
 const numFlag = (name) => {
-    const raw = flag(name);
+    const raw = arg(name);
     if (raw === undefined)
         return undefined;
     const n = Number(raw);
@@ -32,21 +29,21 @@ if (throttle !== undefined)
 const sse = numFlag('sse');
 if (sse !== undefined)
     opts.sseClients = sse;
-const secret = flag('secret');
+const secret = arg('secret');
 if (secret)
     opts.secret = secret;
 const seed = numFlag('seed');
 if (seed !== undefined)
     opts.seed = seed;
-const mixArg = flag('mix');
+const mixArg = arg('mix');
 if (mixArg) {
-    const mix = {};
-    for (const part of mixArg.split(',')) {
-        const [k, w] = part.split(':');
-        if (k)
-            mix[k] = Number(w);
+    try {
+        opts.mix = parseMix(mixArg);
     }
-    opts.mix = mix;
+    catch (err) {
+        console.error(`loadtest: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(2);
+    }
 }
 console.log(`loadtest: ${opts.rate ?? 5000} pps for ${opts.durationSec ?? 5}s, ` +
     `mix ${mixArg ?? 'valid:100'}${opts.secret ? ' (MAC mode)' : ''}` +

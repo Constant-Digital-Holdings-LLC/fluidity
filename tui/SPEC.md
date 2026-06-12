@@ -225,16 +225,23 @@ jsdom tests pin for `FilterManager`.
 
 ## 5. Transport
 
-- **History**: `GET /FIFO` on startup → render, remember highest `seq` as
-  demarcation (web parity).
+- **History**: `GET /FIFO` on startup → render, remember each packet's
+  identity in a seen-set.
 - **Live**: `GET /SSE` (`Accept: text/event-stream`) via Node's built-in
   `fetch` streaming. Parser handles `retry:`, `id:`, `data:` lines (the
   reader we built for `routes.test.ts` is the reference implementation).
-  Packets with `seq <= demarc` are dropped (duplicate guard, web parity).
+- **Duplicate guard**: packet identity is the key `` `${seq}:${ts}` `` —
+  `seq` alone resets when the server restarts, so a bare seq watermark
+  would either replay or drop packets across a restart. The seen-set is
+  capped at 10k keys; on overflow the oldest half is evicted (insertion
+  order). Anything already in the set is dropped, whether it arrives via
+  `/FIFO` or `/SSE`.
 - **Reconnect**: exponential backoff 1s → 30s with jitter. The server does
   **not** replay missed events on reconnect (known hand-rolled SSE
-  limitation) — so on every reconnect: refetch `/FIFO`, merge by `seq`,
-  render only unseen packets. Connection state surfaces in the header.
+  limitation) — so on every reconnect: refetch `/FIFO` and filter it
+  through the same seen-set, rendering only unseen packets (this is also
+  what self-heals after a server restart: new `ts` values miss the set).
+  Connection state surfaces in the header.
 - **TLS**: `--insecure` skips chain verification (self-signed dev certs),
   mirroring the agent's `NODE_ENV=development` behavior. Never the default.
 - Auth: none — `/FIFO` and `/SSE` are public by design.
@@ -295,9 +302,10 @@ Exit codes: 0 user quit · 1 bad args · 2 cannot reach server at startup
   never color-only.
 - SIGWINCH handled (resize). Terminal always restored on exit, including on
   crash (process `exit` hook resets alt buffer, cursor, raw mode).
-- Malformed SSE payloads are dropped with a status-line note, never a crash
-  (`isFfluidityPacket` guard on every packet — same boundary the server
-  enforces).
+- Malformed SSE payloads are dropped, counted, and surfaced — interactive
+  mode notes `malformed N` in the header status, stream mode warns on
+  stderr — never a crash (`isFfluidityPacket` guard on every packet, same
+  boundary the server enforces).
 
 ---
 

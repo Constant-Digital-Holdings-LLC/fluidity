@@ -11,9 +11,10 @@ export const runStream = (o) => {
         ...(o.backoffBaseMs !== undefined ? { backoffBaseMs: o.backoffBaseMs } : {}),
         ...(o.insecure !== undefined ? { insecure: o.insecure } : {})
     }, {
-        onHistory: packets => packets.slice(-o.historyLimit).forEach(emit),
+        onHistory: packets => (o.historyLimit === 0 ? [] : packets.slice(-o.historyLimit)).forEach(emit),
         onPacket: emit,
-        onState: o.status
+        onState: o.status,
+        ...(o.onMalformed !== undefined ? { onMalformed: o.onMalformed } : {})
     });
 };
 //# sourceMappingURL=stream.js.map

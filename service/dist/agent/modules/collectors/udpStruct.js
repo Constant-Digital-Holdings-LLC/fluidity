@@ -1,7 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { siphash24, macEqual, sipKeyFromHex } from '#@sims/siphash.js';
-import { DataCollector } from '../collectors.js';
+import { DataCollector, extOpt } from '../collectors.js';
 import { decodeFluPacket, FLU_DEFAULT_PORT } from '../udpCodec.js';
 import dgram from 'node:dgram';
 const conf = await confFromFS();
@@ -10,6 +10,7 @@ const DAMP_AFTER = 5;
 const DAMP_EVERY = 100;
 const MAX_SOURCES = 1024;
 const MAX_DEVICES = 4096;
+const RECOVERY_STREAK = 8;
 const DAY_MS = 24 * 60 * 60 * 1000;
 export default class UdpStructCollector extends DataCollector {
     port;
@@ -21,7 +22,6 @@ export default class UdpStructCollector extends DataCollector {
     decodeOpts;
     socket;
     bound;
-    counts = new Map();
     sourceDrops = new Map();
     seqState = new Map();
     sourceTableFull = false;
@@ -41,28 +41,28 @@ export default class UdpStructCollector extends DataCollector {
         let key;
         let requireMac = false;
         let replayWindow;
-        if (eo && typeof eo === 'object') {
-            if ('secret' in eo && eo.secret !== undefined) {
-                const parsed = typeof eo.secret === 'string' ? sipKeyFromHex(eo.secret) : null;
-                if (!parsed) {
-                    throw new Error(`udpStruct [${params.description}]: secret must be exactly 32 hex chars ` +
-                        `(a 16-byte SipHash key; generate one with: openssl rand -hex 16)`);
-                }
-                key = parsed;
+        const secret = extOpt(eo, 'secret');
+        if (secret !== undefined) {
+            const parsed = typeof secret === 'string' ? sipKeyFromHex(secret) : null;
+            if (!parsed) {
+                throw new Error(`udpStruct [${params.description}]: secret must be exactly 32 hex chars ` +
+                    `(a 16-byte SipHash key; generate one with: openssl rand -hex 16)`);
             }
-            if ('requireMac' in eo && eo.requireMac !== undefined) {
-                if (typeof eo.requireMac !== 'boolean') {
-                    throw new Error(`udpStruct [${params.description}]: requireMac must be a boolean`);
-                }
-                requireMac = eo.requireMac;
+            key = parsed;
+        }
+        const requireMacOpt = extOpt(eo, 'requireMac');
+        if (requireMacOpt !== undefined) {
+            if (typeof requireMacOpt !== 'boolean') {
+                throw new Error(`udpStruct [${params.description}]: requireMac must be a boolean`);
             }
-            if ('replayWindow' in eo && eo.replayWindow !== undefined) {
-                const rw = eo.replayWindow;
-                if (typeof rw !== 'number' || !Number.isInteger(rw) || rw < 1 || rw > 1024) {
-                    throw new Error(`udpStruct [${params.description}]: replayWindow must be an integer 1..1024`);
-                }
-                replayWindow = rw;
+            requireMac = requireMacOpt;
+        }
+        const rw = extOpt(eo, 'replayWindow');
+        if (rw !== undefined) {
+            if (typeof rw !== 'number' || !Number.isInteger(rw) || rw < 1 || rw > 1024) {
+                throw new Error(`udpStruct [${params.description}]: replayWindow must be an integer 1..1024`);
             }
+            replayWindow = rw;
         }
         if (requireMac && !key) {
             throw new Error(`udpStruct [${params.description}]: requireMac needs a secret to verify against`);
@@ -75,12 +75,13 @@ export default class UdpStructCollector extends DataCollector {
         this.requireMac = requireMac;
         this.replayWindow = replayWindow;
         this.decodeOpts = key
-            ? { verifyMac: (signed, mac) => macEqual(siphash24(key, signed), mac) }
+            ? { verifyMac: (signed, mac) => macEqual(siphash24(key, signed), mac), requireMac }
             : undefined;
         let siteFromPacket = true;
-        if (eo && typeof eo === 'object' && 'siteFromPacket' in eo && eo.siteFromPacket !== undefined) {
-            if (typeof eo.siteFromPacket === 'boolean') {
-                siteFromPacket = eo.siteFromPacket;
+        const sfp = extOpt(eo, 'siteFromPacket');
+        if (sfp !== undefined) {
+            if (typeof sfp === 'boolean') {
+                siteFromPacket = sfp;
             }
             else {
                 log.warn(`udpStruct [${params.description}]: invalid siteFromPacket in extendedOptions ` +
@@ -94,9 +95,6 @@ export default class UdpStructCollector extends DataCollector {
             this.socket.once('error', reject);
         });
         this.bound.catch(() => undefined);
-    }
-    get dropCounts() {
-        return this.counts;
     }
     ready() {
         return this.bound;
@@ -136,8 +134,7 @@ export default class UdpStructCollector extends DataCollector {
         return null;
     }
     note(reason, rinfo, bytes, accepted = false) {
-        const n = (this.counts.get(reason) ?? 0) + 1;
-        this.counts.set(reason, n);
+        const n = this.noteDrop(reason);
         const source = rinfo.address;
         let s = this.sourceDrops.get(source);
         if (s === undefined && this.sourceDrops.size >= MAX_SOURCES) {
@@ -169,40 +166,48 @@ export default class UdpStructCollector extends DataCollector {
                 }
                 return true;
             }
-            this.seqState.set(id, { last: p.deviceSeq, lastReject: null });
+            this.seqState.set(id, { last: p.deviceSeq, lastReject: null, rejectStreak: 0 });
             return true;
         }
         const delta = (p.deviceSeq - st.last) & 0xffff;
         if (delta >= 1 && delta <= win) {
             st.last = p.deviceSeq;
             st.lastReject = null;
+            st.rejectStreak = 0;
             return true;
         }
         if (st.lastReject !== null) {
             const stride = (p.deviceSeq - st.lastReject) & 0xffff;
             if (stride >= 1 && stride <= win) {
-                st.last = p.deviceSeq;
-                st.lastReject = null;
-                return true;
+                st.rejectStreak++;
+                if (p.deviceSeq <= 2 * win || st.rejectStreak >= RECOVERY_STREAK) {
+                    st.last = p.deviceSeq;
+                    st.lastReject = null;
+                    st.rejectStreak = 0;
+                    log.info(`udpStruct [${this.params.description}]: re-anchored seq window for ` +
+                        `${p.site}/${p.plugin} at ${p.deviceSeq} (device reset?)`);
+                    return true;
+                }
+                st.lastReject = p.deviceSeq;
+                return false;
             }
+            st.rejectStreak = 0;
         }
         st.lastReject = p.deviceSeq;
+        st.rejectStreak = 1;
         return false;
     }
     ingest(msg, rinfo) {
         const result = decodeFluPacket(msg, this.decodeOpts);
+        const hasMac = result.ok ? result.packet.hasMac : result.hasMac;
+        if (this.key && !this.requireMac && hasMac === false) {
+            this.note('unsigned', rinfo, msg.length, result.ok);
+        }
         if (!result.ok) {
             this.note(result.reason, rinfo, msg.length);
             return;
         }
         const p = result.packet;
-        if (this.key && !p.hasMac) {
-            if (this.requireMac) {
-                this.note('bad-mac', rinfo, msg.length);
-                return;
-            }
-            this.note('unsigned', rinfo, msg.length, true);
-        }
         if (this.replayWindow !== undefined && this.key && p.hasMac && !this.acceptSeq(p)) {
             this.note('replay', rinfo, msg.length);
             return;

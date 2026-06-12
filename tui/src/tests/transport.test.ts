@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import https from 'node:https';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { AddressInfo } from 'node:net';
 import { Duplex } from 'node:stream';
 import { ServerResponse } from 'node:http';
@@ -10,11 +11,14 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { FluidityPacket } from '#@shared/types.js';
 import { fetchHistory, follow, shouldVerifyTLS } from '../modules/transport.js';
 
-//tests run with cwd service/dist/agent (npm test glob); dev certs live next door.
-//transport auto-relaxes TLS for loopback hosts, which is itself under test here.
+//dev certs resolved relative to this file's compiled location (tui/dist/tests/),
+//not the cwd - the suite happens to run from service/dist/agent, but nothing
+//here should depend on that. transport auto-relaxes TLS for loopback hosts,
+//which is itself under test here.
+const sslDir = new URL('../../../service/dist/server/ssl/', import.meta.url);
 const tlsOptions = {
-    key: readFileSync('../server/ssl/dev-server_key.pem'),
-    cert: readFileSync('../server/ssl/dev-server_cert.pem')
+    key: readFileSync(fileURLToPath(new URL('dev-server_key.pem', sslDir))),
+    cert: readFileSync(fileURLToPath(new URL('dev-server_cert.pem', sslDir)))
 };
 
 const pkt = (seq: number, site = 'tsite'): FluidityPacket => ({

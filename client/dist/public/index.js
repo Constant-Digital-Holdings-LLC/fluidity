@@ -25,8 +25,8 @@ es.addEventListener('open', () => {
     fetch('/FIFO')
         .then(response => response.json())
         .then(data => {
-        if (Array.isArray(data) && data.every(d => isFfluidityPacket(d)) && ui instanceof FluidityUI) {
-            ui.resync(data);
+        if (Array.isArray(data) && ui instanceof FluidityUI) {
+            ui.resync(data.filter((d) => isFfluidityPacket(d)));
         }
     })
         .catch(err => log.error(err));
@@ -34,20 +34,27 @@ es.addEventListener('open', () => {
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {
-    if (Array.isArray(data) && data.length)
-        if (data.every(d => isFfluidityPacket(d))) {
-            ui = new FluidityUI(data);
+    if (Array.isArray(data)) {
+        const good = data.filter((d) => isFfluidityPacket(d));
+        if (good.length !== data.length) {
+            log.warn('FIFO history contained non-Fluidity packets; rendering the valid subset');
         }
-        else {
-            log.warn('FIFO history contained a non-Fluidity packet; ignoring history');
-        }
+        ui = new FluidityUI(good);
+    }
 })
     .catch(err => {
     log.error(err);
 });
 es.onmessage = event => {
     if (typeof event.data === 'string') {
-        const pd = JSON.parse(event.data);
+        let pd;
+        try {
+            pd = JSON.parse(event.data);
+        }
+        catch (_a) {
+            log.warn('dropping malformed SSE frame');
+            return;
+        }
         if (isFfluidityPacket(pd)) {
             rxQ.push(pd);
             pulse === null || pulse === void 0 ? void 0 : pulse.note();
@@ -55,12 +62,20 @@ es.onmessage = event => {
     }
 };
 const pumpOnce = () => {
-    drainRenderQueue(rxQ, RENDER_LIMITS, ui instanceof FluidityUI ? (p) => ui.packetAdd(p) : null);
+    try {
+        const { rendered } = drainRenderQueue(rxQ, RENDER_LIMITS, ui instanceof FluidityUI ? (p) => ui.packetAdd(p) : null);
+        if (rendered > 0 && ui instanceof FluidityUI) {
+            ui.flushFrame();
+        }
+    }
+    catch (err) {
+        log.error(err);
+    }
 };
 if (typeof requestAnimationFrame === 'function') {
     const frame = () => {
-        pumpOnce();
         requestAnimationFrame(frame);
+        pumpOnce();
     };
     requestAnimationFrame(frame);
 }

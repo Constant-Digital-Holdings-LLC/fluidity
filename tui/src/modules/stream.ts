@@ -12,6 +12,7 @@ export interface StreamOpts {
     historyLimit: number;
     out: (line: string) => void; //packet lines (stdout)
     status: (state: ConnState, detail?: string) => void; //connection state (stderr)
+    onMalformed?: (total: number) => void; //dropped SSE payloads (stderr)
     backoffBaseMs?: number;
 }
 
@@ -28,9 +29,11 @@ export const runStream = (o: StreamOpts): FollowHandle => {
             ...(o.insecure !== undefined ? { insecure: o.insecure } : {})
         },
         {
-            onHistory: packets => packets.slice(-o.historyLimit).forEach(emit),
+            //slice(-0) is slice(0): an explicit guard so --history 0 means none
+            onHistory: packets => (o.historyLimit === 0 ? [] : packets.slice(-o.historyLimit)).forEach(emit),
             onPacket: emit,
-            onState: o.status
+            onState: o.status,
+            ...(o.onMalformed !== undefined ? { onMalformed: o.onMalformed } : {})
         }
     );
 };

@@ -13,7 +13,7 @@ export interface MyConfigData extends ConfigData, LoggerConfig {
     readonly maxClientHistory?: number;
     readonly maxServerHistory?: number;
 }
-export declare const pubSafe: readonly ["appName", "logLevel", "appVersion", "locLevel", "nodeEnv", "org"];
+export declare const pubSafe: readonly ["appName", "logLevel", "appVersion", "locLevel", "nodeEnv", "org", "maxClientHistory"];
 export declare const confFromDOM: () => MyConfigData;
 export declare const confFromFS: () => Promise<MyConfigData>;
 //# sourceMappingURL=fluidityConfig.d.ts.map

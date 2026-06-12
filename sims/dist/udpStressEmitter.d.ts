@@ -22,5 +22,7 @@ export interface StressHandle {
     done: Promise<StressReport>;
     stop(): void;
 }
+export declare const CATEGORIES: StressCategory[];
+export declare const parseMix: (spec: string) => Partial<Record<StressCategory, number>>;
 export declare const runUdpStress: (options?: UdpStressOptions) => StressHandle;
 //# sourceMappingURL=udpStressEmitter.d.ts.map

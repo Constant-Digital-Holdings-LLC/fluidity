@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import https from 'node:https';
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { isMain, arg } from '#@sims/cliArgs.js';
 export const COLORBAR_STYLES = [
     { style: 0, name: 'light' },
     { style: 1, name: 'mauve' },
@@ -26,12 +26,7 @@ export const colorBarPacket = (site = 'COLORBAR') => ({
         fieldType: 'STRING'
     }))
 });
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isMain) {
-    const arg = (name) => {
-        const i = process.argv.indexOf(`--${name}`);
-        return i !== -1 ? process.argv[i + 1] : undefined;
-    };
+if (isMain(import.meta.url)) {
     let target = arg('target');
     let key = arg('key');
     if (!target || !key) {
@@ -49,12 +44,14 @@ if (isMain) {
     }
     const body = JSON.stringify(colorBarPacket(arg('site') ?? 'COLORBAR'));
     const u = new URL(target);
+    const loopback = new Set(['localhost', '127.0.0.1', '::1', '[::1]']).has(u.hostname);
+    const insecure = process.argv.includes('--insecure');
     const req = https.request({
         hostname: u.hostname,
         port: u.port,
         path: u.pathname,
         method: 'POST',
-        rejectUnauthorized: false,
+        rejectUnauthorized: !(loopback || insecure),
         headers: {
             'Content-Type': 'application/json',
             'X-Api-Key': key,

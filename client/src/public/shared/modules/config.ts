@@ -1,11 +1,11 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import type { Request, Response, NextFunction } from 'express';
-import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { inBrowser, nodeEnv, prettyFsNotFound } from '#@shared/modules/utils.js';
 import { NodeEnv, isObject } from '#@shared/types.js';
 
 const log = fetchLogger();
 
-const NODE_ENV: NodeEnv = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+const NODE_ENV: NodeEnv = nodeEnv();
 
 export interface ConfigData {
     readonly appName: string;
@@ -20,14 +20,10 @@ export const isConfigData = <C extends ConfigData>(item: unknown): item is C =>
 export const isConfigDataPopulated = <C extends ConfigData>(obj: unknown): obj is C =>
     isConfigData(obj) && Boolean(obj['appName']);
 
-interface ConfigParser {
-    parse(src: string): unknown;
-}
-
 interface ConfigFiles {
-    readonly common: [string, ConfigParser] | null;
-    readonly development: [string, ConfigParser] | null;
-    readonly production: [string, ConfigParser] | null;
+    readonly common: string | null;
+    readonly development: string | null;
+    readonly production: string | null;
 }
 
 abstract class ConfigBase<C extends ConfigData> {
@@ -40,7 +36,7 @@ abstract class ConfigBase<C extends ConfigData> {
 }
 
 export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
-    readonly nodeEnv: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+    readonly nodeEnv: NodeEnv = nodeEnv();
 
     static async asyncNew<C extends ConfigData>(): Promise<FSConfigUtil<C>> {
         const fsc = new FSConfigUtil<C>();
@@ -57,9 +53,9 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
 
     load(): Promise<C | undefined> {
         return this.loadFiles({
-            development: ['./conf/dev_conf.json', JSON],
-            production: ['./conf/prod_conf.json', JSON],
-            common: ['./conf/common_conf.json', JSON]
+            development: './conf/dev_conf.json',
+            production: './conf/prod_conf.json',
+            common: './conf/common_conf.json'
         });
     }
 
@@ -68,8 +64,8 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
             throw new Error('loadFiles() not applicable outside of node');
         }
 
-        const nodeEnvConfPath = cFiles[NODE_ENV]?.[0];
-        const commonConfPath = cFiles['common']?.[0];
+        const nodeEnvConfPath = cFiles[NODE_ENV];
+        const commonConfPath = cFiles['common'];
         const { readFileSync } = await import('fs');
 
         const path = await import('node:path');
@@ -79,7 +75,7 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
 
         try {
             if (nodeEnvConfPath) {
-                eObj = cFiles[NODE_ENV]?.[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
+                eObj = JSON.parse(readFileSync(nodeEnvConfPath, 'utf8'));
 
                 if (!isConfigData<C>(eObj)) {
                     this.configCache = null;
@@ -88,10 +84,12 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
                 }
 
                 if (commonConfPath) {
-                    cObj = cFiles['common']?.[1].parse(readFileSync(commonConfPath, 'utf8'));
+                    cObj = JSON.parse(readFileSync(commonConfPath, 'utf8'));
 
                     if (isConfigData<C>(cObj)) {
-                        this.configCache = { ...eObj, ...cObj };
+                        //common supplies the defaults; the env-specific file
+                        //wins on any key collision
+                        this.configCache = { ...cObj, ...eObj };
                     } else {
                         console.warn(
                             `loadFiles(): contents of ${path.join(
@@ -117,7 +115,8 @@ export class FSConfigUtil<C extends ConfigData> extends ConfigBase<C> {
 
         if (!(this.configCache instanceof Object)) {
             throw new Error(
-                `No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`
+                `No config loaded: expected ${nodeEnvConfPath ?? '(no path)'} relative to ${process.cwd()} ` +
+                    `(NODE_ENV: ${NODE_ENV}). Starter configs live in ./conf/conf-examples/.`
             );
         }
 
@@ -149,29 +148,16 @@ export class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
         return this.configCache;
     }
 
-    protected get pubConf(): C | undefined {
-        const goodList = this.pubSafe;
-
-        const handler = {
-            get(target: C, prop: PropertyKey, receiver: unknown) {
-                if (typeof prop === 'string')
-                    if (goodList.includes(prop)) {
-                        return Reflect.get(target, prop, receiver);
-                    }
-                return undefined;
-            },
-            ownKeys(target: object) {
-                return Object.keys(target).filter(prop => goodList.includes(prop));
-            },
-            set() {
-                throw new Error('pubConf is immutable.');
-            }
-        };
-        if (this.configCache) {
-            return new Proxy(this.configCache, handler) as C;
-        } else {
+    protected get pubConf(): Partial<C> | undefined {
+        if (!this.configCache) {
             return undefined;
         }
+        const conf = this.configCache;
+
+        //a fresh pick of the public-safe keys - nothing else reaches the DOM
+        return Object.fromEntries(
+            this.pubSafe.filter(key => key in conf).map(key => [key, conf[key as keyof C]])
+        ) as Partial<C>;
     }
 
     protected extract<C extends ConfigData>(): C | null {

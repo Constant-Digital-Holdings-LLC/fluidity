@@ -52,8 +52,9 @@ export const composeFrame = (st: UIState, caps: TermCaps): string[] => {
     const visible = visibleEntries(st);
     const paused = st.paused ? ` PAUSED(+${pendingWhilePaused(st)})` : '';
     const scrolled = st.scrollOffset > 0 ? ` ^${st.scrollOffset}` : '';
+    const bad = st.malformed > 0 ? ` - malformed ${st.malformed}` : '';
     //status (right side) outranks the title; the rate strip fills spare room
-    const right = ` ${CONN_GLYPH[st.conn] ?? st.conn} - ${visible.length} pkts${paused}${scrolled} `;
+    const right = ` ${CONN_GLYPH[st.conn] ?? st.conn} - ${visible.length} pkts${paused}${scrolled}${bad} `;
     const left = truncateAnsi(` Fluidity - ${st.serverHost} `, Math.max(0, w - visibleLength(right) - 2));
     const sep = (text: string): string => paint(text, chromeDef('separator'), tier);
 
@@ -107,7 +108,12 @@ export const composeFrame = (st: UIState, caps: TermCaps): string[] => {
     const now = Date.now();
     const names = [...registry.entries()];
     for (const [i, [name, count]] of names.entries()) {
-        if (i >= 9) break;
+        if (i >= 9) {
+            //digit keys only address 1-9; the rest still get the overflow
+            //marker, same as when the pane runs out of width (SPEC.md §4.4)
+            pane += paint(`+${names.length - shown} more`, styleDef(7), tier);
+            break;
+        }
         const isSel = selected.includes(name);
 
         //sites carry a liveness mark (web parity: the pill dot)
@@ -121,7 +127,7 @@ export const composeFrame = (st: UIState, caps: TermCaps): string[] => {
         const text = `[${i + 1}]${st.group === 'sites' ? name.toUpperCase() : name} ${count}`;
         //selected = brand pink, matching the web's "pink carries meaning"
         const def: StyleDef = isSel ? { ...ACCENT, bold: true, underline: tier !== 'mono' } : styleDef(7);
-        const chunkLen = (mark ? 1 : 0) + text.length + ((isSel && tier === 'mono' ? 1 : 0) + 2);
+        const chunkLen = (mark ? 1 : 0) + visibleLength(text) + ((isSel && tier === 'mono' ? 1 : 0) + 2);
         if (visibleLength(pane) + chunkLen > w - 8) {
             pane += paint(`+${names.length - shown} more`, styleDef(7), tier);
             break;

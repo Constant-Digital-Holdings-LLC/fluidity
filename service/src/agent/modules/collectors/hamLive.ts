@@ -6,7 +6,6 @@ import { FormatHelper, DataCollectorPlugin, WebJSONCollector, WebJSONCollectorPa
 const conf = await confFromFS();
 
 const log = fetchLogger(conf);
-const lastNotified = new Map<string, number>();
 
 interface NetDetail {
     id: string;
@@ -47,6 +46,9 @@ const isNetDetail = (item: unknown): item is NetDetail => {
 
 export default class HamLiveCollector extends WebJSONCollector implements DataCollectorPlugin {
     private notifyIntervalSec: number;
+    //per-instance, like all collector state: two stanzas polling different
+    //deployments must not cross-suppress each other's net ids
+    private readonly lastNotified = new Map<string, number>();
     //default url can be overridden by config:
     constructor({
         url = 'https://www.ham.live/api/data/livenets',
@@ -58,34 +60,48 @@ export default class HamLiveCollector extends WebJSONCollector implements DataCo
     }
 
     override format(data: string, fh: FormatHelper): FormattedData[] | null {
+        //a packet built now would be shed by the saturated upstream path -
+        //skip the whole pass so nets aren't marked notified for an
+        //announcement that never goes out. (A net whose POST later fails on
+        //the wire is still marked - delivery isn't observable from here.)
+        if (this.upstreamSaturated) return null;
+
         const netData: unknown = JSON.parse(data);
 
-        if (isObject(netData) && 'netlist' in netData && Array.isArray(netData.netlist)) {
-            netData.netlist.forEach((net, idx, arr) => {
-                if (isNetDetail(net) && !net.permanent) {
-                    const ts = lastNotified.get(net.id);
-
-                    if (typeof ts === 'undefined' || Date.now() - ts >= this.notifyIntervalSec * 1000) {
-                        log.debug(`hamLive: OK to notify re: ${net.title}`);
-                        //resolve the net's path against the polled instance, so
-                        //self-hosted ham.live deployments link to themselves
-                        fh.e({ location: new URL(net.url, this.url).href, name: net.title }, 6).e(
-                            ` ${net.started ? ' in progress' : ' starts at '}`
-                        );
-                        if (!net.started) {
-                            const startTime = new Date(net.createdAt);
-                            startTime.setMinutes(startTime.getMinutes() + net.countdownTimer);
-                            fh.e(startTime, 3);
-                        }
-                        idx <= arr.length - 2 && fh.e(', ', 100);
-
-                        lastNotified.set(net.id, Date.now());
-                    } else {
-                        log.debug('hamLive: already notified re this net');
-                    }
-                }
-            });
+        if (!(isObject(netData) && 'netlist' in netData && Array.isArray(netData.netlist))) {
+            return fh.done;
         }
+
+        const now = Date.now();
+
+        //expired entries are due for re-announcement and carry no further
+        //information - dropping them keeps the map bounded by active nets
+        for (const [id, ts] of this.lastNotified) {
+            if (now - ts >= this.notifyIntervalSec * 1000) this.lastNotified.delete(id);
+        }
+
+        const eligible = netData.netlist.filter(
+            (net): net is NetDetail => isNetDetail(net) && !net.permanent && !this.lastNotified.has(net.id)
+        );
+
+        eligible.forEach((net, idx) => {
+            log.debug(`hamLive: OK to notify re: ${net.title}`);
+            //resolve the net's path against the polled instance, so
+            //self-hosted ham.live deployments link to themselves
+            fh.e({ location: new URL(net.url, this.url).href, name: net.title }, 6).e(
+                ` ${net.started ? ' in progress' : ' starts at '}`
+            );
+            if (!net.started) {
+                const startTime = new Date(net.createdAt);
+                startTime.setMinutes(startTime.getMinutes() + net.countdownTimer);
+                fh.e(startTime, 3);
+            }
+            //separator judged against the emitted list, not the raw netlist -
+            //a skipped net can no longer leave a dangling trailing comma
+            if (idx < eligible.length - 1) fh.e(', ', 100);
+
+            this.lastNotified.set(net.id, now);
+        });
 
         return fh.done;
     }

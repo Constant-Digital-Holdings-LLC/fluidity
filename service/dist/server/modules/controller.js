@@ -13,10 +13,10 @@ export const makeController = (conf, log = fetchLogger(conf)) => {
             res.status(200).json(fifo.toArray());
         },
         POST: (req, res) => {
-            log.debug(`in FIFO Controller, CLIENT headers on POST: ${JSON.stringify(req.headers)}`);
+            log.debug({ note: 'FIFO Controller POST headers', headers: req.headers });
             if (req?.body && isFfluidityPacket(req.body)) {
                 const seq = fifo.push(req.body);
-                sse.send(JSON.stringify(req.body), undefined, seq - 1);
+                sse.send(JSON.stringify(req.body), undefined, seq);
                 res.end();
             }
             else {

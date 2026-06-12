@@ -14,7 +14,7 @@
 //             'unsigned' in migration mode; needs secret to be meaningful)
 
 import dgram from 'node:dgram';
-import { pathToFileURL } from 'node:url';
+import { arg, isMain } from './cliArgs.js';
 import { Rng, mulberry32 } from './prng.js';
 import { sipKeyFromHex } from './siphash.js';
 import { packFluPacket, signFluPacket } from './udpDeviceSim.js';
@@ -47,7 +47,25 @@ export interface StressHandle {
     stop(): void; //finish early; done resolves with what was sent so far
 }
 
-const CATEGORIES: StressCategory[] = ['valid', 'garbage', 'tampered', 'unsigned'];
+export const CATEGORIES: StressCategory[] = ['valid', 'garbage', 'tampered', 'unsigned'];
+
+//parse a --mix spec like "valid:70,garbage:30". Every entry must name a known
+//category and carry a finite, non-negative weight; anything else throws, so a
+//typo ("vaild:70") fails loudly instead of producing a zero-traffic run.
+export const parseMix = (spec: string): Partial<Record<StressCategory, number>> => {
+    const mix: Partial<Record<StressCategory, number>> = {};
+    for (const part of spec.split(',')) {
+        const [name, weight] = part.split(':');
+        const w = Number(weight);
+        if (!name || !CATEGORIES.includes(name as StressCategory) || !Number.isFinite(w) || w < 0) {
+            throw new Error(
+                `bad mix entry "${part}" (want e.g. valid:70,garbage:30; categories: ${CATEGORIES.join(', ')})`
+            );
+        }
+        mix[name as StressCategory] = w;
+    }
+    return mix;
+};
 
 export const runUdpStress = (options?: UdpStressOptions): StressHandle => {
     const host = options?.host ?? '127.0.0.1';
@@ -59,6 +77,11 @@ export const runUdpStress = (options?: UdpStressOptions): StressHandle => {
     const rng: Rng = mulberry32(options?.seed ?? Math.floor(Math.random() * 0xffffffff));
 
     if (!Number.isFinite(rate) || rate < 1) throw new Error('udp-stress: rate must be >= 1');
+    if (!Number.isFinite(durationSec) || durationSec <= 0) throw new Error('udp-stress: duration must be > 0');
+    //a NaN/out-of-range port would sync-throw from socket.send mid-run
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('udp-stress: port must be an integer 1..65535');
+    }
     if (!Number.isInteger(deviceCount) || deviceCount < 1 || deviceCount > 10_000) {
         throw new Error('udp-stress: devices must be an integer 1..10000');
     }
@@ -215,24 +238,15 @@ export const runUdpStress = (options?: UdpStressOptions): StressHandle => {
 //CLI: node sims/dist/udpStressEmitter.js [--port N] [--host H] [--rate PPS]
 //  [--duration SEC] [--devices N] [--mix valid:70,garbage:20,tampered:10]
 //  [--secret HEX32] [--seed N]
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isMain) {
-    const arg = (name: string): string | undefined => {
-        const i = process.argv.indexOf(`--${name}`);
-        return i !== -1 ? process.argv[i + 1] : undefined;
-    };
-
+if (isMain(import.meta.url)) {
+    let mix: Partial<Record<StressCategory, number>> | undefined;
     const mixArg = arg('mix');
-    const mix: Partial<Record<StressCategory, number>> = {};
     if (mixArg) {
-        for (const part of mixArg.split(',')) {
-            const [name, weight] = part.split(':');
-            if (!name || !CATEGORIES.includes(name as StressCategory) || Number.isNaN(Number(weight))) {
-                console.error(`udp-stress: bad mix entry "${part}" (want e.g. valid:70,garbage:30)`);
-                process.exit(2);
-            }
-            mix[name as StressCategory] = Number(weight);
+        try {
+            mix = parseMix(mixArg);
+        } catch (err) {
+            console.error(`udp-stress: ${err instanceof Error ? err.message : String(err)}`);
+            process.exit(2);
         }
     }
 
@@ -244,7 +258,7 @@ if (isMain) {
         rate: Number(arg('rate') ?? 1000),
         durationSec: Number(arg('duration') ?? 5),
         devices: Number(arg('devices') ?? 50),
-        ...(mixArg ? { mix } : {}),
+        ...(mix ? { mix } : {}),
         ...(secret ? { secret } : {}),
         ...(seed ? { seed: Number(seed) } : {})
     });

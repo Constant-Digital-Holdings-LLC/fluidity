@@ -18,8 +18,15 @@ export interface FluidityPacket {
     rawData?: string | null;
 }
 export declare const isObject: (item: unknown) => item is object;
+export declare const stripControlChars: (s: string) => string;
+export declare const decodeSuggestStyle: (suggestStyle: number) => {
+    color: number;
+    trim: boolean;
+};
+export declare const isApiKeyFormat: (key: unknown) => key is string;
 export declare const isFluidityLink: (item: unknown) => item is FluidityLink;
-export declare const isFfluidityPacket: (item: unknown, omitFormattedData?: boolean) => item is FluidityPacket;
+export declare const isFormattedData: (item: unknown) => item is FormattedData;
+export declare const isFfluidityPacket: (item: unknown, forParams?: boolean) => item is FluidityPacket;
 export interface PublishTarget {
     location: string;
     key: string;

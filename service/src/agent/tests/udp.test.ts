@@ -187,14 +187,14 @@ void test('udpCodec: every drop reason fires on its own malformation', () => {
     five[FLU_HEADER_BYTES - 1] = 5;
     assert.equal(reasonOf(five), 'bad-fields');
 
-    //bad-encoding: invalid UTF-8 in a name, then in field text
+    //bad-encoding: interior invalid UTF-8 in a name, then in field text
     const badSite = good();
     badSite[12] = 0xff;
     badSite[13] = 0xfe;
     assert.equal(reasonOf(badSite), 'bad-encoding');
     const badText = good();
-    badText[FLU_HEADER_BYTES + 2] = 0xc3; //lone continuation lead byte then NUL
-    badText[FLU_HEADER_BYTES + 3] = 0x00;
+    badText[FLU_HEADER_BYTES + 2] = 0xc3; //lead byte followed by a non-continuation
+    badText[FLU_HEADER_BYTES + 3] = 0x28;
     assert.equal(reasonOf(badText), 'bad-encoding');
 
     //bad-identity: site/plugin empty after trim; description may be empty
@@ -211,6 +211,23 @@ void test('udpCodec: every drop reason fires on its own malformation', () => {
             .description,
         ''
     );
+});
+
+void test('udpCodec: a multibyte char cut by sender width truncation is trimmed, not dropped', () => {
+    //firmware flu__copy and the sim's packName truncate bytewise at the field
+    //width (strncpy semantics) - a device whose name has a multibyte char
+    //straddling the boundary must not lose 100% of its datagrams
+    const buf = encodeFluPacket({ site: 'cafe', plugin: 'p', fields: [{ style: 0, text: 'x' }] });
+    //simulate 'café' cut mid-codepoint at the width boundary: dangling C3 lead
+    buf[16] = 0xc3;
+    const p = decodeOk(buf);
+    assert.equal(p.site, 'cafe', 'the dangling lead byte is trimmed');
+
+    //a cut three-byte sequence (lead + one continuation) trims the same way
+    const buf3 = encodeFluPacket({ site: 'ab', plugin: 'p', fields: [{ style: 0, text: 'x' }] });
+    buf3[14] = 0xe2;
+    buf3[15] = 0x80;
+    assert.equal(decodeOk(buf3).site, 'ab');
 });
 
 void test('udpCodec: encoder refuses what the wire cannot carry', () => {

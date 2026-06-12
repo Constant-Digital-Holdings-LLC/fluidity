@@ -11,7 +11,7 @@ Usage: fluidity-tui [options]
 
   --server URL        Fluidity service base URL
                       (default: FLUIDITY_SERVER env, else https://localhost:3000)
-  --follow            force stream mode (currently the only mode)
+  --follow            force stream mode even on a TTY
   --json              raw FluidityPacket NDJSON output
   --site NAME         pre-filter by site (repeatable)
   --collector NAME    pre-filter by collector/plugin (repeatable)
@@ -83,6 +83,11 @@ const main = () => {
         process.stderr.write(`fluidity-tui: loopback server - TLS verification relaxed\n`);
     }
     const caps = detectCaps(process.env, Boolean(process.stdout.isTTY), args.color);
+    const unreachable = () => {
+        process.stderr.write(`fluidity-tui: cannot reach ${base.href}`);
+        process.stderr.write(usedDefaultServer ? ' - no --server given, tried the local default\n' : '\n');
+        return process.exit(2);
+    };
     const interactive = Boolean(process.stdout.isTTY) && Boolean(process.stdin.isTTY) && !args.follow && !args.json;
     if (interactive) {
         runInteractive({
@@ -91,7 +96,8 @@ const main = () => {
             filters: { sites: args.site, collectors: args.collector },
             caps,
             showUrls: args['show-urls'],
-            historyLimit: history
+            historyLimit: history,
+            onStartupFailure: unreachable
         }, () => process.exit(0));
         return;
     }
@@ -110,11 +116,10 @@ const main = () => {
             process.stderr.write(detail ? `fluidity-tui: ${state} (${detail})\n` : `fluidity-tui: ${state}\n`);
             if (state === 'reconnecting' && !everConnected) {
                 handle.stop();
-                process.stderr.write(`fluidity-tui: cannot reach ${base.href}`);
-                process.stderr.write(usedDefaultServer ? ' - no --server given, tried the local default\n' : '\n');
-                process.exit(2);
+                unreachable();
             }
-        }
+        },
+        onMalformed: total => process.stderr.write(`fluidity-tui: malformed SSE payload dropped (total ${total})\n`)
     });
     const quit = () => {
         handle.stop();

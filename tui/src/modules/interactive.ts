@@ -14,6 +14,9 @@ export interface InteractiveOpts {
     caps: TermCaps;
     showUrls?: boolean;
     historyLimit: number;
+    //spec §6: never connected and already reconnecting = unreachable at
+    //startup; called after the screen is torn down (app.ts prints + exit 2)
+    onStartupFailure: () => void;
 }
 
 const REPAINT_MS = 50; //batching budget from SPEC.md §7 (the Pi console scrolls slowly)
@@ -90,12 +93,17 @@ export const runInteractive = (o: InteractiveOpts, onQuit: () => void): FollowHa
         scheduleRepaint();
     });
 
+    //spec §6: exit 2 if the server is unreachable at startup; once a
+    //connection has ever succeeded, retry forever (stream-mode parity)
+    let everConnected = false;
+
     const handle = follow(
         o.base,
         { ...(o.insecure !== undefined ? { insecure: o.insecure } : {}) },
         {
+            //slice(-0) is slice(0): an explicit guard so --history 0 means none
             onHistory: packets =>
-                packets.slice(-o.historyLimit).forEach(p => {
+                (o.historyLimit === 0 ? [] : packets.slice(-o.historyLimit)).forEach(p => {
                     addPacket(st, p, renderParts(p, render));
                     scheduleRepaint();
                 }),
@@ -106,7 +114,19 @@ export const runInteractive = (o: InteractiveOpts, onQuit: () => void): FollowHa
                 scheduleRepaint();
             },
             onState: state => {
+                if (state === 'live') everConnected = true;
+                if (state === 'reconnecting' && !everConnected) {
+                    //restore the terminal before app.ts writes the error
+                    handle.stop();
+                    cleanup();
+                    o.onStartupFailure();
+                    return;
+                }
                 st.conn = state;
+                scheduleRepaint();
+            },
+            onMalformed: total => {
+                st.malformed = total;
                 scheduleRepaint();
             }
         }

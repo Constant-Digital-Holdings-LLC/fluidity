@@ -9,7 +9,7 @@
 //sharing the code.
 
 import dgram from 'node:dgram';
-import { pathToFileURL } from 'node:url';
+import { arg, isMain } from './cliArgs.js';
 import { Rng, mulberry32 } from './prng.js';
 import { siphash24, sipKeyFromHex } from './siphash.js';
 
@@ -153,6 +153,11 @@ export interface UdpFleetHandle {
 export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
     const host = options?.host ?? '127.0.0.1';
     const port = options?.port ?? 17996;
+    //a bad port would otherwise surface as a sync throw from socket.send
+    //inside fire(), breaking the done-never-rejects contract
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('udpDeviceSim: port must be an integer 1..65535');
+    }
     const rng = mulberry32(options?.seed ?? Math.floor(Math.random() * 0xffffffff));
     const fleet = makeFleet();
 
@@ -181,7 +186,14 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
                 fields: dev.fields(rng)
             });
             dev.seq = (dev.seq + 1) & 0xffff;
-            socket.send(key ? signFluPacket(pkt, key) : pkt, port, host, () => resolve());
+            //socket.send can also throw synchronously (closed socket, bad
+            //args); done is contracted to never reject, so a failed send is
+            //just a lost datagram - resolve and move on
+            try {
+                socket.send(key ? signFluPacket(pkt, key) : pkt, port, host, () => resolve());
+            } catch {
+                resolve();
+            }
         });
 
     const schedule = (dev: SimDevice): void => {
@@ -225,26 +237,27 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
 
 //CLI for dev demos:
 //node sims/dist/udpDeviceSim.js [--port N] [--host H] [--seed N] [--secret HEX32] [--once]
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isMain) {
-    const arg = (name: string): string | undefined => {
-        const i = process.argv.indexOf(`--${name}`);
-        return i !== -1 ? process.argv[i + 1] : undefined;
-    };
+if (isMain(import.meta.url)) {
     const once = process.argv.includes('--once');
     const port = Number(arg('port') ?? 17996);
     const host = arg('host') ?? '127.0.0.1';
     const seedArg = arg('seed');
     const secret = arg('secret');
 
-    const fleet = startUdpFleet({
-        host,
-        port,
-        once,
-        ...(seedArg ? { seed: Number(seedArg) } : {}),
-        ...(secret ? { secret } : {})
-    });
+    let fleet: UdpFleetHandle;
+    try {
+        fleet = startUdpFleet({
+            host,
+            port,
+            once,
+            ...(seedArg ? { seed: Number(seedArg) } : {}),
+            ...(secret ? { secret } : {})
+        });
+    } catch (err) {
+        //bad port/secret: a clear one-liner and exit 2, not a stack trace
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(2);
+    }
 
     console.log(
         `udpDeviceSim: 3-device fleet -> udp ${host}:${port}${secret ? ' (signed)' : ''}${once ? ' (once)' : ''}`

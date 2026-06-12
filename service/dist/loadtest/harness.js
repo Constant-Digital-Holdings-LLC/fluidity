@@ -12,7 +12,7 @@ const pct = (arr, p) => {
     if (!arr.length)
         return 0;
     const s = [...arr].sort((a, b) => a - b);
-    return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))] ?? 0;
+    return s[Math.min(s.length - 1, Math.max(0, Math.ceil((p / 100) * s.length) - 1))] ?? 0;
 };
 export const runLoadtest = async (opts = {}) => {
     const rate = opts.rate ?? 5000;
@@ -34,9 +34,11 @@ export const runLoadtest = async (opts = {}) => {
     };
     let posts = 0;
     const server = https.createServer(tls, makeApp(conf));
-    server.on('request', req => {
-        if (req.method === 'POST')
-            posts++;
+    server.on('request', (req, res) => {
+        res.on('finish', () => {
+            if (req.method === 'POST' && res.statusCode < 300)
+                posts++;
+        });
     });
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
@@ -94,40 +96,44 @@ export const runLoadtest = async (opts = {}) => {
     const udpPort = await collector.ready();
     const eld = monitorEventLoopDelay({ resolution: 10 });
     eld.enable();
-    const report = await runUdpStress({
-        port: udpPort,
-        rate,
-        durationSec,
-        devices: opts.devices ?? 50,
-        mix: opts.mix ?? { valid: 100 },
-        ...(secret ? { secret } : {}),
-        seed: opts.seed ?? 0xc0ffee
-    }).done;
-    await sleep(1500);
-    eld.disable();
-    const drops = {};
-    for (const [k, v] of collector.dropCounts)
-        drops[k] = v;
-    const shed = (drops['backpressure'] ?? 0) + collector.backpressureShed;
-    delete drops['backpressure'];
-    const mem = process.memoryUsage();
-    collector.stop();
-    sseReqs.forEach(r => r.destroy());
-    sseAgent.destroy();
-    await new Promise(resolve => server.close(() => resolve()));
-    return {
-        offered: report.totalSent,
-        offeredPps: report.achievedPps,
-        durationSec,
-        agent: {
-            processed: posts,
-            drops,
-            shed,
-            loopMeanMs: +(eld.mean / 1e6).toFixed(2),
-            loopMaxMs: +(eld.max / 1e6).toFixed(2)
-        },
-        server: { posts },
-        sse: sseClients ? { clients: sseClients, frames, latP50Ms: pct(lat, 50), latP95Ms: pct(lat, 95) } : null,
-        memoryMB: { rss: +(mem.rss / 1048576).toFixed(1), heap: +(mem.heapUsed / 1048576).toFixed(1) }
-    };
+    try {
+        const report = await runUdpStress({
+            port: udpPort,
+            rate,
+            durationSec,
+            devices: opts.devices ?? 50,
+            mix: opts.mix ?? { valid: 100 },
+            ...(secret ? { secret } : {}),
+            seed: opts.seed ?? 0xc0ffee
+        }).done;
+        await sleep(1500);
+        eld.disable();
+        const drops = {};
+        for (const [k, v] of collector.dropCounts)
+            drops[k] = v;
+        const shed = (drops['backpressure'] ?? 0) + collector.backpressureShed;
+        delete drops['backpressure'];
+        const mem = process.memoryUsage();
+        return {
+            offered: report.totalSent,
+            offeredPps: report.achievedPps,
+            durationSec,
+            agent: {
+                drops,
+                shed,
+                loopMeanMs: +(eld.mean / 1e6).toFixed(2),
+                loopMaxMs: +(eld.max / 1e6).toFixed(2)
+            },
+            server: { posts },
+            sse: sseClients ? { clients: sseClients, frames, latP50Ms: pct(lat, 50), latP95Ms: pct(lat, 95) } : null,
+            memoryMB: { rss: +(mem.rss / 1048576).toFixed(1), heap: +(mem.heapUsed / 1048576).toFixed(1) }
+        };
+    }
+    finally {
+        eld.disable();
+        collector.stop();
+        sseReqs.forEach(r => r.destroy());
+        sseAgent.destroy();
+        await new Promise(resolve => server.close(() => resolve()));
+    }
 };

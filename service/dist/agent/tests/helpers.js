@@ -1,12 +1,14 @@
 import https from 'node:https';
 import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { SerialPortMock } from 'serialport';
 import SRSserialCollector from '../modules/collectors/srsSerial.js';
 import { FormatHelper } from '../modules/collectors.js';
+const sslPath = (f) => fileURLToPath(new URL(`../../server/ssl/${f}`, import.meta.url));
 export const tlsOptions = {
-    key: readFileSync('../server/ssl/dev-server_key.pem'),
-    cert: readFileSync('../server/ssl/dev-server_cert.pem')
+    key: readFileSync(sslPath('dev-server_key.pem')),
+    cert: readFileSync(sslPath('dev-server_cert.pem'))
 };
 export const startTarget = async (statusCode = 200) => {
     const received = [];

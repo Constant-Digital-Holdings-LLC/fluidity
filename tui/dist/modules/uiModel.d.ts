@@ -26,6 +26,7 @@ export interface UIState {
     siteLastSeen: Map<string, number>;
     rateSeries: number[];
     pulseWindowIdx: number;
+    malformed: number;
     filters: FilterSpec;
     group: FilterGroup;
     columns: ColumnWidths;

@@ -1,6 +1,13 @@
-import { FluidityPacket, FormattedData, isFluidityLink } from '#@shared/types.js';
+import {
+    FluidityPacket,
+    FormattedData,
+    isFluidityLink,
+    stripControlChars,
+    decodeSuggestStyle
+} from '#@shared/types.js';
 import { TermCaps } from './caps.js';
 import { paint, styleDef, chromeDef, StyleDef } from './theme.js';
+import { padEndAnsi, padStartAnsi } from './ansiText.js';
 
 export interface RenderOpts {
     caps: TermCaps;
@@ -12,16 +19,43 @@ export interface RenderOpts {
 
 const timeOpts = (timeZone?: string): Intl.DateTimeFormatOptions => (timeZone ? { timeZone } : {});
 
-//the web client's trim convention: styles >= 100 mean color (style % 10), no spacing
-const fieldStyle = (suggestStyle: number): { def: StyleDef; trim: boolean } =>
-    suggestStyle >= 100
-        ? { def: styleDef(suggestStyle % 10), trim: true }
-        : { def: styleDef(suggestStyle), trim: false };
+//Intl.DateTimeFormat construction is expensive and connect renders the whole
+//history (4000 packets by default), so formatters are cached per locale+zone:
+//one shape for the line timestamp (full time), one for DATE fields (HH:MM)
+const fmtCache = new Map<string, Intl.DateTimeFormat>();
 
-//serial payloads are untrusted: strip control chars so stray \r (or worse,
-//embedded escape sequences) can't corrupt or inject into the terminal
+const timeFormatter = (kind: 'clock' | 'date', locale?: string, timeZone?: string): Intl.DateTimeFormat => {
+    const key = `${kind}|${locale ?? ''}|${timeZone ?? ''}`;
+    let fmt = fmtCache.get(key);
+    if (!fmt) {
+        const shape: Intl.DateTimeFormatOptions =
+            kind === 'clock'
+                ? { hour: 'numeric', minute: 'numeric', second: 'numeric' }
+                : { hour: '2-digit', minute: '2-digit' };
+        fmt = new Intl.DateTimeFormat(locale ?? [], { ...shape, ...timeOpts(timeZone) });
+        fmtCache.set(key, fmt);
+    }
+    return fmt;
+};
 
-const sanitize = (s: string): string => s.replace(/[\x00-\x1f\x7f]/g, '');
+//never render the literal "Invalid Date" (web parity: ui.ts safeTime)
+const safeFormat = (fmt: Intl.DateTimeFormat, value: string): string => {
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) ? fmt.format(d) : '--:--';
+};
+
+//the web client's trim convention: styles >= 100 mean color (style % 10), no
+//spacing - decoded by the shared helper; the ANSI mapping stays local
+const fieldStyle = (suggestStyle: number): { def: StyleDef; trim: boolean } => {
+    const { color, trim } = decodeSuggestStyle(suggestStyle);
+    return { def: styleDef(color), trim };
+};
+
+//serial payloads are untrusted: strip control chars (C0, DEL, and C1) so
+//stray \r (or worse, embedded escape sequences) can't corrupt or inject
+//into the terminal
+
+const sanitize = stripControlChars;
 
 const asText = (v: FormattedData['field']): string => (typeof v === 'string' ? v : JSON.stringify(v));
 
@@ -34,11 +68,7 @@ const renderField = (f: FormattedData, o: RenderOpts): { text: string; trim: boo
             return { text: paint(sanitize(asText(f.field)), def, tier), trim };
 
         case 'DATE': {
-            const t = new Date(asText(f.field)).toLocaleTimeString(o.locale ?? [], {
-                hour: '2-digit',
-                minute: '2-digit',
-                ...timeOpts(o.timeZone)
-            });
+            const t = safeFormat(timeFormatter('date', o.locale, o.timeZone), asText(f.field));
             return { text: paint(t, def, tier), trim };
         }
 
@@ -46,10 +76,13 @@ const renderField = (f: FormattedData, o: RenderOpts): { text: string; trim: boo
             if (!isFluidityLink(f.field)) {
                 return { text: paint(JSON.stringify(f.field), def, tier), trim };
             }
+            //the location feeds an OSC 8 sequence: sanitize so an embedded
+            //BEL/ESC can't terminate the hyperlink early or inject
+            const location = sanitize(f.field.location);
             const name = paint(sanitize(f.field.name), { ...def, underline: tier !== 'mono' }, tier);
-            const linked = o.caps.hyperlinks ? `\x1b]8;;${f.field.location}\x07${name}\x1b]8;;\x07` : name;
+            const linked = o.caps.hyperlinks ? `\x1b]8;;${location}\x07${name}\x1b]8;;\x07` : name;
             return {
-                text: o.showUrls ? `${linked} (${f.field.location})` : linked,
+                text: o.showUrls ? `${linked} (${location})` : linked,
                 trim
             };
         }
@@ -76,7 +109,7 @@ export const renderParts = (p: FluidityPacket, o: RenderOpts): RenderedParts => 
     }
 
     return {
-        time: new Date(p.ts).toLocaleTimeString(o.locale ?? [], timeOpts(o.timeZone)),
+        time: safeFormat(timeFormatter('clock', o.locale, o.timeZone), p.ts),
         site: sanitize(p.site),
         desc: sanitize(p.description),
         fields
@@ -93,14 +126,16 @@ export const composeChrome = (
     const tier = o.caps.tier;
     const c = (role: Parameters<typeof chromeDef>[0], text: string): string => paint(text, chromeDef(role), tier);
 
+    //padding is column-aware (padStartAnsi/padEndAnsi), so CJK/emoji site
+    //names (2 columns per glyph) keep the field columns aligned
     return (
         c('bracket', '[') +
-        c('timestamp', pad ? parts.time.padStart(pad.time) : parts.time) +
+        c('timestamp', pad ? padStartAnsi(parts.time, pad.time) : parts.time) +
         c('bracket', ']') +
         ' ' +
-        c('site', pad ? parts.site.toUpperCase().padEnd(pad.site) : parts.site.toUpperCase()) +
+        c('site', pad ? padEndAnsi(parts.site.toUpperCase(), pad.site) : parts.site.toUpperCase()) +
         c('separator', '(') +
-        c('description', pad ? parts.desc.toLowerCase().padEnd(pad.desc) : parts.desc.toLowerCase()) +
+        c('description', pad ? padEndAnsi(parts.desc.toLowerCase(), pad.desc) : parts.desc.toLowerCase()) +
         c('separator', '):') +
         parts.fields
     );

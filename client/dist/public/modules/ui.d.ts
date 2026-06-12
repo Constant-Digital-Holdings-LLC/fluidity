@@ -10,11 +10,13 @@ export declare class FluidityUI {
     protected now: () => number;
     constructor(history: FluidityPacket[]);
     refreshLiveness(now?: number): void;
+    flushFrame(): void;
     private scrollReset;
     private autoScroll;
     private autoScrollRequest;
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;
     private packetRender;
+    private evictOldest;
     private packetSet;
     private floodBypass;
     resync(history: FluidityPacket[]): void;

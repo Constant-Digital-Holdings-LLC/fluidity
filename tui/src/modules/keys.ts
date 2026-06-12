@@ -30,20 +30,28 @@ export const parseKeys = (chunk: Buffer): Key[] => {
         const c = s[i] ?? '';
 
         if (c === '\x1b' && s[i + 1] === '[') {
-            const code = s[i + 2] ?? '';
-            const seq3: Record<string, KeyName> = { A: 'up', B: 'down' };
-            if (seq3[code]) {
-                keys.push({ name: seq3[code] });
-                i += 3;
+            //CSI grammar (ECMA-48): ESC '[' parameter-bytes (0x30-0x3f),
+            //intermediate-bytes (0x20-0x2f), one final byte (0x40-0x7e).
+            //the whole sequence is consumed so parameter bytes of keys we
+            //don't bind (Delete \x1b[3~, F5 \x1b[15~, Ctrl-Up \x1b[1;5A)
+            //can't re-parse as digit/letter keystrokes
+            let j = i + 2;
+            while (j < s.length && s.charCodeAt(j) >= 0x30 && s.charCodeAt(j) <= 0x3f) j++;
+            while (j < s.length && s.charCodeAt(j) >= 0x20 && s.charCodeAt(j) <= 0x2f) j++;
+            if (j >= s.length) {
+                //chunk ended mid-sequence: swallow the fragment, emit nothing
+                i = s.length;
                 continue;
             }
-            if ((code === '5' || code === '6') && s[i + 3] === '~') {
-                keys.push({ name: code === '5' ? 'pageUp' : 'pageDown' });
-                i += 4;
-                continue;
+            const body = s.slice(i + 2, j);
+            const final = s[j] ?? '';
+            if (body === '' && (final === 'A' || final === 'B')) {
+                keys.push({ name: final === 'A' ? 'up' : 'down' });
+            } else if (final === '~' && (body === '5' || body === '6')) {
+                keys.push({ name: body === '5' ? 'pageUp' : 'pageDown' });
             }
-            //unrecognized CSI: skip introducer and continue scanning
-            i += 2;
+            //any other CSI sequence is consumed silently
+            i = j + 1;
             continue;
         }
 

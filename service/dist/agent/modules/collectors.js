@@ -2,13 +2,19 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { SerialPort, SerialPortMock } from 'serialport';
 import { simProfileFromPath, startFeeder } from '#@sims/index.js';
-import { isFfluidityPacket, isFluidityLink, isObject } from '#@shared/types.js';
+import { isFfluidityPacket, isApiKeyFormat, isFluidityLink, isObject } from '#@shared/types.js';
+import { nodeEnv } from '#@shared/modules/utils.js';
 import { throttledQueue } from 'throttled-queue';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
 import https from 'https';
-const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+const NODE_ENV = nodeEnv();
 const MAX_PENDING_POSTS_ABS = 1024;
+const REQUEST_TIMEOUT_MS = 10_000;
+const SERIAL_REOPEN_MS = 5_000;
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const shouldVerifyTLS = (hostname) => !(NODE_ENV === 'development' && LOOPBACK_HOSTS.has(hostname));
+export const extOpt = (eo, key) => eo && key in eo ? eo[key] : undefined;
 export const isDataCollectorParams = (item) => {
     const { targets, keepRaw, extendedOptions } = item;
     return (isFfluidityPacket(item, true) &&
@@ -36,9 +42,9 @@ export class FormatHelper {
         return this;
     }
     get done() {
-        const clone = JSON.parse(JSON.stringify(this.formattedData));
-        this.formattedData.length = 0;
-        return clone;
+        const out = this.formattedData;
+        this.formattedData = [];
+        return out;
     }
 }
 const isSysError = (e) => {
@@ -59,6 +65,8 @@ export class DataCollector {
     pendingPosts = 0;
     maxPendingPosts;
     shedTotal = 0;
+    urlCache = new Map();
+    drops = new Map();
     constructor(params) {
         this.params = params;
         if (!isDataCollectorParams(params))
@@ -69,28 +77,46 @@ export class DataCollector {
         this.maxPendingPosts = Math.min(MAX_PENDING_POSTS_ABS, Math.max(32, 2 * maxHttpsReqPerCollectorPerSec));
     }
     stop() { }
+    urlFor(location) {
+        let uo = this.urlCache.get(location);
+        if (!uo) {
+            uo = new URL(location);
+            this.urlCache.set(location, uo);
+        }
+        return uo;
+    }
+    noteDrop(reason) {
+        const n = (this.drops.get(reason) ?? 0) + 1;
+        this.drops.set(reason, n);
+        return n;
+    }
+    get dropCounts() {
+        return this.drops;
+    }
     _reqJSON(method, uo, data, key) {
-        const { protocol, hostname, port, pathname } = uo;
+        const { protocol, hostname, port, pathname, search } = uo;
         return new Promise((resolve, reject) => {
             if (method === 'POST') {
                 if (!key) {
                     reject(new Error(`DataCollector: missing API key for ${uo.toString()}`));
                     return;
                 }
-                if (!/^[a-zA-Z0-9]+$/.test(key)) {
+                if (!isApiKeyFormat(key)) {
                     reject(new Error(`Invalid key format - API keys should be alphanumeric\nConsider using the bin/genApiKey utility`));
                     return;
                 }
             }
             const req = https.request({
                 protocol,
-                rejectUnauthorized: NODE_ENV === 'development' ? false : true,
+                rejectUnauthorized: shouldVerifyTLS(hostname),
                 hostname,
                 port,
                 method: method,
-                path: pathname,
+                path: pathname + search,
+                timeout: REQUEST_TIMEOUT_MS,
                 headers: method === 'POST' ? { 'Content-Type': 'application/json', 'X-Api-Key': key } : undefined
             }, (res) => {
+                res.setEncoding('utf8');
                 let data = '';
                 res.on('data', (chunk) => {
                     data += chunk;
@@ -113,6 +139,9 @@ export class DataCollector {
                     reject(new Error(`makeReq() request error`));
                 });
             });
+            req.on('timeout', () => {
+                req.destroy(new Error(`request to ${hostname} timed out after ${REQUEST_TIMEOUT_MS}ms`));
+            });
             req.on('error', e => {
                 req.end();
                 if (isHttpError(e) && e.code === 'ECONNREFUSED') {
@@ -131,16 +160,16 @@ export class DataCollector {
     }
     async get(location) {
         return await this.throttle(async () => {
-            return await this._reqJSON('GET', new URL(location));
+            return await this._reqJSON('GET', this.urlFor(location));
         });
     }
     async post(location, data, key) {
         return await this.throttle(async () => {
-            return await this._reqJSON('POST', new URL(location), data, key);
+            return await this._reqJSON('POST', this.urlFor(location), data, key);
         });
     }
     async sendHttps(targets, fPacket) {
-        log.debug(`to: ${JSON.stringify(targets)}`);
+        log.debug(targets);
         log.debug(fPacket);
         for (const { location, key } of targets) {
             try {
@@ -176,18 +205,16 @@ export class DataCollector {
         return this.shedTotal;
     }
     send(data) {
-        const { targets, keepRaw, ...rest } = this.params;
-        void targets;
-        for (const [key, value] of Object.entries(process.memoryUsage())) {
-            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
-        }
+        const { site, plugin, description, keepRaw } = this.params;
         const formattedData = this.format(data, new FormatHelper());
         if (Array.isArray(formattedData) && formattedData.length) {
             void this.dispatch({
+                site,
+                plugin,
+                description,
                 ts: new Date().toISOString(),
                 formattedData,
-                rawData: keepRaw ? data : null,
-                ...rest
+                rawData: keepRaw ? data : null
             });
         }
         else {
@@ -213,10 +240,11 @@ export class DataCollector {
 export class PollingCollector extends DataCollector {
     pollIntervalSec;
     timer;
+    pollStopped = false;
     constructor({ pollIntervalSec, ...params }) {
         super(params);
-        if (typeof pollIntervalSec !== 'number') {
-            throw new Error(`polling collectors require pollIntervalSec in constructor ${params.plugin}: ${params.description}`);
+        if (typeof pollIntervalSec !== 'number' || !Number.isFinite(pollIntervalSec) || pollIntervalSec < 1) {
+            throw new Error(`polling collectors require pollIntervalSec >= 1 in constructor ${params.plugin}: ${params.description}`);
         }
         this.pollIntervalSec = pollIntervalSec;
     }
@@ -224,16 +252,24 @@ export class PollingCollector extends DataCollector {
         return fh.e(data).done;
     }
     start() {
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+        this.runPoll();
+    }
+    runPoll() {
         try {
-            log.info(`started: ${this.params.plugin} [${this.params.description}]`);
             this.execPerInterval();
-            this.timer = setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
         }
         catch (err) {
             log.error(err);
         }
+        finally {
+            if (!this.pollStopped) {
+                this.timer = setTimeout(this.runPoll.bind(this), this.pollIntervalSec * 1000);
+            }
+        }
     }
     stop() {
+        this.pollStopped = true;
         if (this.timer)
             clearTimeout(this.timer);
     }
@@ -261,6 +297,8 @@ export class WebJSONCollector extends PollingCollector {
 export class SerialCollector extends DataCollector {
     port;
     parser;
+    closing = false;
+    reopenTimer;
     format(data, fh) {
         return fh.e(data).done;
     }
@@ -290,12 +328,44 @@ export class SerialCollector extends DataCollector {
             throw new Error(`expected numeric port speed in config for ${params.plugin}: ${params.description}`);
         this.port = this.openPort(path, baudRate);
         this.parser = this.port.pipe(this.fetchParser());
+        this.port.on('error', err => {
+            log.error(`${this.params.plugin} [${this.params.description}]: serial error: ${err.message}`);
+        });
+        this.parser.on('error', (err) => {
+            log.error(`${this.params.plugin} [${this.params.description}]: parser error: ${err.message}`);
+        });
+        this.port.on('close', (err) => {
+            if (this.closing)
+                return;
+            log.warn(`${this.params.plugin} [${this.params.description}]: serial port closed` +
+                `${err ? ` (${err.message})` : ''} - retrying open every ${SERIAL_REOPEN_MS / 1000}s`);
+            this.scheduleReopen();
+        });
+    }
+    scheduleReopen() {
+        this.reopenTimer = setTimeout(() => {
+            if (this.closing)
+                return;
+            this.port.open(err => {
+                if (err) {
+                    this.scheduleReopen();
+                }
+                else {
+                    this.port.unpipe(this.parser);
+                    this.port.pipe(this.parser);
+                    log.info(`${this.params.plugin} [${this.params.description}]: serial port reopened`);
+                }
+            });
+        }, SERIAL_REOPEN_MS);
     }
     start() {
         this.parser.on('data', this.send.bind(this));
         log.info(`started: ${this.params.plugin} [${this.params.description}]`);
     }
     stop() {
+        this.closing = true;
+        if (this.reopenTimer)
+            clearTimeout(this.reopenTimer);
         if (this.port.isOpen) {
             this.port.close();
         }

@@ -24,7 +24,7 @@ const versionFromPackageJson = () => __awaiter(void 0, void 0, void 0, function*
         return undefined;
     }
 });
-export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'];
+export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org', 'maxClientHistory'];
 export const confFromDOM = () => {
     const c = Object.assign(Object.assign({}, DEFAULTS), new DOMConfigUtil().conf);
     if (isConfigDataPopulated(c)) {

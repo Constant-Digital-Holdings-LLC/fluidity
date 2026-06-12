@@ -1,5 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
+import { isApiKeyFormat } from '#@shared/types.js';
 import { DataCollector, DataCollectorParams, isDataCollectorParams } from './collectors.js';
 
 //validates agent config and instantiates the configured collector plugins;
@@ -27,6 +28,14 @@ export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector
             `in main config: targets must be HTTPS and an Api Key needs to be specified: ${JSON.stringify(
                 targets.map(t => t.location)
             )}`
+        );
+    }
+
+    //a malformed key fails here, once, at startup - not as an endless
+    //per-packet rejection stream at runtime (same alphabet the server checks)
+    if (!targets.every(({ key }) => isApiKeyFormat(key))) {
+        throw new Error(
+            'in main config: target API keys must be alphanumeric - consider using the bin/genApiKey utility'
         );
     }
 

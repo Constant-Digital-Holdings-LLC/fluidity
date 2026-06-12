@@ -89,6 +89,27 @@ void test('untrusted field content is sanitized: no control chars or escape inje
     assert.ok(line.includes('EVIL[2JSITE'));
     assert.ok(line.includes('embedded [31minjection'));
 });
+void test('C1 controls (8-bit CSI/NEL) are stripped like C0', () => {
+    const p = {
+        ...packet,
+        formattedData: [{ suggestStyle: 0, field: 'x\u009b31mY\u0085z', fieldType: 'STRING' }]
+    };
+    const line = renderLine(p, opts('mono'));
+    assert.ok(!line.includes('\u009b'), '8-bit CSI stripped');
+    assert.ok(!line.includes('\u0085'), 'NEL stripped');
+    assert.ok(line.includes('x31mYz'));
+});
+void test('invalid timestamps render a marker, never the literal "Invalid Date"', () => {
+    const p = {
+        ...packet,
+        ts: 'not-a-timestamp',
+        formattedData: [{ suggestStyle: 3, field: 'also-not-a-date', fieldType: 'DATE' }]
+    };
+    const line = renderLine(p, opts('mono'));
+    assert.ok(line.startsWith('[--:--]'), `packet ts guarded: ${line}`);
+    assert.ok(line.endsWith('--:--'), 'DATE field guarded too');
+    assert.ok(!line.includes('Invalid Date'));
+});
 void test('golden capture renders at every tier without error; mono stays escape-free', () => {
     const fixturePath = fileURLToPath(new URL('../../../sims/fixtures/fy-io-fifo-capture-2026-06-11.json', import.meta.url));
     const capture = JSON.parse(readFileSync(fixturePath, 'utf8'));

@@ -5,19 +5,24 @@ export const parseKeys = (chunk) => {
     while (i < s.length) {
         const c = s[i] ?? '';
         if (c === '\x1b' && s[i + 1] === '[') {
-            const code = s[i + 2] ?? '';
-            const seq3 = { A: 'up', B: 'down' };
-            if (seq3[code]) {
-                keys.push({ name: seq3[code] });
-                i += 3;
+            let j = i + 2;
+            while (j < s.length && s.charCodeAt(j) >= 0x30 && s.charCodeAt(j) <= 0x3f)
+                j++;
+            while (j < s.length && s.charCodeAt(j) >= 0x20 && s.charCodeAt(j) <= 0x2f)
+                j++;
+            if (j >= s.length) {
+                i = s.length;
                 continue;
             }
-            if ((code === '5' || code === '6') && s[i + 3] === '~') {
-                keys.push({ name: code === '5' ? 'pageUp' : 'pageDown' });
-                i += 4;
-                continue;
+            const body = s.slice(i + 2, j);
+            const final = s[j] ?? '';
+            if (body === '' && (final === 'A' || final === 'B')) {
+                keys.push({ name: final === 'A' ? 'up' : 'down' });
             }
-            i += 2;
+            else if (final === '~' && (body === '5' || body === '6')) {
+                keys.push({ name: body === '5' ? 'pageUp' : 'pageDown' });
+            }
+            i = j + 1;
             continue;
         }
         switch (c) {

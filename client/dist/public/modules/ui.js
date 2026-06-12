@@ -1,7 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-import { isFluidityLink } from '#@shared/types.js';
+import { isFluidityLink, decodeSuggestStyle } from '#@shared/types.js';
 import { livenessOf } from './pulse.js';
 import { typeIn } from './typewriter.js';
 const conf = inBrowser() ? confFromDOM() : undefined;
@@ -130,7 +130,7 @@ class FilterManager {
     clickHandler(e) {
         var _a;
         const extractUnique = (type, id) => {
-            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+            const match = id.match(new RegExp(`filter-${type.toLowerCase()}-(.*)`));
             if (Array.isArray(match) && match.length) {
                 return match[1];
             }
@@ -176,6 +176,25 @@ class FilterManager {
             dot.classList.add(`live-dot--${livenessOf(seen, now)}`);
         }
     }
+    indexAdd(index, key, seq) {
+        const seqs = index.get(key);
+        if (seqs) {
+            seqs.add(seq);
+        }
+        else {
+            index.set(key, new Set([seq]));
+        }
+    }
+    indexRemove(index, key, seq) {
+        if (key === undefined)
+            return;
+        const seqs = index.get(key);
+        if (!seqs)
+            return;
+        seqs.delete(seq);
+        if (!seqs.size)
+            index.delete(key);
+    }
     index(fp) {
         var _a;
         const seenAt = new Date(fp.ts).getTime();
@@ -185,33 +204,26 @@ class FilterManager {
                 this.siteLastSeen.set(fp.site, seenAt);
         }
         if (fp.seq) {
-            if (this.siteIndex.has(fp.site)) {
-                const old = this.siteIndex.get(fp.site);
-                if (old) {
-                    this.siteIndex.set(fp.site, old.add(fp.seq));
-                }
-            }
-            else {
-                this.siteIndex.set(fp.site, new Set([fp.seq]));
-            }
-            if (this.collectorIndex.has(fp.plugin)) {
-                const old = this.collectorIndex.get(fp.plugin);
-                if (old) {
-                    this.collectorIndex.set(fp.plugin, old.add(fp.seq));
-                }
-            }
-            else {
-                this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
-            }
+            this.indexAdd(this.siteIndex, fp.site, fp.seq);
+            this.indexAdd(this.collectorIndex, fp.plugin, fp.seq);
         }
     }
+    deindex(site, collector, seq) {
+        if (!Number.isFinite(seq))
+            return;
+        this.indexRemove(this.siteIndex, site, seq);
+        this.indexRemove(this.collectorIndex, collector, seq);
+    }
     renderType(type, fp) {
-        const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
+        const unique = type === 'COLLECTOR' ? fp.plugin : fp.site;
+        if (document.getElementById(`filter-${type.toLowerCase()}-${unique}`))
+            return;
+        const ul = document.getElementById(`${type.toLowerCase()}-filter-list`);
         const li = document.createElement('li');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
         a.href = '#0';
-        a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        a.classList.add(`${type.toLowerCase()}-filter-link`, 'filter-link');
         a.setAttribute('role', 'button');
         a.setAttribute('aria-pressed', 'false');
         typeIcon.classList.add('fa-solid');
@@ -247,28 +259,33 @@ class FilterManager {
 const TYPE_BYPASS_PER_SEC = 6;
 export class FluidityUI {
     constructor(history) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         this.history = history;
         this.highestScrollPos = 0;
         this.liveArrivals = [];
         this.typeFn = typeIn;
         this.now = () => performance.now();
         this.lastVh = window.innerHeight;
-        this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
+        this.demarc = (_b = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq) !== null && _b !== void 0 ? _b : 0;
         this.fm = new FilterManager({
             onLinkClick: this.scrollReset.bind(this)
         });
         this.packetSet('history', history);
-        this.fm.refreshLiveness();
+        this.flushFrame();
         const tick = setInterval(() => this.fm.refreshLiveness(), 15000);
-        (_c = (_b = tick).unref) === null || _c === void 0 ? void 0 : _c.call(_b);
-        (_d = document.getElementById('logo-link')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', e => {
+        (_d = (_c = tick).unref) === null || _d === void 0 ? void 0 : _d.call(_c);
+        (_e = document.getElementById('logo-link')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', e => {
             e.preventDefault();
             this.autoScroll();
         });
     }
     refreshLiveness(now) {
-        now === undefined ? this.fm.refreshLiveness() : this.fm.refreshLiveness(now);
+        this.fm.refreshLiveness(now);
+    }
+    flushFrame() {
+        this.autoScrollRequest();
+        this.fm.renderFilterStats();
+        this.fm.refreshLiveness();
     }
     scrollReset() {
         this.highestScrollPos = 0;
@@ -307,27 +324,33 @@ export class FluidityUI {
     }
     renderFormattedData(fArr) {
         const renderFormattedFrag = document.createDocumentFragment();
+        const styleClasses = (suggestStyle) => {
+            const { color, trim } = decodeSuggestStyle(suggestStyle);
+            return trim ? [`fp-color-${color}`, 'fp-trim'] : [`fp-color-${color}`];
+        };
         const markupStringType = (field, suggestStyle = 0) => {
             const stringFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = field;
-            span.classList.add('fp-line', 'fp-string');
-            if (suggestStyle >= 100) {
-                span.classList.add('fp-trim', `fp-color-${suggestStyle % 10}`);
-            }
-            else {
-                span.classList.add(`fp-color-${suggestStyle}`);
-            }
+            span.classList.add('fp-line', 'fp-string', ...styleClasses(suggestStyle));
             stringFrag.appendChild(span);
             return stringFrag;
         };
         const markupLinkType = (field, suggestStyle = 0) => {
             const linkFrag = document.createDocumentFragment();
+            if (!/^https?:\/\//i.test(field.location)) {
+                const span = document.createElement('span');
+                span.innerText = field.name;
+                span.classList.add('fp-line', 'fp-string', ...styleClasses(suggestStyle));
+                linkFrag.appendChild(span);
+                return linkFrag;
+            }
             const a = document.createElement('a');
             a.href = field.location;
             a.innerText = field.name;
-            a.classList.add('fp-line', 'fp-link', `fp-color-${suggestStyle}`);
+            a.classList.add('fp-line', 'fp-link', ...styleClasses(suggestStyle));
             a.setAttribute('target', '_blank');
+            a.rel = 'noopener noreferrer';
             linkFrag.appendChild(a);
             return linkFrag;
         };
@@ -335,7 +358,7 @@ export class FluidityUI {
             const dateFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = safeTime(field, { hour: '2-digit', minute: '2-digit' });
-            span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
+            span.classList.add('fp-line', 'fp-date', ...styleClasses(suggestStyle));
             dateFrag.appendChild(span);
             return dateFrag;
         };
@@ -362,12 +385,14 @@ export class FluidityUI {
         const mainFrag = document.createDocumentFragment();
         const div = document.createElement('div');
         div.classList.add('fluidity-packet');
+        div.dataset['site'] = fp.site;
+        div.dataset['collector'] = fp.plugin;
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
+            div.dataset['seq'] = String(fp.seq);
         }
         this.fm.renderFilterLinks(fp);
         this.fm.filtersClicked() && this.fm.applyVisibility(div);
-        this.fm.renderFilterStats();
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
         oBracket.innerText = '[';
@@ -400,16 +425,25 @@ export class FluidityUI {
         mainFrag.appendChild(div);
         return mainFrag;
     }
+    evictOldest(container) {
+        const victim = container.firstChild;
+        if (!victim)
+            return;
+        if (victim instanceof HTMLElement) {
+            const { site, collector, seq } = victim.dataset;
+            this.fm.deindex(site, collector, Number(seq));
+        }
+        container.removeChild(victim);
+    }
     packetSet(pos, fpArr) {
-        var _a;
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
-        const maxCount = (_a = conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) !== null && _a !== void 0 ? _a : 4000;
+        const maxCount = Number(conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) || 4000;
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
-                    if (history.firstChild && history.childElementCount > maxCount) {
-                        history.removeChild(history.firstChild);
+                    if (history.childElementCount > maxCount) {
+                        this.evictOldest(history);
                     }
                     history.appendChild(this.packetRender(fp));
                     if (history.lastChild instanceof HTMLElement) {
@@ -418,13 +452,13 @@ export class FluidityUI {
                 }
                 else if (pos === 'current') {
                     if (history.childElementCount > 0) {
-                        if (history.firstChild && history.childElementCount + current.childElementCount >= maxCount) {
-                            history.removeChild(history.firstChild);
+                        if (history.childElementCount + current.childElementCount >= maxCount) {
+                            this.evictOldest(history);
                         }
                     }
                     else {
-                        if (current.firstChild && current.childElementCount >= maxCount) {
-                            current.removeChild(current.firstChild);
+                        if (current.childElementCount >= maxCount) {
+                            this.evictOldest(current);
                         }
                     }
                     current.appendChild(this.packetRender(fp));
@@ -434,7 +468,6 @@ export class FluidityUI {
                         }
                     }
                 }
-                this.autoScrollRequest();
             });
         }
     }
@@ -455,7 +488,6 @@ export class FluidityUI {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
                 this.packetSet('current', [fp]);
-                this.fm.refreshLiveness();
             }
         }
     }

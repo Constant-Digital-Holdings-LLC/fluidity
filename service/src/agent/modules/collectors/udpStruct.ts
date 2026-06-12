@@ -2,7 +2,7 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { FormattedData } from '#@shared/types.js';
 import { siphash24, macEqual, sipKeyFromHex } from '#@sims/siphash.js';
-import { DataCollector, DataCollectorParams } from '../collectors.js';
+import { DataCollector, DataCollectorParams, extOpt } from '../collectors.js';
 import { decodeFluPacket, FluDecoded, FluDecodeOptions, FluDropReason, FLU_DEFAULT_PORT } from '../udpCodec.js';
 import dgram from 'node:dgram';
 
@@ -35,6 +35,12 @@ const MAX_SOURCES = 1024;
 //holds the shared secret and the window is moot anyway
 const MAX_DEVICES = 4096;
 
+//re-anchoring on any coherent reject pair would let a captured signed pair
+//steal the anchor and replay a whole captured run; an arbitrary-seq coherent
+//run must instead sustain this many consecutive rejects before the window
+//re-anchors (recovery for a device whose boot burst the agent missed)
+const RECOVERY_STREAK = 8;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default class UdpStructCollector extends DataCollector {
@@ -47,9 +53,8 @@ export default class UdpStructCollector extends DataCollector {
     private readonly decodeOpts: FluDecodeOptions | undefined;
     private readonly socket: dgram.Socket;
     private readonly bound: Promise<number>;
-    private readonly counts = new Map<UdpCountReason, number>();
     private readonly sourceDrops = new Map<string, number>();
-    private readonly seqState = new Map<string, { last: number; lastReject: number | null }>();
+    private readonly seqState = new Map<string, { last: number; lastReject: number | null; rejectStreak: number }>();
     private sourceTableFull = false;
     private seqTableFull = false;
 
@@ -78,32 +83,32 @@ export default class UdpStructCollector extends DataCollector {
         let requireMac = false;
         let replayWindow: number | undefined;
 
-        if (eo && typeof eo === 'object') {
-            if ('secret' in eo && eo.secret !== undefined) {
-                const parsed = typeof eo.secret === 'string' ? sipKeyFromHex(eo.secret) : null;
-                if (!parsed) {
-                    throw new Error(
-                        `udpStruct [${params.description}]: secret must be exactly 32 hex chars ` +
-                            `(a 16-byte SipHash key; generate one with: openssl rand -hex 16)`
-                    );
-                }
-                key = parsed;
+        const secret = extOpt(eo, 'secret');
+        if (secret !== undefined) {
+            const parsed = typeof secret === 'string' ? sipKeyFromHex(secret) : null;
+            if (!parsed) {
+                throw new Error(
+                    `udpStruct [${params.description}]: secret must be exactly 32 hex chars ` +
+                        `(a 16-byte SipHash key; generate one with: openssl rand -hex 16)`
+                );
             }
+            key = parsed;
+        }
 
-            if ('requireMac' in eo && eo.requireMac !== undefined) {
-                if (typeof eo.requireMac !== 'boolean') {
-                    throw new Error(`udpStruct [${params.description}]: requireMac must be a boolean`);
-                }
-                requireMac = eo.requireMac;
+        const requireMacOpt = extOpt(eo, 'requireMac');
+        if (requireMacOpt !== undefined) {
+            if (typeof requireMacOpt !== 'boolean') {
+                throw new Error(`udpStruct [${params.description}]: requireMac must be a boolean`);
             }
+            requireMac = requireMacOpt;
+        }
 
-            if ('replayWindow' in eo && eo.replayWindow !== undefined) {
-                const rw = eo.replayWindow;
-                if (typeof rw !== 'number' || !Number.isInteger(rw) || rw < 1 || rw > 1024) {
-                    throw new Error(`udpStruct [${params.description}]: replayWindow must be an integer 1..1024`);
-                }
-                replayWindow = rw;
+        const rw = extOpt(eo, 'replayWindow');
+        if (rw !== undefined) {
+            if (typeof rw !== 'number' || !Number.isInteger(rw) || rw < 1 || rw > 1024) {
+                throw new Error(`udpStruct [${params.description}]: replayWindow must be an integer 1..1024`);
             }
+            replayWindow = rw;
         }
 
         if (requireMac && !key) {
@@ -119,14 +124,17 @@ export default class UdpStructCollector extends DataCollector {
         this.key = key;
         this.requireMac = requireMac;
         this.replayWindow = replayWindow;
+        //missing-trailer policy lives in the codec (§6 step 5) so unsigned
+        //datagrams in MAC mode drop as bad-mac before the structural checks
         this.decodeOpts = key
-            ? { verifyMac: (signed, mac): boolean => macEqual(siphash24(key, signed), mac) }
+            ? { verifyMac: (signed, mac): boolean => macEqual(siphash24(key, signed), mac), requireMac }
             : undefined;
 
         let siteFromPacket = true;
-        if (eo && typeof eo === 'object' && 'siteFromPacket' in eo && eo.siteFromPacket !== undefined) {
-            if (typeof eo.siteFromPacket === 'boolean') {
-                siteFromPacket = eo.siteFromPacket;
+        const sfp = extOpt(eo, 'siteFromPacket');
+        if (sfp !== undefined) {
+            if (typeof sfp === 'boolean') {
+                siteFromPacket = sfp;
             } else {
                 log.warn(
                     `udpStruct [${params.description}]: invalid siteFromPacket in extendedOptions ` +
@@ -142,11 +150,6 @@ export default class UdpStructCollector extends DataCollector {
             this.socket.once('error', reject);
         });
         this.bound.catch(() => undefined); //observed via ready(); never unhandled
-    }
-
-    //counter surface shared with the hardened srsSerial collector
-    public get dropCounts(): ReadonlyMap<string, number> {
-        return this.counts;
     }
 
     //resolves with the bound port once listening (tests bind port 0)
@@ -207,8 +210,8 @@ export default class UdpStructCollector extends DataCollector {
     }
 
     private note(reason: UdpCountReason, rinfo: dgram.RemoteInfo, bytes: number, accepted = false): void {
-        const n = (this.counts.get(reason) ?? 0) + 1;
-        this.counts.set(reason, n);
+        //counts live on the DataCollector base (one surface for all collectors)
+        const n = this.noteDrop(reason);
 
         //damping is keyed by address alone: a rebooting device changes its
         //ephemeral source port every boot and must not dodge the damper
@@ -238,11 +241,16 @@ export default class UdpStructCollector extends DataCollector {
 
     //strict device_seq window (UDP-SPEC s4, resolved decision 3): accept only
     //seqs advancing 1..window past the anchor, mod 2^16. Out-of-window seqs
-    //are rejected, but two *coherent* consecutive rejects (the second
-    //advancing 1..window past the first - a device counting up from a reset)
-    //re-anchor the window, so a reboot costs exactly one packet and firmware
-    //needs no persistent counter. Known limit, documented in the spec: a
-    //captured consecutive signed pair can force one stale line through.
+    //are rejected; the window re-anchors on a *coherent* reject run (each
+    //reject advancing 1..window past the previous), but only when the run is
+    //consistent with a device reset (low absolute seq) or has persisted for
+    //RECOVERY_STREAK rejects. A reboot therefore costs one packet and
+    //firmware needs no persistent counter, while a captured signed pair can
+    //no longer steal the anchor and replay a whole captured run - an
+    //arbitrary-seq replay must burn RECOVERY_STREAK datagrams per steal and
+    //the genuine feed re-anchors back the same way. Residual exposure
+    //(documented in the spec): replay of a capture of the device's first
+    //~2xwindow packets after a boot.
     private acceptSeq(p: FluDecoded): boolean {
         const win = this.replayWindow ?? 0;
         //NUL separator cannot collide: the codec strips control chars from names
@@ -260,7 +268,7 @@ export default class UdpStructCollector extends DataCollector {
                 }
                 return true;
             }
-            this.seqState.set(id, { last: p.deviceSeq, lastReject: null });
+            this.seqState.set(id, { last: p.deviceSeq, lastReject: null, rejectStreak: 0 });
             return true;
         }
 
@@ -268,23 +276,46 @@ export default class UdpStructCollector extends DataCollector {
         if (delta >= 1 && delta <= win) {
             st.last = p.deviceSeq;
             st.lastReject = null;
+            st.rejectStreak = 0;
             return true;
         }
 
         if (st.lastReject !== null) {
             const stride = (p.deviceSeq - st.lastReject) & 0xffff;
             if (stride >= 1 && stride <= win) {
-                st.last = p.deviceSeq; //second coherent reject: device reset, re-anchor
-                st.lastReject = null;
-                return true;
+                st.rejectStreak++;
+                //a device counting up from reset re-enters at a low seq; an
+                //arbitrary-seq coherent run must persist before it re-anchors
+                if (p.deviceSeq <= 2 * win || st.rejectStreak >= RECOVERY_STREAK) {
+                    st.last = p.deviceSeq;
+                    st.lastReject = null;
+                    st.rejectStreak = 0;
+                    log.info(
+                        `udpStruct [${this.params.description}]: re-anchored seq window for ` +
+                            `${p.site}/${p.plugin} at ${p.deviceSeq} (device reset?)`
+                    );
+                    return true;
+                }
+                st.lastReject = p.deviceSeq;
+                return false;
             }
+            st.rejectStreak = 0;
         }
         st.lastReject = p.deviceSeq;
+        st.rejectStreak = 1;
         return false;
     }
 
     private ingest(msg: Buffer, rinfo: dgram.RemoteInfo): void {
         const result = decodeFluPacket(msg, this.decodeOpts);
+
+        //migration mode counts every unsigned datagram (s6 step 5) - the
+        //malformed ones too, which the codec reports via hasMac on failures;
+        //in MAC mode the codec itself drops missing trailers as bad-mac
+        const hasMac = result.ok ? result.packet.hasMac : result.hasMac;
+        if (this.key && !this.requireMac && hasMac === false) {
+            this.note('unsigned', rinfo, msg.length, result.ok);
+        }
 
         if (!result.ok) {
             this.note(result.reason, rinfo, msg.length);
@@ -292,16 +323,6 @@ export default class UdpStructCollector extends DataCollector {
         }
 
         const p = result.packet;
-
-        //MAC presence policy (s4): in MAC mode a missing trailer is as bad as
-        //a wrong one; in migration mode it is accepted and counted 'unsigned'
-        if (this.key && !p.hasMac) {
-            if (this.requireMac) {
-                this.note('bad-mac', rinfo, msg.length);
-                return;
-            }
-            this.note('unsigned', rinfo, msg.length, true);
-        }
 
         //replay window applies only to MAC-verified packets - an unsigned
         //sequence number is an attacker-chosen value, not evidence

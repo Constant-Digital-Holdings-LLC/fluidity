@@ -10,6 +10,7 @@ export interface StreamOpts {
     historyLimit: number;
     out: (line: string) => void;
     status: (state: ConnState, detail?: string) => void;
+    onMalformed?: (total: number) => void;
     backoffBaseMs?: number;
 }
 export declare const runStream: (o: StreamOpts) => FollowHandle;

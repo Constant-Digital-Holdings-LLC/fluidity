@@ -149,12 +149,22 @@ void test('udpCodec: every drop reason fires on its own malformation', () => {
     assert.equal(reasonOf(badSite), 'bad-encoding');
     const badText = good();
     badText[FLU_HEADER_BYTES + 2] = 0xc3;
-    badText[FLU_HEADER_BYTES + 3] = 0x00;
+    badText[FLU_HEADER_BYTES + 3] = 0x28;
     assert.equal(reasonOf(badText), 'bad-encoding');
     assert.equal(reasonOf(encodeFluPacket({ site: ' ', plugin: 'p', fields: [{ style: 0, text: 'x' }] })), 'bad-identity');
     assert.equal(reasonOf(encodeFluPacket({ site: 's', plugin: '\x02', fields: [{ style: 0, text: 'x' }] })), 'bad-identity');
     assert.equal(decodeOk(encodeFluPacket({ site: 's', plugin: 'p', description: '', fields: [{ style: 0, text: 'x' }] }))
         .description, '');
+});
+void test('udpCodec: a multibyte char cut by sender width truncation is trimmed, not dropped', () => {
+    const buf = encodeFluPacket({ site: 'cafe', plugin: 'p', fields: [{ style: 0, text: 'x' }] });
+    buf[16] = 0xc3;
+    const p = decodeOk(buf);
+    assert.equal(p.site, 'cafe', 'the dangling lead byte is trimmed');
+    const buf3 = encodeFluPacket({ site: 'ab', plugin: 'p', fields: [{ style: 0, text: 'x' }] });
+    buf3[14] = 0xe2;
+    buf3[15] = 0x80;
+    assert.equal(decodeOk(buf3).site, 'ab');
 });
 void test('udpCodec: encoder refuses what the wire cannot carry', () => {
     assert.throws(() => encodeFluPacket({ site: 's', plugin: 'p', fields: [] }), /field count/);

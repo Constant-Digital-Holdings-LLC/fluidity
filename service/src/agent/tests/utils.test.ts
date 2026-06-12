@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prettyFsNotFound, isErrnoException, isJSONString, counter } from '#@shared/modules/utils.js';
+import { prettyFsNotFound, isErrnoException, nodeEnv, counter } from '#@shared/modules/utils.js';
 
 //coverage for shared/utils - prettyFsNotFound was under-tested (54%) and the
 //audit fixed an unsettled-promise path in it; pin its behavior here.
@@ -32,11 +32,10 @@ void test('isErrnoException recognizes errors carrying code/errno', () => {
     assert.equal(isErrnoException(new Error('plain')), false);
 });
 
-void test('isJSONString distinguishes valid JSON from garbage', () => {
-    assert.equal(isJSONString('{"a":1}'), true);
-    assert.equal(isJSONString('[]'), true);
-    assert.equal(isJSONString('not json'), false);
-    assert.equal(isJSONString('{unclosed'), false);
+void test('nodeEnv classifies the environment (development only when explicit)', () => {
+    //the same helper gates the agent's TLS verification and the config
+    //loader's file choice - it must read NODE_ENV one way, everywhere
+    assert.equal(nodeEnv(), process.env['NODE_ENV'] === 'development' ? 'development' : 'production');
 });
 
 void test('counter yields a monotonic sequence from 1', () => {

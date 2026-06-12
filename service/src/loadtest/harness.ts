@@ -42,13 +42,14 @@ export interface LoadtestReport {
     offeredPps: number;
     durationSec: number;
     agent: {
-        processed: number; //published upstream (valid, under the throttle)
+        //the collector surfaces only failure accounting (dropCounts + shed);
+        //the success count is server.posts, measured where it lands
         drops: Record<string, number>;
         shed: number;
         loopMeanMs: number;
         loopMaxMs: number;
     };
-    server: { posts: number };
+    server: { posts: number }; //POSTs completed with a 2xx response
     sse: { clients: number; frames: number; latP50Ms: number; latP95Ms: number } | null;
     memoryMB: { rss: number; heap: number };
 }
@@ -56,7 +57,8 @@ export interface LoadtestReport {
 const pct = (arr: number[], p: number): number => {
     if (!arr.length) return 0;
     const s = [...arr].sort((a, b) => a - b);
-    return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))] ?? 0;
+    //nearest-rank: 1-based rank ceil(p/100 * N), clamped into the array
+    return s[Math.min(s.length - 1, Math.max(0, Math.ceil((p / 100) * s.length) - 1))] ?? 0;
 };
 
 export const runLoadtest = async (opts: LoadtestOptions = {}): Promise<LoadtestReport> => {
@@ -81,8 +83,12 @@ export const runLoadtest = async (opts: LoadtestOptions = {}): Promise<LoadtestR
 
     let posts = 0;
     const server = https.createServer(tls, makeApp(conf));
-    server.on('request', req => {
-        if (req.method === 'POST') posts++;
+    //count a post only once its response completes with success: at header
+    //arrival nothing has been validated yet, and a 400 must not count
+    server.on('request', (req, res) => {
+        res.on('finish', () => {
+            if (req.method === 'POST' && res.statusCode < 300) posts++;
+        });
     });
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
@@ -145,46 +151,51 @@ export const runLoadtest = async (opts: LoadtestOptions = {}): Promise<LoadtestR
     const eld = monitorEventLoopDelay({ resolution: 10 });
     eld.enable();
 
-    const report = await runUdpStress({
-        port: udpPort,
-        rate,
-        durationSec,
-        devices: opts.devices ?? 50,
-        mix: opts.mix ?? { valid: 100 },
-        ...(secret ? { secret } : {}),
-        seed: opts.seed ?? 0xc0ffee
-    }).done;
+    try {
+        const report = await runUdpStress({
+            port: udpPort,
+            rate,
+            durationSec,
+            devices: opts.devices ?? 50,
+            mix: opts.mix ?? { valid: 100 },
+            ...(secret ? { secret } : {}),
+            seed: opts.seed ?? 0xc0ffee
+        }).done;
 
-    await sleep(1500); //drain the upstream backlog
-    eld.disable();
+        await sleep(1500); //drain the upstream backlog
+        eld.disable();
 
-    const drops: Record<string, number> = {};
-    for (const [k, v] of collector.dropCounts) drops[k] = v;
-    //udpStruct attributes its backpressure in dropCounts (pre-empting the base
-    //path, so base shedTotal stays 0); fold both into one shed figure and keep
-    //`drops` to validation reasons only, so the report can't read contradictory
-    const shed = (drops['backpressure'] ?? 0) + collector.backpressureShed;
-    delete drops['backpressure'];
-    const mem = process.memoryUsage();
+        const drops: Record<string, number> = {};
+        for (const [k, v] of collector.dropCounts) drops[k] = v;
+        //udpStruct attributes its backpressure in dropCounts (pre-empting the base
+        //path, so base shedTotal stays 0); fold both into one shed figure and keep
+        //`drops` to validation reasons only, so the report can't read contradictory
+        const shed = (drops['backpressure'] ?? 0) + collector.backpressureShed;
+        delete drops['backpressure'];
+        const mem = process.memoryUsage();
 
-    collector.stop();
-    sseReqs.forEach(r => r.destroy());
-    sseAgent.destroy();
-    await new Promise<void>(resolve => server.close(() => resolve()));
-
-    return {
-        offered: report.totalSent,
-        offeredPps: report.achievedPps,
-        durationSec,
-        agent: {
-            processed: posts,
-            drops,
-            shed,
-            loopMeanMs: +(eld.mean / 1e6).toFixed(2),
-            loopMaxMs: +(eld.max / 1e6).toFixed(2)
-        },
-        server: { posts },
-        sse: sseClients ? { clients: sseClients, frames, latP50Ms: pct(lat, 50), latP95Ms: pct(lat, 95) } : null,
-        memoryMB: { rss: +(mem.rss / 1048576).toFixed(1), heap: +(mem.heapUsed / 1048576).toFixed(1) }
-    };
+        return {
+            offered: report.totalSent,
+            offeredPps: report.achievedPps,
+            durationSec,
+            agent: {
+                drops,
+                shed,
+                loopMeanMs: +(eld.mean / 1e6).toFixed(2),
+                loopMaxMs: +(eld.max / 1e6).toFixed(2)
+            },
+            server: { posts },
+            sse: sseClients ? { clients: sseClients, frames, latP50Ms: pct(lat, 50), latP95Ms: pct(lat, 95) } : null,
+            memoryMB: { rss: +(mem.rss / 1048576).toFixed(1), heap: +(mem.heapUsed / 1048576).toFixed(1) }
+        };
+    } finally {
+        //teardown on every path - a throw mid-run must not leak the listening
+        //server, the collector's UDP socket, or the SSE clients (node:test
+        //would hang on the live handles); the original error rethrows
+        eld.disable();
+        collector.stop();
+        sseReqs.forEach(r => r.destroy());
+        sseAgent.destroy();
+        await new Promise<void>(resolve => server.close(() => resolve()));
+    }
 };

@@ -1,3 +1,4 @@
+import { stripControlChars } from '#@shared/types.js';
 export const FLU_MAGIC = 0x31554c46;
 export const FLU_VERSION = 1;
 export const FLU_F_TS = 0x01;
@@ -12,14 +13,35 @@ export const FLU_MAC_BYTES = 8;
 export const FLU_MAX_DATAGRAM = FLU_FULL_BYTES + FLU_MAC_BYTES;
 export const FLU_DEFAULT_PORT = 17996;
 const utf8Strict = new TextDecoder('utf-8', { fatal: true });
+const trimIncompleteUtf8Tail = (bytes) => {
+    let i = bytes.length - 1;
+    let cont = 0;
+    while (i >= 0 && cont < 3 && ((bytes[i] ?? 0) & 0xc0) === 0x80) {
+        i--;
+        cont++;
+    }
+    if (i < 0)
+        return bytes;
+    const lead = bytes[i] ?? 0;
+    let need = 0;
+    if ((lead & 0xe0) === 0xc0)
+        need = 1;
+    else if ((lead & 0xf0) === 0xe0)
+        need = 2;
+    else if ((lead & 0xf8) === 0xf0)
+        need = 3;
+    else
+        return bytes;
+    return cont >= need ? bytes : bytes.subarray(0, i);
+};
 const decodeName = (buf, offset, width) => {
     let end = offset;
     const limit = offset + width;
     while (end < limit && buf[end] !== 0)
         end++;
     try {
-        const text = utf8Strict.decode(buf.subarray(offset, end));
-        return text.replace(/[\x00-\x1f\x7f]/g, '').trim();
+        const text = utf8Strict.decode(trimIncompleteUtf8Tail(buf.subarray(offset, end)));
+        return stripControlChars(text).trim();
     }
     catch {
         return null;
@@ -42,32 +64,35 @@ export const decodeFluPacket = (buf, opts) => {
     const compact = buf.length === FLU_HEADER_BYTES + fieldCount * FLU_FIELD_BYTES + macLen;
     const full = buf.length === FLU_FULL_BYTES + macLen;
     if (!compact && !full) {
-        return { ok: false, reason: 'bad-length' };
+        return { ok: false, reason: 'bad-length', hasMac };
     }
     if (hasMac && opts?.verifyMac) {
         const split = buf.length - FLU_MAC_BYTES;
         if (!opts.verifyMac(buf.subarray(0, split), buf.subarray(split))) {
-            return { ok: false, reason: 'bad-mac' };
+            return { ok: false, reason: 'bad-mac', hasMac };
         }
     }
+    if (!hasMac && opts?.requireMac) {
+        return { ok: false, reason: 'bad-mac', hasMac };
+    }
     if (fieldCount < 1 || fieldCount > FLU_MAX_FIELDS) {
-        return { ok: false, reason: 'bad-fields' };
+        return { ok: false, reason: 'bad-fields', hasMac };
     }
     const site = decodeName(buf, 12, FLU_NAME_BYTES);
     const plugin = decodeName(buf, 28, FLU_NAME_BYTES);
     const description = decodeName(buf, 44, FLU_NAME_BYTES);
     if (site === null || plugin === null || description === null) {
-        return { ok: false, reason: 'bad-encoding' };
+        return { ok: false, reason: 'bad-encoding', hasMac };
     }
     if (site.length === 0 || plugin.length === 0) {
-        return { ok: false, reason: 'bad-identity' };
+        return { ok: false, reason: 'bad-identity', hasMac };
     }
     const fields = [];
     for (let i = 0; i < fieldCount; i++) {
         const base = FLU_HEADER_BYTES + i * FLU_FIELD_BYTES;
         const text = decodeName(buf, base + 2, FLU_FIELD_TEXT);
         if (text === null) {
-            return { ok: false, reason: 'bad-encoding' };
+            return { ok: false, reason: 'bad-encoding', hasMac };
         }
         fields.push({ style: buf[base] ?? 0, text });
     }

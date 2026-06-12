@@ -4,6 +4,7 @@ import { FilterSpec, matchesFilters } from './filters.js';
 import { ConnState } from './transport.js';
 import { Key } from './keys.js';
 import { RenderedParts } from './renderLine.js';
+import { visibleLength } from './ansiText.js';
 
 //pure UI state + reducer; screen.ts turns this into a frame
 
@@ -36,6 +37,7 @@ export interface UIState {
     //rate strip: series provided by the orchestrator before each repaint
     rateSeries: number[];
     pulseWindowIdx: number;
+    malformed: number; //dropped SSE payloads, surfaced in the header (SPEC.md §8)
     filters: FilterSpec;
     group: FilterGroup;
     columns: ColumnWidths; //widest seen so far; the whole window realigns as they grow
@@ -58,6 +60,7 @@ export const initialState = (cols: number, rows: number, serverHost: string, his
     siteLastSeen: new Map(),
     rateSeries: [],
     pulseWindowIdx: 0,
+    malformed: 0,
     filters: { sites: [], collectors: [] },
     group: 'sites',
     columns: { time: 0, site: 0, desc: 0 },
@@ -83,16 +86,19 @@ export const addPacket = (st: UIState, p: FluidityPacket, parts: RenderedParts):
         st.siteLastSeen.set(p.site, seenAt);
     }
 
+    //terminal columns, not code units - CJK/emoji sites are 2 cells per glyph
     st.columns = {
-        time: Math.max(st.columns.time, parts.time.length),
-        site: Math.max(st.columns.site, parts.site.length),
-        desc: Math.max(st.columns.desc, parts.desc.length)
+        time: Math.max(st.columns.time, visibleLength(parts.time)),
+        site: Math.max(st.columns.site, visibleLength(parts.site)),
+        desc: Math.max(st.columns.desc, visibleLength(parts.desc))
     };
 };
 
 export const visibleEntries = (st: UIState): Entry[] => {
     const upTo = st.paused ? st.entries.slice(0, st.pausedAtCount) : st.entries;
-    return upTo.filter(e => matchesFilters({ site: e.site, plugin: e.plugin } as FluidityPacket, st.filters));
+    //no filters: skip the per-repaint full-array filter (20x/s on 4000 entries)
+    if (st.filters.sites.length === 0 && st.filters.collectors.length === 0) return upTo;
+    return upTo.filter(e => matchesFilters(e, st.filters));
 };
 
 export const pendingWhilePaused = (st: UIState): number => (st.paused ? st.entries.length - st.pausedAtCount : 0);
@@ -160,6 +166,7 @@ export const handleKey = (st: UIState, key: Key): void => {
             break;
         case 'clear':
             st.filters = { sites: [], collectors: [] };
+            st.scrollOffset = 0; //filter changes re-pin, like the web client
             break;
         case 'window':
             st.pulseWindowIdx = (st.pulseWindowIdx + 1) % PULSE_WINDOWS.length;

@@ -6,6 +6,7 @@ import {
     FormattedData,
     FluidityPacket,
     isFfluidityPacket,
+    isApiKeyFormat,
     PublishTarget,
     StringAble,
     NodeEnv,
@@ -13,6 +14,7 @@ import {
     FluidityLink,
     isObject
 } from '#@shared/types.js';
+import { nodeEnv } from '#@shared/modules/utils.js';
 
 import { throttledQueue } from 'throttled-queue';
 
@@ -21,13 +23,34 @@ const log = fetchLogger(conf);
 import { IncomingMessage } from 'node:http';
 import https from 'https';
 
-const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+const NODE_ENV: NodeEnv = nodeEnv();
 type SerialParser = ReadlineParser | RegexParser;
 
 //absolute ceiling on in-flight upstream posts, independent of the throttle.
 //A few thousand outstanding requests is more than any responsive server
 //needs; past it we are buffering RAM for a target that cannot keep up.
 const MAX_PENDING_POSTS_ABS = 1024;
+
+//a target that accepts TCP but never answers must not pin a pendingPosts
+//slot forever - without this, maxPendingPosts hung requests would wedge the
+//collector into shedding 100% of traffic until restart
+const REQUEST_TIMEOUT_MS = 10_000;
+
+//an unplugged device surfaces as a 'close' event; retry the open on this
+//cadence until it comes back
+const SERIAL_REOPEN_MS = 5_000;
+
+//mirror the TUI's verify policy (tui/src/modules/transport.ts): cert
+//verification is relaxed only for loopback targets in development - an env
+//var must never disable verification for a remote host
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const shouldVerifyTLS = (hostname: string): boolean => !(NODE_ENV === 'development' && LOOPBACK_HOSTS.has(hostname));
+
+//extract one key from a collector's extendedOptions stanza (undefined when
+//absent); validation and warn-vs-throw policy stay with the caller -
+//security options throw at startup, presentation options warn and default
+export const extOpt = (eo: object | undefined, key: string): unknown =>
+    eo && key in eo ? (eo as Record<string, unknown>)[key] : undefined;
 
 export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData' | 'seq' | 'ts'> {
     targets: PublishTarget[];
@@ -72,9 +95,11 @@ export class FormatHelper {
     }
 
     get done(): FormattedData[] {
-        const clone = JSON.parse(JSON.stringify(this.formattedData)) as FormattedData[];
-        this.formattedData.length = 0;
-        return clone;
+        //hand off the buffer and start fresh - every element was constructed
+        //by e() and never retained, so no defensive copy is needed
+        const out = this.formattedData;
+        this.formattedData = [];
+        return out;
     }
 }
 
@@ -117,6 +142,11 @@ export abstract class DataCollector implements DataCollectorPlugin {
     private pendingPosts = 0;
     private readonly maxPendingPosts: number;
     private shedTotal = 0;
+    //target locations are constant for the collector's lifetime
+    private readonly urlCache = new Map<string, URL>();
+    //per-reason drop accounting, one surface for every collector (srsSerial
+    //and udpStruct previously each hand-rolled an identical copy)
+    protected readonly drops = new Map<string, number>();
 
     constructor(public params: DataCollectorParams) {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
@@ -144,8 +174,29 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
     abstract format(data: string, fh: FormatHelper): FormattedData[] | null;
 
+    //resolve and memoize - dispatch runs per packet, the location strings
+    //never change
+    protected urlFor(location: string): URL {
+        let uo = this.urlCache.get(location);
+        if (!uo) {
+            uo = new URL(location);
+            this.urlCache.set(location, uo);
+        }
+        return uo;
+    }
+
+    protected noteDrop(reason: string): number {
+        const n = (this.drops.get(reason) ?? 0) + 1;
+        this.drops.set(reason, n);
+        return n;
+    }
+
+    public get dropCounts(): ReadonlyMap<string, number> {
+        return this.drops;
+    }
+
     private _reqJSON(method: 'POST' | 'GET', uo: URL, data?: unknown, key?: string): Promise<string> {
-        const { protocol, hostname, port, pathname } = uo;
+        const { protocol, hostname, port, pathname, search } = uo;
 
         return new Promise((resolve, reject) => {
             if (method === 'POST') {
@@ -154,7 +205,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
                     return;
                 }
 
-                if (!/^[a-zA-Z0-9]+$/.test(key)) {
+                if (!isApiKeyFormat(key)) {
                     reject(
                         new Error(
                             `Invalid key format - API keys should be alphanumeric\nConsider using the bin/genApiKey utility`
@@ -167,14 +218,19 @@ export abstract class DataCollector implements DataCollectorPlugin {
             const req = https.request(
                 {
                     protocol,
-                    rejectUnauthorized: NODE_ENV === 'development' ? false : true,
+                    rejectUnauthorized: shouldVerifyTLS(hostname),
                     hostname,
                     port,
                     method: method,
-                    path: pathname,
+                    //the query string is part of the resource
+                    path: pathname + search,
+                    timeout: REQUEST_TIMEOUT_MS,
                     headers: method === 'POST' ? { 'Content-Type': 'application/json', 'X-Api-Key': key } : undefined
                 },
                 (res: IncomingMessage) => {
+                    //decode as a stream: per-chunk Buffer.toString would
+                    //corrupt a multibyte char split across TCP chunks
+                    res.setEncoding('utf8');
                     let data = '';
                     res.on('data', (chunk: string) => {
                         data += chunk;
@@ -199,6 +255,13 @@ export abstract class DataCollector implements DataCollectorPlugin {
                 }
             );
 
+            //'timeout' is inactivity, not failure: destroy with an error so
+            //the 'error' path below settles the promise and releases the
+            //pendingPosts slot
+            req.on('timeout', () => {
+                req.destroy(new Error(`request to ${hostname} timed out after ${REQUEST_TIMEOUT_MS}ms`));
+            });
+
             req.on('error', e => {
                 req.end();
                 if (isHttpError(e) && e.code === 'ECONNREFUSED') {
@@ -218,18 +281,19 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
     protected async get(location: string): Promise<string> {
         return await this.throttle<string>(async () => {
-            return await this._reqJSON('GET', new URL(location));
+            return await this._reqJSON('GET', this.urlFor(location));
         });
     }
 
     protected async post(location: string, data: unknown, key: string): Promise<string> {
         return await this.throttle<string>(async () => {
-            return await this._reqJSON('POST', new URL(location), data, key);
+            return await this._reqJSON('POST', this.urlFor(location), data, key);
         });
     }
 
     private async sendHttps(targets: PublishTarget[], fPacket: FluidityPacket): Promise<void> {
-        log.debug(`to: ${JSON.stringify(targets)}`);
+        //objects, not templates: the logger serializes after its level gate
+        log.debug(targets);
         log.debug(fPacket);
 
         for (const { location, key } of targets) {
@@ -280,22 +344,22 @@ export abstract class DataCollector implements DataCollectorPlugin {
     }
 
     protected send(data: string): void {
-        //targets is pulled out only to keep it off the packet (rest sibling)
-        const { targets, keepRaw, ...rest } = this.params;
-        void targets;
-
-        for (const [key, value] of Object.entries(process.memoryUsage())) {
-            log.debug(`Memory usage by ${key}, ${value / 1000000}MB `);
-        }
+        const { site, plugin, description, keepRaw } = this.params;
 
         const formattedData = this.format(data, new FormatHelper());
 
         if (Array.isArray(formattedData) && formattedData.length) {
+            //an exact FluidityPacket - nothing else from the config stanza
+            //(extendedOptions, throttle settings, unknown keys) may ride
+            //along: the server relays bodies verbatim to unauthenticated
+            //SSE/FIFO clients
             void this.dispatch({
+                site,
+                plugin,
+                description,
                 ts: new Date().toISOString(),
                 formattedData,
-                rawData: keepRaw ? data : null,
-                ...rest
+                rawData: keepRaw ? data : null
             });
         } else {
             log.debug(`DataCollector: ignoring string: ${data}`);
@@ -342,13 +406,16 @@ export interface WebJSONCollectorParams extends PollingCollectorParams {
 export abstract class PollingCollector extends DataCollector implements DataCollectorPlugin {
     protected pollIntervalSec: number;
     protected timer: NodeJS.Timeout | undefined;
+    private pollStopped = false;
 
     constructor({ pollIntervalSec, ...params }: PollingCollectorParams) {
         super(params);
 
-        if (typeof pollIntervalSec !== 'number') {
+        //0/negative/NaN would clamp setTimeout to ~1ms - a hot spin that
+        //floods logs and grows the throttle queue without bound
+        if (typeof pollIntervalSec !== 'number' || !Number.isFinite(pollIntervalSec) || pollIntervalSec < 1) {
             throw new Error(
-                `polling collectors require pollIntervalSec in constructor ${params.plugin}: ${params.description}`
+                `polling collectors require pollIntervalSec >= 1 in constructor ${params.plugin}: ${params.description}`
             );
         }
 
@@ -362,16 +429,25 @@ export abstract class PollingCollector extends DataCollector implements DataColl
     abstract execPerInterval(): void;
 
     start(): void {
+        log.info(`started: ${this.params.plugin} [${this.params.description}]`);
+        this.runPoll();
+    }
+
+    private runPoll(): void {
         try {
-            log.info(`started: ${this.params.plugin} [${this.params.description}]`);
             this.execPerInterval();
-            this.timer = setTimeout(this.start.bind(this), this.pollIntervalSec * 1000);
         } catch (err) {
+            //a throwing poll must never kill the loop - log it and keep polling
             log.error(err);
+        } finally {
+            if (!this.pollStopped) {
+                this.timer = setTimeout(this.runPoll.bind(this), this.pollIntervalSec * 1000);
+            }
         }
     }
 
     override stop(): void {
+        this.pollStopped = true;
         if (this.timer) clearTimeout(this.timer);
     }
 }
@@ -408,6 +484,8 @@ export interface SerialCollectorPlugin extends DataCollectorPlugin {
 export abstract class SerialCollector extends DataCollector implements SerialCollectorPlugin {
     protected port: SerialPort | SerialPortMock;
     protected parser: SerialParser;
+    private closing = false;
+    private reopenTimer: NodeJS.Timeout | undefined;
 
     abstract fetchParser(): SerialParser;
 
@@ -453,6 +531,41 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
 
         this.port = this.openPort(path, baudRate);
         this.parser = this.port.pipe(this.fetchParser());
+
+        //pipe() does not forward errors, and serialport surfaces a runtime
+        //disconnect (USB unplug) as 'close' with a disconnect error - with
+        //neither handler the feed would die completely silently
+        this.port.on('error', err => {
+            log.error(`${this.params.plugin} [${this.params.description}]: serial error: ${err.message}`);
+        });
+        this.parser.on('error', (err: Error) => {
+            log.error(`${this.params.plugin} [${this.params.description}]: parser error: ${err.message}`);
+        });
+        this.port.on('close', (err?: Error | null) => {
+            if (this.closing) return;
+            log.warn(
+                `${this.params.plugin} [${this.params.description}]: serial port closed` +
+                    `${err ? ` (${err.message})` : ''} - retrying open every ${SERIAL_REOPEN_MS / 1000}s`
+            );
+            this.scheduleReopen();
+        });
+    }
+
+    private scheduleReopen(): void {
+        this.reopenTimer = setTimeout(() => {
+            if (this.closing) return;
+            this.port.open(err => {
+                if (err) {
+                    this.scheduleReopen();
+                } else {
+                    //the close detached the pipe; unpipe first so a retained
+                    //attachment can't double-deliver
+                    this.port.unpipe(this.parser);
+                    this.port.pipe(this.parser);
+                    log.info(`${this.params.plugin} [${this.params.description}]: serial port reopened`);
+                }
+            });
+        }, SERIAL_REOPEN_MS);
     }
 
     start(): void {
@@ -461,6 +574,8 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
     }
 
     override stop(): void {
+        this.closing = true;
+        if (this.reopenTimer) clearTimeout(this.reopenTimer);
         if (this.port.isOpen) {
             this.port.close();
         } else {

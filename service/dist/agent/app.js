@@ -4,9 +4,11 @@ import { fetchLogger } from '#@shared/modules/logger.js';
 process.on('unhandledRejection', (reason, promise) => {
     console.error(reason);
     console.error(promise);
+    process.exit(1);
 });
 process.on('uncaughtException', reason => {
     console.error(reason);
+    process.exit(1);
 });
 const conf = await confFromFS();
 if (!conf)
@@ -18,8 +20,8 @@ try {
     startQueue = await buildCollectors(conf);
 }
 catch (err) {
-    process.exitCode = 1;
     log.error(err);
+    process.exit(1);
 }
 try {
     if (startQueue.length) {
@@ -30,7 +32,7 @@ try {
     }
 }
 catch (err) {
-    process.exitCode = 1;
     log.error('In collector plugin execution: ');
     log.error(err);
+    process.exit(1);
 }

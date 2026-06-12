@@ -1,5 +1,5 @@
 import dgram from 'node:dgram';
-import { pathToFileURL } from 'node:url';
+import { arg, isMain } from './cliArgs.js';
 import { mulberry32 } from './prng.js';
 import { siphash24, sipKeyFromHex } from './siphash.js';
 const packName = (buf, offset, width, text) => {
@@ -87,6 +87,9 @@ export const signFluPacket = (struct, key) => {
 export const startUdpFleet = (options) => {
     const host = options?.host ?? '127.0.0.1';
     const port = options?.port ?? 17996;
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('udpDeviceSim: port must be an integer 1..65535');
+    }
     const rng = mulberry32(options?.seed ?? Math.floor(Math.random() * 0xffffffff));
     const fleet = makeFleet();
     let key;
@@ -111,7 +114,12 @@ export const startUdpFleet = (options) => {
             fields: dev.fields(rng)
         });
         dev.seq = (dev.seq + 1) & 0xffff;
-        socket.send(key ? signFluPacket(pkt, key) : pkt, port, host, () => resolve());
+        try {
+            socket.send(key ? signFluPacket(pkt, key) : pkt, port, host, () => resolve());
+        }
+        catch {
+            resolve();
+        }
     });
     const schedule = (dev) => {
         if (stopped)
@@ -144,24 +152,26 @@ export const startUdpFleet = (options) => {
     }
     return { stop, done };
 };
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isMain) {
-    const arg = (name) => {
-        const i = process.argv.indexOf(`--${name}`);
-        return i !== -1 ? process.argv[i + 1] : undefined;
-    };
+if (isMain(import.meta.url)) {
     const once = process.argv.includes('--once');
     const port = Number(arg('port') ?? 17996);
     const host = arg('host') ?? '127.0.0.1';
     const seedArg = arg('seed');
     const secret = arg('secret');
-    const fleet = startUdpFleet({
-        host,
-        port,
-        once,
-        ...(seedArg ? { seed: Number(seedArg) } : {}),
-        ...(secret ? { secret } : {})
-    });
+    let fleet;
+    try {
+        fleet = startUdpFleet({
+            host,
+            port,
+            once,
+            ...(seedArg ? { seed: Number(seedArg) } : {}),
+            ...(secret ? { secret } : {})
+        });
+    }
+    catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(2);
+    }
     console.log(`udpDeviceSim: 3-device fleet -> udp ${host}:${port}${secret ? ' (signed)' : ''}${once ? ' (once)' : ''}`);
     if (once) {
         void fleet.done.then(() => console.log('udpDeviceSim: burst sent'));

@@ -1,7 +1,7 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromDOM } from '#@shared/modules/fluidityConfig.js';
 import { inBrowser } from '#@shared/modules/utils.js';
-import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink } from '#@shared/types.js';
+import { FluidityPacket, FormattedData, FluidityLink, isFluidityLink, decodeSuggestStyle } from '#@shared/types.js';
 import { livenessOf } from './pulse.js';
 import { typeIn } from './typewriter.js';
 
@@ -160,7 +160,9 @@ class FilterManager {
     //expressed as a class on the pill; the set algebra below is unchanged.
     private clickHandler(e: MouseEvent): void {
         const extractUnique = (type: FilterType, id: string): string | undefined => {
-            const match = id.match(new RegExp(`filter-${type.toLocaleLowerCase()}-(.*)`));
+            //toLowerCase, not toLocaleLowerCase: these are DOM-id constants
+            //('SITE' -> 'sıte' under a Turkish locale would never match)
+            const match = id.match(new RegExp(`filter-${type.toLowerCase()}-(.*)`));
 
             if (Array.isArray(match) && match.length) {
                 return match[1];
@@ -215,6 +217,24 @@ class FilterManager {
         }
     }
 
+    private indexAdd(index: Map<string, Set<number>>, key: string, seq: number): void {
+        const seqs = index.get(key);
+        if (seqs) {
+            seqs.add(seq);
+        } else {
+            index.set(key, new Set([seq]));
+        }
+    }
+
+    private indexRemove(index: Map<string, Set<number>>, key: string | undefined, seq: number): void {
+        if (key === undefined) return;
+        const seqs = index.get(key);
+        if (!seqs) return;
+        seqs.delete(seq);
+        //drop emptied sets so the maps never reference dead keys
+        if (!seqs.size) index.delete(key);
+    }
+
     private index(fp: FluidityPacket): void {
         const seenAt = new Date(fp.ts).getTime();
         if (Number.isFinite(seenAt)) {
@@ -223,36 +243,34 @@ class FilterManager {
         }
 
         if (fp.seq) {
-            //index packet by site
-            if (this.siteIndex.has(fp.site)) {
-                const old = this.siteIndex.get(fp.site);
-                if (old) {
-                    this.siteIndex.set(fp.site, old.add(fp.seq));
-                }
-            } else {
-                this.siteIndex.set(fp.site, new Set([fp.seq]));
-            }
-            //index packet by collector
-            if (this.collectorIndex.has(fp.plugin)) {
-                const old = this.collectorIndex.get(fp.plugin);
-                if (old) {
-                    this.collectorIndex.set(fp.plugin, old.add(fp.seq));
-                }
-            } else {
-                this.collectorIndex.set(fp.plugin, new Set([fp.seq]));
-            }
+            this.indexAdd(this.siteIndex, fp.site, fp.seq);
+            this.indexAdd(this.collectorIndex, fp.plugin, fp.seq);
         }
     }
 
+    //eviction hook: when the UI removes a rendered packet from the DOM
+    //(maxClientHistory cap), its seq must leave both indexes too, or they
+    //grow one seq per packet forever while the DOM stays bounded
+    public deindex(site: string | undefined, collector: string | undefined, seq: number): void {
+        if (!Number.isFinite(seq)) return;
+        this.indexRemove(this.siteIndex, site, seq);
+        this.indexRemove(this.collectorIndex, collector, seq);
+    }
+
     private renderType(type: FilterType, fp: FluidityPacket): void {
-        const ul = document.getElementById(`${type.toLocaleLowerCase()}-filter-list`);
+        //idempotent: deindexing can empty an index key while its pill stays
+        //in the DOM; never render a second pill for the same site/collector
+        const unique = type === 'COLLECTOR' ? fp.plugin : fp.site;
+        if (document.getElementById(`filter-${type.toLowerCase()}-${unique}`)) return;
+
+        const ul = document.getElementById(`${type.toLowerCase()}-filter-list`);
 
         const li = document.createElement('li');
         const a = document.createElement('a');
         const typeIcon = document.createElement('i');
 
         a.href = '#0';
-        a.classList.add(`${type.toLocaleLowerCase()}-filter-link`, 'filter-link');
+        a.classList.add(`${type.toLowerCase()}-filter-link`, 'filter-link');
         a.setAttribute('role', 'button');
         a.setAttribute('aria-pressed', 'false');
 
@@ -314,13 +332,15 @@ export class FluidityUI {
     constructor(protected history: FluidityPacket[]) {
         this.lastVh = window.innerHeight;
 
-        this.demarc = history.at(-1)?.seq;
+        //?? 0 keeps the demarcation a number when history is empty (matches
+        //resync), so packetAdd's typeof gate never drops every live packet
+        this.demarc = history.at(-1)?.seq ?? 0;
         this.fm = new FilterManager({
             onLinkClick: this.scrollReset.bind(this)
         });
 
         this.packetSet('history', history);
-        this.fm.refreshLiveness();
+        this.flushFrame();
 
         //keep dots decaying while the stream is quiet. unref where available
         //(node/jsdom tests) so the timer never holds the process open
@@ -334,7 +354,18 @@ export class FluidityUI {
     }
 
     public refreshLiveness(now?: number): void {
-        now === undefined ? this.fm.refreshLiveness() : this.fm.refreshLiveness(now);
+        //passing undefined to a default param is the same as omitting it
+        this.fm.refreshLiveness(now);
+    }
+
+    //once-per-frame work hoisted out of the per-packet hot path: scroll
+    //chase, filter stats, liveness dots. The render pump calls this after
+    //draining a batch; the constructor calls it once after the history load.
+    //(liveness also refreshes on its own 15s timer while the stream is quiet)
+    public flushFrame(): void {
+        this.autoScrollRequest();
+        this.fm.renderFilterStats();
+        this.fm.refreshLiveness();
     }
 
     private scrollReset(): void {
@@ -376,29 +407,41 @@ export class FluidityUI {
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment {
         const renderFormattedFrag = document.createDocumentFragment();
 
+        //styles >= 100 use the 0-10 colors plus trim (no margin/no padding),
+        //so 100 is color0 trimmed - the shared decode keeps all three field
+        //types (and the TUI) on the same convention. CSS defines fp-color-0..10.
+        const styleClasses = (suggestStyle: number): string[] => {
+            const { color, trim } = decodeSuggestStyle(suggestStyle);
+            return trim ? [`fp-color-${color}`, 'fp-trim'] : [`fp-color-${color}`];
+        };
+
         const markupStringType = (field: string, suggestStyle = 0): DocumentFragment => {
             const stringFrag = document.createDocumentFragment();
             const span = document.createElement('span');
             span.innerText = field;
-            span.classList.add('fp-line', 'fp-string');
-            //styles over 100 should use the 0-10 colors, but apply trim (no margin/no padding)
-            //so 100 is color0, trimmed
-            if (suggestStyle >= 100) {
-                span.classList.add('fp-trim', `fp-color-${suggestStyle % 10}`);
-            } else {
-                span.classList.add(`fp-color-${suggestStyle}`);
-            }
+            span.classList.add('fp-line', 'fp-string', ...styleClasses(suggestStyle));
             stringFrag.appendChild(span);
             return stringFrag;
         };
 
         const markupLinkType = (field: FluidityLink, suggestStyle = 0): DocumentFragment => {
             const linkFrag = document.createDocumentFragment();
+            //defense in depth: the shared guard already rejects non-http(s)
+            //locations at the boundary, but never hand anything else to an
+            //href - render the name as plain text instead
+            if (!/^https?:\/\//i.test(field.location)) {
+                const span = document.createElement('span');
+                span.innerText = field.name;
+                span.classList.add('fp-line', 'fp-string', ...styleClasses(suggestStyle));
+                linkFrag.appendChild(span);
+                return linkFrag;
+            }
             const a = document.createElement('a');
             a.href = field.location;
             a.innerText = field.name;
-            a.classList.add('fp-line', 'fp-link', `fp-color-${suggestStyle}`);
+            a.classList.add('fp-line', 'fp-link', ...styleClasses(suggestStyle));
             a.setAttribute('target', '_blank');
+            a.rel = 'noopener noreferrer';
             linkFrag.appendChild(a);
             return linkFrag;
         };
@@ -408,7 +451,7 @@ export class FluidityUI {
             const span = document.createElement('span');
 
             span.innerText = safeTime(field, { hour: '2-digit', minute: '2-digit' });
-            span.classList.add('fp-line', 'fp-date', `fp-color-${suggestStyle}`);
+            span.classList.add('fp-line', 'fp-date', ...styleClasses(suggestStyle));
             dateFrag.appendChild(span);
             return dateFrag;
         };
@@ -440,8 +483,12 @@ export class FluidityUI {
         const div = document.createElement('div');
 
         div.classList.add('fluidity-packet');
+        //eviction reads these back to deindex the packet (see evictOldest)
+        div.dataset['site'] = fp.site;
+        div.dataset['collector'] = fp.plugin;
         if (fp.seq) {
             div.id = `fp-seq-${fp.seq}`;
+            div.dataset['seq'] = String(fp.seq);
         }
 
         //setup filter manager
@@ -449,7 +496,6 @@ export class FluidityUI {
         //apply filters to this singular element,
         //prior to DOM insertion
         this.fm.filtersClicked() && this.fm.applyVisibility(div);
-        this.fm.renderFilterStats();
 
         const oBracket = document.createElement('span');
         oBracket.classList.add('bracket-open');
@@ -492,18 +538,31 @@ export class FluidityUI {
         return mainFrag;
     }
 
+    //evict the oldest rendered packet, dropping its seq from the filter
+    //indexes so index memory tracks the DOM cap instead of growing forever
+    private evictOldest(container: HTMLElement): void {
+        const victim = container.firstChild;
+        if (!victim) return;
+        if (victim instanceof HTMLElement) {
+            const { site, collector, seq } = victim.dataset;
+            this.fm.deindex(site, collector, Number(seq));
+        }
+        container.removeChild(victim);
+    }
+
     private packetSet(pos: 'history' | 'current', fpArr: FluidityPacket[]) {
         const history = document.getElementById('history-data');
         const current = document.getElementById('current-data');
         // const end = document.getElementById('end-data');
 
-        const maxCount = conf?.maxClientHistory ?? 4000;
+        //pubSafe DOM dataset values arrive as strings; NaN/0 fall back
+        const maxCount = Number(conf?.maxClientHistory) || 4000;
 
         if (history && current) {
             fpArr.forEach(fp => {
                 if (pos === 'history') {
-                    if (history.firstChild && history.childElementCount > maxCount) {
-                        history.removeChild(history.firstChild);
+                    if (history.childElementCount > maxCount) {
+                        this.evictOldest(history);
                     }
                     history.appendChild(this.packetRender(fp));
                     if (history.lastChild instanceof HTMLElement) {
@@ -511,12 +570,12 @@ export class FluidityUI {
                     }
                 } else if (pos === 'current') {
                     if (history.childElementCount > 0) {
-                        if (history.firstChild && history.childElementCount + current.childElementCount >= maxCount) {
-                            history.removeChild(history.firstChild);
+                        if (history.childElementCount + current.childElementCount >= maxCount) {
+                            this.evictOldest(history);
                         }
                     } else {
-                        if (current.firstChild && current.childElementCount >= maxCount) {
-                            current.removeChild(current.firstChild);
+                        if (current.childElementCount >= maxCount) {
+                            this.evictOldest(current);
                         }
                     }
 
@@ -531,8 +590,6 @@ export class FluidityUI {
                         }
                     }
                 }
-
-                this.autoScrollRequest();
             });
         }
     }
@@ -563,8 +620,9 @@ export class FluidityUI {
     public packetAdd(fp: FluidityPacket) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {
             if (fp.seq > this.demarc) {
+                //per-frame work (scroll/stats/liveness) happens in flushFrame,
+                //called once per drained batch by the render pump
                 this.packetSet('current', [fp]);
-                this.fm.refreshLiveness();
             }
         }
     }

@@ -403,6 +403,60 @@ no `@ts-ignore` interop hacks left.
 > climbs under heavy post rate in a shared loop (separate processes in
 > prod); noted, not yet addressed.
 
+**Comprehensive review remediation (2026-06-12):** a full-codebase
+multi-agent review surfaced 56 verified findings; all addressed in one
+branch pass. Highlights, by theme:
+> - **Boundary contract tightened** (`shared/types.ts`): `isFfluidityPacket`
+>   now validates `ts` and `formattedData` element shapes (a `[null]`
+>   element used to permanently kill the dashboard's rAF render pump);
+>   `isFluidityLink` requires http(s) and rejects control bytes
+>   (javascript:-href XSS in the web client, OSC 8 escape injection in the
+>   TUI). New shared helpers: `stripControlChars` (C0+DEL+**C1**),
+>   `decodeSuggestStyle` (the >=100 trim convention, now applied uniformly
+>   to STRING/LINK/DATE in both clients), `isApiKeyFormat`.
+> - **Agent resilience:** HTTPS posts carry a 10s timeout (a black-holed
+>   target used to wedge pendingPosts and shed 100% forever); serial ports
+>   get error/close handlers + 5s reopen retry (USB unplug used to kill the
+>   feed silently); polling loops survive a throwing poll and validate
+>   `pollIntervalSec >= 1`; uncaught exceptions now exit(1) (crash-only)
+>   instead of leaving a half-dead process; `send()` builds exact packets
+>   (config stanza keys no longer leak to unauthenticated SSE clients);
+>   `_reqJSON` keeps the query string; GET bodies decode as streams;
+>   TLS verification relaxes only for loopback in dev (was: env-global).
+> - **UDP ingest:** replay re-anchor hardened (captured-pair anchor steal
+>   now costs 8 datagrams per steal or requires a boot-prefix capture;
+>   spec §4 updated honestly); missing-MAC policy moved into the codec at
+>   spec §6 step 5 (drop attribution fixed); decoder trims sender width
+>   truncation mid-codepoint instead of blacking out the device; C1
+>   controls stripped.
+> - **Server:** SSE broadcast evicts clients whose buffer exceeds 1MiB +
+>   30s heartbeat (stalled-reader OOM); TLS decided by key material alone
+>   (PORT-from-env no longer silently downgrades to plaintext, half-config
+>   throws, startup failures exit non-zero); timing-safe API-key compare;
+>   PacketFIFO validates maxSize (string config value used to disable
+>   eviction via NaN) and honors 0; SSE `id:` now equals packet seq.
+> - **Clients:** dashboard always constructs the UI (empty/partly-bad FIFO
+>   used to blank it forever) and survives malformed SSE frames; filter
+>   seq-indexes pruned on eviction; per-batch (not per-packet) scroll/
+>   stats/liveness; Turkish-locale-proof lowercasing; `maxClientHistory`
+>   actually reaches the browser. TUI: full CSI parsing (Delete/F-keys no
+>   longer toggle filters), `--history 0` means none, chunk-safe UTF-8
+>   decode, code-point + wide-char-aware ANSI width math (O(n) sticky
+>   regex), cancelable reconnect backoff, malformed-payload status notes,
+>   interactive exit-2, `+N more` count overflow, `x` re-pins; SPEC §5/§6/§8
+>   updated.
+> - **Tooling:** loadtest cleans up on throw, nearest-rank percentiles,
+>   2xx-only post counting (the vacuous `agent.processed` alias removed);
+>   stress emitter/sim validate duration/port and honor the
+>   "(rejects never)" contract; shared `parseMix`/`cliArgs` kill four
+>   copy-pasted CLI parsers; dev-cert loading is cwd-independent
+>   everywhere; common_conf merge order fixed (env wins); ENOENT
+>   diagnostics resolve against cwd; dead exports removed.
+> Known accepted limits: hamLive marks nets notified at enqueue (delivery
+> isn't observable from format()); SSE Last-Event-ID backfill is still
+> unimplemented (clients self-heal by refetch); the replay damper remains
+> a damper, not a transcript authenticator.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under

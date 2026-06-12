@@ -1,6 +1,13 @@
+import type { NodeEnv } from '#@shared/types.js';
+
 export const inBrowser = (): boolean => {
     return typeof window === 'object' && typeof process === 'undefined';
 };
+
+//the one place the environment is classified - the TLS-verification gate in
+//the agent and the config loader must never disagree on what 'development' is
+export const nodeEnv = (): NodeEnv =>
+    inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 
 export const isErrnoException = (object: Error): object is NodeJS.ErrnoException => {
     return (
@@ -22,10 +29,12 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
             return reject(new Error('function not suitable for browser execution, no FS'));
         } else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
-                import('url')
-                    .then(({ fileURLToPath }) => {
+                import('node:path')
+                    .then(path => {
                         if (typeof err.path === 'string') {
-                            return resolve(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}`);
+                            //resolve against cwd - where readFileSync actually
+                            //looked - not against this module's own location
+                            return resolve(`Cannot find path: ${path.resolve(err.path)}`);
                         } else {
                             return resolve(undefined);
                         }
@@ -33,7 +42,7 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
                     .catch(() => {
                         //settle the outer promise even if the import fails, or
                         //the awaiting caller (config loadFiles) hangs forever
-                        console.error('Error in dynamic import of url module');
+                        console.error('Error in dynamic import of path module');
                         resolve(undefined);
                     });
             } else {
@@ -41,15 +50,4 @@ export const prettyFsNotFound = (err: Error): Promise<string | undefined> => {
             }
         }
     });
-};
-
-export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
-
-export const isJSONString = (str: string) => {
-    try {
-        JSON.parse(str);
-    } catch {
-        return false;
-    }
-    return true;
 };

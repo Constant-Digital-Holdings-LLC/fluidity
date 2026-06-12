@@ -40,8 +40,10 @@ es.addEventListener('open', () => {
     fetch('/FIFO')
         .then(response => response.json())
         .then(data => {
-            if (Array.isArray(data) && data.every(d => isFfluidityPacket(d)) && ui instanceof FluidityUI) {
-                ui.resync(data); //empty array (fresh FIFO) is fine - baselines to 0
+            if (Array.isArray(data) && ui instanceof FluidityUI) {
+                //same valid-subset policy as the initial load below; an empty
+                //array (fresh FIFO) is fine - baselines to 0
+                ui.resync(data.filter((d): d is FluidityPacket => isFfluidityPacket(d)));
             }
         })
         .catch(err => log.error(err));
@@ -50,15 +52,16 @@ es.addEventListener('open', () => {
 fetch('/FIFO')
     .then(response => response.json())
     .then(data => {
-        //note: `data.every(() => isFfluidityPacket)` (a thunk returning the
-        //guard) always passed - the guard was never actually called. Invoke it.
-        if (Array.isArray(data) && data.length)
-            if (data.every(d => isFfluidityPacket(d))) {
-                //the guard above narrows `data` to FluidityPacket[] - no cast
-                ui = new FluidityUI(data);
-            } else {
-                log.warn('FIFO history contained a non-Fluidity packet; ignoring history');
+        if (Array.isArray(data)) {
+            //always construct the UI from the valid subset: one bad history
+            //packet must not blank the page, and an empty FIFO still needs a
+            //live UI (the demarcation baselines to 0 so live packets render)
+            const good = data.filter((d): d is FluidityPacket => isFfluidityPacket(d));
+            if (good.length !== data.length) {
+                log.warn('FIFO history contained non-Fluidity packets; rendering the valid subset');
             }
+            ui = new FluidityUI(good);
+        }
     })
     .catch(err => {
         log.error(err);
@@ -68,7 +71,14 @@ fetch('/FIFO')
 //happens in the frame pump below, off the SSE callback's hot path.
 es.onmessage = event => {
     if (typeof event.data === 'string') {
-        const pd = JSON.parse(event.data) as unknown;
+        let pd: unknown;
+        try {
+            pd = JSON.parse(event.data);
+        } catch {
+            //a malformed frame is dropped, never fatal (mirrors the TUI transport)
+            log.warn('dropping malformed SSE frame');
+            return;
+        }
         if (isFfluidityPacket(pd)) {
             rxQ.push(pd);
             pulse?.note(); //every arrival counts toward the rate, rendered or not
@@ -79,13 +89,28 @@ es.onmessage = event => {
 //frame-paced render pump: bounded DOM work per tick, backlog shed under flood.
 //rAF where available; a timer fallback keeps tests and headless contexts sane.
 const pumpOnce = (): void => {
-    drainRenderQueue(rxQ, RENDER_LIMITS, ui instanceof FluidityUI ? (p): void => ui.packetAdd(p) : null);
+    try {
+        const { rendered } = drainRenderQueue(
+            rxQ,
+            RENDER_LIMITS,
+            ui instanceof FluidityUI ? (p): void => ui.packetAdd(p) : null
+        );
+        //per-frame work (scroll chase, filter stats, liveness dots) runs once
+        //per drained batch, not once per packet
+        if (rendered > 0 && ui instanceof FluidityUI) {
+            ui.flushFrame();
+        }
+    } catch (err) {
+        //one bad packet must never kill the pump - log it and keep draining
+        log.error(err);
+    }
 };
 
 if (typeof requestAnimationFrame === 'function') {
     const frame = (): void => {
-        pumpOnce();
+        //re-schedule before pumping so a throw can never stop the loop
         requestAnimationFrame(frame);
+        pumpOnce();
     };
     requestAnimationFrame(frame);
 } else {

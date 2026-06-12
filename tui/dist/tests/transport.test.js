@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import https from 'node:https';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchHistory, follow, shouldVerifyTLS } from '../modules/transport.js';
+const sslDir = new URL('../../../service/dist/server/ssl/', import.meta.url);
 const tlsOptions = {
-    key: readFileSync('../server/ssl/dev-server_key.pem'),
-    cert: readFileSync('../server/ssl/dev-server_cert.pem')
+    key: readFileSync(fileURLToPath(new URL('dev-server_key.pem', sslDir))),
+    cert: readFileSync(fileURLToPath(new URL('dev-server_cert.pem', sslDir)))
 };
 const pkt = (seq, site = 'tsite') => ({
     seq,

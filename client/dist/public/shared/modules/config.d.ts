@@ -8,13 +8,10 @@ export interface ConfigData {
 }
 export declare const isConfigData: <C extends ConfigData>(item: unknown) => item is C;
 export declare const isConfigDataPopulated: <C extends ConfigData>(obj: unknown) => obj is C;
-interface ConfigParser {
-    parse(src: string): unknown;
-}
 interface ConfigFiles {
-    readonly common: [string, ConfigParser] | null;
-    readonly development: [string, ConfigParser] | null;
-    readonly production: [string, ConfigParser] | null;
+    readonly common: string | null;
+    readonly development: string | null;
+    readonly production: string | null;
 }
 declare abstract class ConfigBase<C extends ConfigData> {
     abstract get conf(): C | null;
@@ -32,7 +29,7 @@ export declare class DOMConfigUtil<C extends ConfigData> extends ConfigBase<C> {
     protected pubSafe: readonly string[];
     constructor(conf?: C, pubSafe?: readonly string[]);
     get conf(): C | null;
-    protected get pubConf(): C | undefined;
+    protected get pubConf(): Partial<C> | undefined;
     protected extract<C extends ConfigData>(): C | null;
     populateDOM(req: Request, res: Response, next: NextFunction): void;
 }

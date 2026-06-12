@@ -40,7 +40,9 @@ const versionFromPackageJson = async (): Promise<string | undefined> => {
 };
 
 // config props which can be exposed to the client (browswer):
-export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org'] as const;
+// note: DOM dataset values always arrive as strings - numeric props like
+// maxClientHistory must be Number()ed at the point of use
+export const pubSafe = ['appName', 'logLevel', 'appVersion', 'locLevel', 'nodeEnv', 'org', 'maxClientHistory'] as const;
 
 // two main utils for retrieving config:
 export const confFromDOM = (): MyConfigData => {

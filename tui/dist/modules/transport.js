@@ -9,8 +9,9 @@ const request = (url, insecure, headers) => {
     }
     return https.request(url, { headers, rejectUnauthorized: shouldVerifyTLS(url, insecure) });
 };
-const getResponse = (url, insecure, headers = {}) => new Promise((resolve, reject) => {
+const getResponse = (url, insecure, headers = {}, onRequest) => new Promise((resolve, reject) => {
     const req = request(url, insecure, headers);
+    onRequest?.(req);
     req.on('response', res => {
         if (res.statusCode === 200) {
             resolve(res);
@@ -23,11 +24,12 @@ const getResponse = (url, insecure, headers = {}) => new Promise((resolve, rejec
     req.on('error', reject);
     req.end();
 });
-export const fetchHistory = async (base, insecure) => {
-    const res = await getResponse(new URL('/FIFO', base), insecure);
+export const fetchHistory = async (base, insecure, onRequest) => {
+    const res = await getResponse(new URL('/FIFO', base), insecure, {}, onRequest);
+    res.setEncoding('utf8');
     let body = '';
     for await (const chunk of res) {
-        body += chunk;
+        body += String(chunk);
     }
     const parsed = JSON.parse(body);
     if (!Array.isArray(parsed)) {
@@ -44,6 +46,13 @@ export const follow = (base, opts, events) => {
     let stopped = false;
     let activeReq;
     let attempt = 0;
+    let malformed = 0;
+    let backoffTimer;
+    let backoffResolve;
+    const noteMalformed = () => {
+        malformed++;
+        events.onMalformed?.(malformed);
+    };
     const remember = (p) => {
         const k = keyOf(p);
         if (seen.has(k))
@@ -58,7 +67,14 @@ export const follow = (base, opts, events) => {
         }
         return true;
     };
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const sleep = (ms) => new Promise(r => {
+        backoffResolve = r;
+        backoffTimer = setTimeout(() => {
+            backoffTimer = undefined;
+            backoffResolve = undefined;
+            r();
+        }, ms);
+    });
     const streamSSE = () => new Promise((resolve, reject) => {
         const req = request(new URL('/SSE', base), opts.insecure, { accept: 'text/event-stream' });
         activeReq = req;
@@ -70,9 +86,11 @@ export const follow = (base, opts, events) => {
             }
             attempt = 0;
             events.onState?.('live');
+            res.setEncoding('utf8');
+            const MAX_BUF = 1024 * 1024;
             let buf = '';
             res.on('data', (chunk) => {
-                buf += chunk.toString('utf8');
+                buf += chunk;
                 let sep;
                 while ((sep = buf.indexOf('\n\n')) !== -1) {
                     const block = buf.slice(0, sep);
@@ -86,12 +104,21 @@ export const follow = (base, opts, events) => {
                         continue;
                     try {
                         const p = JSON.parse(data);
-                        if (isFfluidityPacket(p) && remember(p)) {
-                            events.onPacket(p);
+                        if (isFfluidityPacket(p)) {
+                            if (remember(p))
+                                events.onPacket(p);
+                        }
+                        else {
+                            noteMalformed();
                         }
                     }
                     catch {
+                        noteMalformed();
                     }
+                }
+                if (buf.length > MAX_BUF) {
+                    buf = '';
+                    noteMalformed();
                 }
             });
             res.on('end', () => resolve());
@@ -105,7 +132,9 @@ export const follow = (base, opts, events) => {
         while (!stopped) {
             try {
                 events.onState?.(firstRound ? 'connecting' : 'reconnecting');
-                const history = (await fetchHistory(base, opts.insecure)).filter(remember);
+                const history = (await fetchHistory(base, opts.insecure, req => {
+                    activeReq = req;
+                })).filter(remember);
                 if (history.length) {
                     events.onHistory(history);
                 }
@@ -129,6 +158,11 @@ export const follow = (base, opts, events) => {
         stop() {
             stopped = true;
             activeReq?.destroy();
+            if (backoffTimer)
+                clearTimeout(backoffTimer);
+            backoffTimer = undefined;
+            backoffResolve?.();
+            backoffResolve = undefined;
         }
     };
 };

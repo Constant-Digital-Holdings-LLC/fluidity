@@ -8,10 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { fetchLogger } from '#@shared/modules/logger.js';
-import { inBrowser, prettyFsNotFound } from '#@shared/modules/utils.js';
+import { inBrowser, nodeEnv, prettyFsNotFound } from '#@shared/modules/utils.js';
 import { isObject } from '#@shared/types.js';
 const log = fetchLogger();
-const NODE_ENV = inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+const NODE_ENV = nodeEnv();
 export const isConfigData = (item) => isObject(item) && Object.keys(item).every(prop => /^[a-z]+[a-zA-Z0-9]*$/.test(prop));
 export const isConfigDataPopulated = (obj) => isConfigData(obj) && Boolean(obj['appName']);
 class ConfigBase {
@@ -22,7 +22,7 @@ class ConfigBase {
 export class FSConfigUtil extends ConfigBase {
     constructor() {
         super(...arguments);
-        this.nodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+        this.nodeEnv = nodeEnv();
     }
     static asyncNew() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -38,35 +38,34 @@ export class FSConfigUtil extends ConfigBase {
     }
     load() {
         return this.loadFiles({
-            development: ['./conf/dev_conf.json', JSON],
-            production: ['./conf/prod_conf.json', JSON],
-            common: ['./conf/common_conf.json', JSON]
+            development: './conf/dev_conf.json',
+            production: './conf/prod_conf.json',
+            common: './conf/common_conf.json'
         });
     }
     loadFiles(cFiles) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d;
             if (!NODE_ENV) {
                 throw new Error('loadFiles() not applicable outside of node');
             }
-            const nodeEnvConfPath = (_a = cFiles[NODE_ENV]) === null || _a === void 0 ? void 0 : _a[0];
-            const commonConfPath = (_b = cFiles['common']) === null || _b === void 0 ? void 0 : _b[0];
+            const nodeEnvConfPath = cFiles[NODE_ENV];
+            const commonConfPath = cFiles['common'];
             const { readFileSync } = yield import('fs');
             const path = yield import('node:path');
             let eObj;
             let cObj;
             try {
                 if (nodeEnvConfPath) {
-                    eObj = (_c = cFiles[NODE_ENV]) === null || _c === void 0 ? void 0 : _c[1].parse(readFileSync(nodeEnvConfPath, 'utf8'));
+                    eObj = JSON.parse(readFileSync(nodeEnvConfPath, 'utf8'));
                     if (!isConfigData(eObj)) {
                         this.configCache = null;
                         log.error(`loadFiles(): Could not parse: ${path.join(process.cwd(), nodeEnvConfPath)}`);
                         throw new Error(`malformed config property in ${path.join(process.cwd(), nodeEnvConfPath)}`);
                     }
                     if (commonConfPath) {
-                        cObj = (_d = cFiles['common']) === null || _d === void 0 ? void 0 : _d[1].parse(readFileSync(commonConfPath, 'utf8'));
+                        cObj = JSON.parse(readFileSync(commonConfPath, 'utf8'));
                         if (isConfigData(cObj)) {
-                            this.configCache = Object.assign(Object.assign({}, eObj), cObj);
+                            this.configCache = Object.assign(Object.assign({}, cObj), eObj);
                         }
                         else {
                             console.warn(`loadFiles(): contents of ${path.join(process.cwd(), commonConfPath)} ignored due to impropper format`);
@@ -88,7 +87,8 @@ export class FSConfigUtil extends ConfigBase {
                 }
             }
             if (!(this.configCache instanceof Object)) {
-                throw new Error(`No config or config missing required 'appName' property. config: ${JSON.stringify(this.configCache)}`);
+                throw new Error(`No config loaded: expected ${nodeEnvConfPath !== null && nodeEnvConfPath !== void 0 ? nodeEnvConfPath : '(no path)'} relative to ${process.cwd()} ` +
+                    `(NODE_ENV: ${NODE_ENV}). Starter configs live in ./conf/conf-examples/.`);
             }
             return this.configCache;
         });
@@ -114,28 +114,11 @@ export class DOMConfigUtil extends ConfigBase {
         return this.configCache;
     }
     get pubConf() {
-        const goodList = this.pubSafe;
-        const handler = {
-            get(target, prop, receiver) {
-                if (typeof prop === 'string')
-                    if (goodList.includes(prop)) {
-                        return Reflect.get(target, prop, receiver);
-                    }
-                return undefined;
-            },
-            ownKeys(target) {
-                return Object.keys(target).filter(prop => goodList.includes(prop));
-            },
-            set() {
-                throw new Error('pubConf is immutable.');
-            }
-        };
-        if (this.configCache) {
-            return new Proxy(this.configCache, handler);
-        }
-        else {
+        if (!this.configCache) {
             return undefined;
         }
+        const conf = this.configCache;
+        return Object.fromEntries(this.pubSafe.filter(key => key in conf).map(key => [key, conf[key]]));
     }
     extract() {
         var _a;

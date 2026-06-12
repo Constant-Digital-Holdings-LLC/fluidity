@@ -61,8 +61,9 @@ export const runInteractive = (o, onQuit) => {
         st.rows = out.rows || 24;
         scheduleRepaint();
     });
+    let everConnected = false;
     const handle = follow(o.base, { ...(o.insecure !== undefined ? { insecure: o.insecure } : {}) }, {
-        onHistory: packets => packets.slice(-o.historyLimit).forEach(p => {
+        onHistory: packets => (o.historyLimit === 0 ? [] : packets.slice(-o.historyLimit)).forEach(p => {
             addPacket(st, p, renderParts(p, render));
             scheduleRepaint();
         }),
@@ -73,7 +74,19 @@ export const runInteractive = (o, onQuit) => {
             scheduleRepaint();
         },
         onState: state => {
+            if (state === 'live')
+                everConnected = true;
+            if (state === 'reconnecting' && !everConnected) {
+                handle.stop();
+                cleanup();
+                o.onStartupFailure();
+                return;
+            }
             st.conn = state;
+            scheduleRepaint();
+        },
+        onMalformed: total => {
+            st.malformed = total;
             scheduleRepaint();
         }
     });

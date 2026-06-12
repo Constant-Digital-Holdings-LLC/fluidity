@@ -1,9 +1,21 @@
 import dgram from 'node:dgram';
-import { pathToFileURL } from 'node:url';
+import { arg, isMain } from './cliArgs.js';
 import { mulberry32 } from './prng.js';
 import { sipKeyFromHex } from './siphash.js';
 import { packFluPacket, signFluPacket } from './udpDeviceSim.js';
-const CATEGORIES = ['valid', 'garbage', 'tampered', 'unsigned'];
+export const CATEGORIES = ['valid', 'garbage', 'tampered', 'unsigned'];
+export const parseMix = (spec) => {
+    const mix = {};
+    for (const part of spec.split(',')) {
+        const [name, weight] = part.split(':');
+        const w = Number(weight);
+        if (!name || !CATEGORIES.includes(name) || !Number.isFinite(w) || w < 0) {
+            throw new Error(`bad mix entry "${part}" (want e.g. valid:70,garbage:30; categories: ${CATEGORIES.join(', ')})`);
+        }
+        mix[name] = w;
+    }
+    return mix;
+};
 export const runUdpStress = (options) => {
     const host = options?.host ?? '127.0.0.1';
     const port = options?.port ?? 17996;
@@ -14,6 +26,11 @@ export const runUdpStress = (options) => {
     const rng = mulberry32(options?.seed ?? Math.floor(Math.random() * 0xffffffff));
     if (!Number.isFinite(rate) || rate < 1)
         throw new Error('udp-stress: rate must be >= 1');
+    if (!Number.isFinite(durationSec) || durationSec <= 0)
+        throw new Error('udp-stress: duration must be > 0');
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('udp-stress: port must be an integer 1..65535');
+    }
     if (!Number.isInteger(deviceCount) || deviceCount < 1 || deviceCount > 10_000) {
         throw new Error('udp-stress: devices must be an integer 1..10000');
     }
@@ -155,22 +172,16 @@ export const runUdpStress = (options) => {
         }
     };
 };
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isMain) {
-    const arg = (name) => {
-        const i = process.argv.indexOf(`--${name}`);
-        return i !== -1 ? process.argv[i + 1] : undefined;
-    };
+if (isMain(import.meta.url)) {
+    let mix;
     const mixArg = arg('mix');
-    const mix = {};
     if (mixArg) {
-        for (const part of mixArg.split(',')) {
-            const [name, weight] = part.split(':');
-            if (!name || !CATEGORIES.includes(name) || Number.isNaN(Number(weight))) {
-                console.error(`udp-stress: bad mix entry "${part}" (want e.g. valid:70,garbage:30)`);
-                process.exit(2);
-            }
-            mix[name] = Number(weight);
+        try {
+            mix = parseMix(mixArg);
+        }
+        catch (err) {
+            console.error(`udp-stress: ${err instanceof Error ? err.message : String(err)}`);
+            process.exit(2);
         }
     }
     const secret = arg('secret');
@@ -181,7 +192,7 @@ if (isMain) {
         rate: Number(arg('rate') ?? 1000),
         durationSec: Number(arg('duration') ?? 5),
         devices: Number(arg('devices') ?? 50),
-        ...(mixArg ? { mix } : {}),
+        ...(mix ? { mix } : {}),
         ...(secret ? { secret } : {}),
         ...(seed ? { seed: Number(seed) } : {})
     });

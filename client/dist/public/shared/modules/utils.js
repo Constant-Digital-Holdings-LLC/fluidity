@@ -1,6 +1,7 @@
 export const inBrowser = () => {
     return typeof window === 'object' && typeof process === 'undefined';
 };
+export const nodeEnv = () => inBrowser() ? null : process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 export const isErrnoException = (object) => {
     return (Object.prototype.hasOwnProperty.call(object, 'code') || Object.prototype.hasOwnProperty.call(object, 'errno'));
 };
@@ -18,17 +19,17 @@ export const prettyFsNotFound = (err) => {
         }
         else {
             if (isErrnoException(err) && err.code === 'ENOENT') {
-                import('url')
-                    .then(({ fileURLToPath }) => {
+                import('node:path')
+                    .then(path => {
                     if (typeof err.path === 'string') {
-                        return resolve(`Cannot find path: ${fileURLToPath(new URL(err.path, import.meta.url))}`);
+                        return resolve(`Cannot find path: ${path.resolve(err.path)}`);
                     }
                     else {
                         return resolve(undefined);
                     }
                 })
                     .catch(() => {
-                    console.error('Error in dynamic import of url module');
+                    console.error('Error in dynamic import of path module');
                     resolve(undefined);
                 });
             }
@@ -37,14 +38,5 @@ export const prettyFsNotFound = (err) => {
             }
         }
     });
-};
-export const isJSONString = (str) => {
-    try {
-        JSON.parse(str);
-    }
-    catch (_a) {
-        return false;
-    }
-    return true;
 };
 //# sourceMappingURL=utils.js.map

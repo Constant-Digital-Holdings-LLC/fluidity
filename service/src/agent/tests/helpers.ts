@@ -1,17 +1,22 @@
 import https from 'node:https';
 import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { AddressInfo } from 'node:net';
 import { SerialPortMock } from 'serialport';
 import SRSserialCollector from '../modules/collectors/srsSerial.js';
 import { FormatHelper, SerialCollectorParams } from '../modules/collectors.js';
 import { FormattedData, PublishTarget } from '#@shared/types.js';
 
-//tests run with cwd service/dist/agent; the repo dev certs live next door.
-//NODE_ENV=development makes the agent skip chain verification, like real dev use.
+//cwd-independent: resolved from this module's compiled location
+//(service/dist/agent/tests/) to the repo dev certs next door.
+//NODE_ENV=development makes the agent skip chain verification on loopback,
+//like real dev use.
+const sslPath = (f: string): string => fileURLToPath(new URL(`../../server/ssl/${f}`, import.meta.url));
+
 export const tlsOptions = {
-    key: readFileSync('../server/ssl/dev-server_key.pem'),
-    cert: readFileSync('../server/ssl/dev-server_cert.pem')
+    key: readFileSync(sslPath('dev-server_key.pem')),
+    cert: readFileSync(sslPath('dev-server_cert.pem'))
 };
 
 export interface TestTarget {

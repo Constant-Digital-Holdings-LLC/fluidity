@@ -8,6 +8,7 @@ export interface InteractiveOpts {
     caps: TermCaps;
     showUrls?: boolean;
     historyLimit: number;
+    onStartupFailure: () => void;
 }
 export declare const runInteractive: (o: InteractiveOpts, onQuit: () => void) => FollowHandle;
 //# sourceMappingURL=interactive.d.ts.map

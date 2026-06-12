@@ -15,7 +15,11 @@ try {
     if (typeof conf.appName !== 'string') {
         throw new Error(`appNaming missing from config`);
     }
-    const server = conf['tlsKey'] && conf['tlsCert'] && conf.port
+    if (Boolean(conf['tlsKey']) !== Boolean(conf['tlsCert'])) {
+        throw new Error('tlsKey and tlsCert must be configured together');
+    }
+    const useTls = Boolean(conf['tlsKey'] && conf['tlsCert']);
+    const server = useTls
         ? https.createServer({
             key: fs.readFileSync(conf['tlsKey']),
             cert: fs.readFileSync(conf['tlsCert'])
@@ -26,7 +30,7 @@ try {
         process.exit(1);
     });
     server.listen(PORT, () => {
-        log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${PORT}`);
+        log.info(`${conf.appName} ${conf.appVersion ?? ''} server listening on port: ${PORT} (${useTls ? 'https' : 'http'})`);
     });
 }
 catch (err) {
@@ -37,4 +41,5 @@ catch (err) {
     else {
         log.error(err);
     }
+    process.exitCode = 1;
 }

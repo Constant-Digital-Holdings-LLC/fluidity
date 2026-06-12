@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prettyFsNotFound, isErrnoException, isJSONString, counter } from '#@shared/modules/utils.js';
+import { prettyFsNotFound, isErrnoException, nodeEnv, counter } from '#@shared/modules/utils.js';
 const enoent = (path) => Object.assign(new Error('ENOENT'), { code: 'ENOENT', ...(path !== undefined ? { path } : {}) });
 void test('prettyFsNotFound resolves a readable message for an ENOENT with a path', async () => {
     const msg = await prettyFsNotFound(enoent('./conf/missing.json'));
@@ -20,11 +20,8 @@ void test('isErrnoException recognizes errors carrying code/errno', () => {
     assert.equal(isErrnoException(Object.assign(new Error(), { errno: -2 })), true);
     assert.equal(isErrnoException(new Error('plain')), false);
 });
-void test('isJSONString distinguishes valid JSON from garbage', () => {
-    assert.equal(isJSONString('{"a":1}'), true);
-    assert.equal(isJSONString('[]'), true);
-    assert.equal(isJSONString('not json'), false);
-    assert.equal(isJSONString('{unclosed'), false);
+void test('nodeEnv classifies the environment (development only when explicit)', () => {
+    assert.equal(nodeEnv(), process.env['NODE_ENV'] === 'development' ? 'development' : 'production');
 });
 void test('counter yields a monotonic sequence from 1', () => {
     const c = counter();

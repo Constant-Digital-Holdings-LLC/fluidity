@@ -25,11 +25,14 @@ export const makeController = (conf?: MyConfigData, log: LoggerUtil = fetchLogge
         },
 
         POST: (req, res) => {
-            log.debug(`in FIFO Controller, CLIENT headers on POST: ${JSON.stringify(req.headers)}`);
+            //pass the object itself: the logger only serializes after its
+            //level gate, so info+ configs don't pay a stringify per POST
+            log.debug({ note: 'FIFO Controller POST headers', headers: req.headers });
 
             if (req?.body && isFfluidityPacket(req.body)) {
                 const seq = fifo.push(req.body);
-                sse.send(JSON.stringify(req.body), undefined, seq - 1);
+                //the SSE id mirrors the packet's own seq (counter starts at 1)
+                sse.send(JSON.stringify(req.body), undefined, seq);
                 res.end();
             } else {
                 log.warn(`No Fluidity Packet in Req Body: ${JSON.stringify(req.body)}`);

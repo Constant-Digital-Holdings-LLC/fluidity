@@ -128,9 +128,14 @@ beats a misparsed one (same doctrine as the serial decoder).
   occupying its full width with no NUL is valid (max length = width).
 - `site` and `plugin` must be non-empty after trimming; `description` may
   be empty (rendered as the plugin name). Invalid UTF-8 → datagram dropped
-  (`bad-encoding`).
+  (`bad-encoding`) — with one carve-out: senders truncate bytewise at the
+  field width (strncpy semantics in the firmware reference), so a
+  *trailing* incomplete multibyte sequence is width truncation, not
+  garbage. The decoder trims the dangling tail and accepts; interior
+  invalid bytes still drop the datagram.
 - Control characters are not the agent's problem to render (clients
-  sanitize), but the agent strips NULs/CR/LF defensively before forwarding.
+  sanitize), but the agent strips control bytes defensively before
+  forwarding: C0, DEL, and the C1 range U+0080–U+009F (8-bit CSI/OSC).
 - `style` maps directly to `suggestStyle` (the suggestion contract reaches
   firmware). `reserved`/fieldType: v1 emits STRING fields only; a nonzero
   reserved byte is tolerated and ignored (room for LINK/DATE in v2).
@@ -161,14 +166,18 @@ beats a misparsed one (same doctrine as the serial decoder).
   window over MAC-verified packets only. Device identity is
   (site, plugin); one physical device per identity when the window is on.
   Accept iff `(seq - anchor) mod 2^16` is in `1..N`; accepted packets
-  advance the anchor. An out-of-window packet is dropped (`replay`), but
-  two *coherent* consecutive rejects (the second advancing `1..N` past the
-  first — a device counting up from reset) re-anchor the window, so a
-  reboot costs exactly one packet and firmware needs no persistent
-  counter. Honest limit: an attacker who captured a consecutive signed
-  pair can force one stale line through and momentarily steal the anchor
-  (the device then re-anchors back the same way). It is a replay *damper*
-  for display integrity, not a transcript authenticator.
+  advance the anchor. An out-of-window packet is dropped (`replay`); the
+  window re-anchors on a *coherent* reject run (each reject advancing
+  `1..N` past the previous), but only when the run is consistent with a
+  device reset (absolute seq ≤ 2×N) or has persisted for 8 consecutive
+  rejects (recovery for a device whose boot burst the agent missed). A
+  reboot therefore costs exactly one packet and firmware needs no
+  persistent counter. Honest limit: an attacker who captured the
+  device's first ~2×N signed packets after a boot can replay that
+  prefix, and a longer captured run can steal the anchor at a cost of 8
+  burned datagrams per steal (the genuine feed re-anchors back the same
+  way, also at 8). Re-anchors are logged. It is a replay *damper* for
+  display integrity, not a transcript authenticator.
 - Defense in depth regardless of mode: `bind` to a LAN interface, never
   port-forward this from the WAN, and remember the upstream hop still
   requires the real API key — a LAN attacker can pollute the *display*,
@@ -222,7 +231,10 @@ beats a misparsed one (same doctrine as the serial decoder).
 7. UTF-8 + required strings → `bad-encoding` / `bad-identity`
 8. timestamp policy (3.4) → may count `bad-time` (packet still accepted)
 9. upstream backpressure → `backpressure`: the throttled HTTPS path keeps
-   a bounded in-flight backlog (`max(32, 2×maxHttpsReqPerCollectorPerSec)`);
+   a bounded in-flight backlog
+   (`min(1024, max(32, 2×maxHttpsReqPerCollectorPerSec))` — the absolute
+   cap exists because a load test showed a 100k throttle could otherwise
+   grow the backlog to ~200k posts and ~1.6GB RSS);
    beyond it the newest packet is shed and counted. A flood of valid
    packets must cost lines, never agent memory (and the throttle queue
    offers no cancellation, so shedding old work is not an option).

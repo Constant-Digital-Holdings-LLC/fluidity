@@ -18,6 +18,18 @@ void test('ansiText: visible length and truncation ignore SGR sequences', () => 
     assert.equal(padEndAnsi('ab', 4), 'ab  ');
 });
 
+void test('ansiText: CJK and emoji are two columns; truncation never splits a glyph', () => {
+    assert.equal(visibleLength('漢字'), 4);
+    assert.equal(visibleLength('a漢b'), 4);
+    assert.equal(visibleLength('🙂'), 2, 'astral emoji: two code units, one wide glyph');
+    assert.equal(truncateAnsi('漢字', 3), '漢', 'wide char straddling the boundary is excluded');
+    assert.equal(truncateAnsi('ab漢字', 4), 'ab漢');
+    assert.equal(truncateAnsi('🙂x', 2), '🙂');
+    assert.equal(truncateAnsi('🙂', 1), '', 'never emits a lone surrogate');
+    assert.equal(padEndAnsi('漢', 4), '漢  ');
+    assert.equal(visibleLength(padEndAnsi('\x1b[96m漢字\x1b[0m site', 16)), 16);
+});
+
 void test('keys: parses vim keys, arrows, page keys, digits and controls', () => {
     assert.deepEqual(parseKeys(Buffer.from('q')), [{ name: 'quit' }]);
     assert.deepEqual(parseKeys(Buffer.from('\x03')), [{ name: 'quit' }]);
@@ -34,6 +46,14 @@ void test('keys: parses vim keys, arrows, page keys, digits and controls', () =>
     ]);
     assert.deepEqual(parseKeys(Buffer.from('3')), [{ name: 'digit', digit: 3 }]);
     assert.deepEqual(parseKeys(Buffer.from('w')), [{ name: 'window' }]);
+});
+
+void test('keys: unbound CSI sequences are consumed whole, never re-parsed as keystrokes', () => {
+    assert.deepEqual(parseKeys(Buffer.from('\x1b[3~')), [], 'Delete must not toggle filter 3');
+    assert.deepEqual(parseKeys(Buffer.from('\x1b[15~')), [], 'F5 must not toggle 1 and 5');
+    assert.deepEqual(parseKeys(Buffer.from('\x1b[1;5A')), [], 'Ctrl-Up must not toggle or scroll');
+    assert.deepEqual(parseKeys(Buffer.from('\x1b[3~q')), [{ name: 'quit' }], 'scanning resumes after the sequence');
+    assert.deepEqual(parseKeys(Buffer.from('\x1b[1;5')), [], 'chunk ending mid-sequence emits nothing');
 });
 
 const pkt = (seq: number, site: string, plugin = 'srsSerial'): FluidityPacket => ({
@@ -80,8 +100,10 @@ void test('digit keys toggle the numbered site filter; Tab switches groups', () 
     assert.deepEqual(st.filters.collectors, ['genericSerial']);
     assert.equal(visibleEntries(st).length, 1);
 
+    st.scrollOffset = 2;
     handleKey(st, { name: 'clear' });
     assert.deepEqual(st.filters, { sites: [], collectors: [] });
+    assert.equal(st.scrollOffset, 0, 'clear re-pins auto-scroll like a filter change');
 
     //out-of-range digit is a no-op
     handleKey(st, { name: 'digit', digit: 9 });

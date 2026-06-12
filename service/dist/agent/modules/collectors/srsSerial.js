@@ -1,6 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
-import { SerialCollector } from '../collectors.js';
+import { SerialCollector, extOpt } from '../collectors.js';
 import { ReadlineParser } from 'serialport';
 const conf = await confFromFS();
 const log = fetchLogger(conf);
@@ -30,14 +30,14 @@ const isStringArray = (item) => Array.isArray(item) && item.every(s => typeof s 
 export default class SRSserialCollector extends SerialCollector {
     portmap;
     suppress;
-    drops = new Map();
     constructor(params) {
         super(params);
         const eo = params.extendedOptions;
         let portmap;
-        if (eo && typeof eo === 'object' && 'portmap' in eo && eo.portmap !== undefined) {
-            if (isStringArray(eo.portmap)) {
-                portmap = eo.portmap;
+        const pm = extOpt(eo, 'portmap');
+        if (pm !== undefined) {
+            if (isStringArray(pm)) {
+                portmap = pm;
             }
             else {
                 log.warn(`srsSerial [${params.description}]: invalid portmap in extendedOptions ` +
@@ -46,9 +46,10 @@ export default class SRSserialCollector extends SerialCollector {
         }
         this.portmap = portmap;
         let suppress = DEFAULT_SUPPRESS;
-        if (eo && typeof eo === 'object' && 'suppress' in eo && eo.suppress !== undefined) {
-            if (isStringArray(eo.suppress)) {
-                suppress = eo.suppress;
+        const sup = extOpt(eo, 'suppress');
+        if (sup !== undefined) {
+            if (isStringArray(sup)) {
+                suppress = sup;
             }
             else {
                 log.warn(`srsSerial [${params.description}]: invalid suppress in extendedOptions ` +
@@ -57,12 +58,8 @@ export default class SRSserialCollector extends SerialCollector {
         }
         this.suppress = new Set(suppress);
     }
-    get dropCounts() {
-        return this.drops;
-    }
-    noteDrop(reason, line) {
-        const n = (this.drops.get(reason) ?? 0) + 1;
-        this.drops.set(reason, n);
+    noteLineDrop(reason, line) {
+        const n = this.noteDrop(reason);
         const shown = line.length > 64 ? `${line.slice(0, 64)}...` : line;
         log.debug(`srsSerial [${this.params.description}]: dropped line (${reason} #${n}): ${shown}`);
     }
@@ -96,16 +93,16 @@ export default class SRSserialCollector extends SerialCollector {
     format(data, fh) {
         const frame = parseSrsFrame(data);
         if (!frame) {
-            this.noteDrop('not-a-frame', data);
+            this.noteLineDrop('not-a-frame', data);
             return null;
         }
         const expected = frame.kind === 'radio' ? radioStates.length : portStates.length;
         if (frame.bytes.length < expected) {
-            this.noteDrop('truncated', data);
+            this.noteLineDrop('truncated', data);
             return null;
         }
         if (frame.bytes.length > MAX_FRAME_BYTES) {
-            this.noteDrop('oversized', data);
+            this.noteLineDrop('oversized', data);
             return null;
         }
         const heading = frame.kind === 'radio' ? 'Radio States: ' : 'Port States: ';
