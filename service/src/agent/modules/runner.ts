@@ -1,3 +1,4 @@
+import { fetchLogger } from '#@shared/modules/logger.js';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
 import { DataCollector, DataCollectorParams, isDataCollectorParams } from './collectors.js';
 
@@ -5,6 +6,7 @@ import { DataCollector, DataCollectorParams, isDataCollectorParams } from './col
 //extracted from app.ts so misconfiguration behavior is testable
 export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector[]> => {
     const { targets, site } = conf;
+    const log = fetchLogger(conf);
 
     if (typeof site !== 'string') {
         throw new Error(
@@ -34,8 +36,21 @@ export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector
         throw new Error('In plugin config processing: no data collectors defined in configuration');
     }
 
+    //a collector stanza with "enabled": false is kept in config (documented,
+    //easy to switch on) but not loaded. Anything other than an explicit false
+    //(missing/true) loads, so enabling is the default and disabling is opt-in.
+    const enabled = collectorsConf.filter(c => (c as { enabled?: unknown }).enabled !== false);
+    const skipped = collectorsConf.length - enabled.length;
+    if (skipped > 0) {
+        const names = collectorsConf
+            .filter(c => (c as { enabled?: unknown }).enabled === false)
+            .map(c => (c as { description?: string; plugin?: string }).description ?? (c as { plugin?: string }).plugin)
+            .join(', ');
+        log.info(`Agent: ${skipped} collector(s) disabled in config (not loaded): ${names}`);
+    }
+
     return Promise.all(
-        collectorsConf.map(async collectorConfig => {
+        enabled.map(async collectorConfig => {
             const pluginParams = { site, targets, ...(collectorConfig as object) } as unknown;
 
             if (!isDataCollectorParams(pluginParams)) {

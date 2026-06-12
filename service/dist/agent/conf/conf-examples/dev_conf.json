@@ -13,6 +13,7 @@
         {
             "description": "Net Watcher",
             "plugin": "hamLive",
+            "enabled": false,
             "url": "https://www.ham.live/api/data/livenets",
             "pollIntervalSec": 60
         },

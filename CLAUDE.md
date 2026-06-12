@@ -46,6 +46,10 @@ Don't move rendering decisions serverward.
   C22A spec (PDFs in `tmp/`, untracked), behavior tuned to a production
   capture saved at `sims/fixtures/fy-io-fifo-capture-2026-06-11.json`
   (golden test data — `goldenCapture.test.ts` pins the decoder to it).
+- **Collector `enabled` flag**: a collector stanza with `"enabled": false`
+  stays in config (documented, easy to switch on) but is skipped by
+  `buildCollectors` (`modules/runner.ts`); anything other than explicit
+  `false` loads. The Net Watcher (`hamLive`) ships disabled by default.
 - **UDP ingest** (`service/UDP-SPEC.md`): `udpStruct` collector decodes
   packed flu_packet_v1 datagrams via `modules/udpCodec.ts`.
   `sims/src/udpDeviceSim.ts` is an intentionally independent second

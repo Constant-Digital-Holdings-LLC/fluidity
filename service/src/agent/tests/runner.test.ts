@@ -35,6 +35,44 @@ void test('a valid config yields constructed collectors', async () => {
     built.forEach(c => c.stop());
 });
 
+void test('a collector with "enabled": false is kept in config but not loaded', async () => {
+    const built = await buildCollectors(
+        conf({
+            collectors: [
+                { description: 'version', plugin: 'vRep', pollIntervalSec: 3600 },
+                {
+                    description: 'Net Watcher',
+                    plugin: 'hamLive',
+                    enabled: false,
+                    url: 'https://x/y',
+                    pollIntervalSec: 60
+                },
+                { description: 'sim SRS', plugin: 'srsSerial', path: 'sim://srs', baudRate: 9600 }
+            ]
+        })
+    );
+
+    assert.deepEqual(
+        built.map(c => c.params.plugin),
+        ['vRep', 'srsSerial'],
+        'the disabled hamLive stanza is skipped, the rest load in order'
+    );
+
+    //enabled:true and a missing flag both load (disabling is opt-in)
+    const onByDefault = await buildCollectors(
+        conf({
+            collectors: [
+                { description: 'a', plugin: 'vRep', pollIntervalSec: 3600, enabled: true },
+                { description: 'b', plugin: 'vRep', pollIntervalSec: 3600 }
+            ]
+        })
+    );
+    assert.equal(onByDefault.length, 2, 'enabled:true and absent both load');
+
+    built.forEach(c => c.stop());
+    onByDefault.forEach(c => c.stop());
+});
+
 void test('missing site name is rejected', async () => {
     await assert.rejects(buildCollectors(conf({ site: undefined })), /site name/);
 });
