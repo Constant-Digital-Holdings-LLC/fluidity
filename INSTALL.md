@@ -108,9 +108,11 @@ stray comma or missing quote is the usual cause.
 node tui/dist/app.js          # or: npx fluidity-tui
 ```
 
-It defaults to `https://localhost:3000`; point elsewhere with
-`--server https://your-host`. See **[RUNBOOK.md](RUNBOOK.md#viewing-the-stream)**
-for the interactive keys and piped/JSON modes.
+It defaults to `https://localhost:3000`; point elsewhere by passing the server
+URL as the first argument — `node tui/dist/app.js your-host:3000` (the scheme is
+optional and defaults to https). See
+**[RUNBOOK.md](RUNBOOK.md#viewing-the-stream)** for the interactive keys and
+piped/JSON modes.
 
 ## Moving to production
 

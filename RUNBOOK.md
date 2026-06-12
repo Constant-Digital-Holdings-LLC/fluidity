@@ -132,7 +132,8 @@ A site named `hello` appears with the field "hi from netcat".
 **Dashboard** — open `https://your-server:port`. Click a site or collector pill
 to filter; the view is mobile-friendly and renders style suggestions as CSS.
 
-**TUI** — `node tui/dist/app.js --server https://your-host` (defaults to
+**TUI** — `node tui/dist/app.js your-host:3000` (the server URL is the first
+argument; scheme optional, defaults to https; omit it entirely for
 localhost:3000). On an interactive terminal: columns auto-align, a bottom pane
 lists every reporting site with live counts — `1`–`9` filter by site, `Tab`
 switches to collectors, `space` pauses, `?` shows help. When piped or with

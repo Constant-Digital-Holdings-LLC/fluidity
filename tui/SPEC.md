@@ -251,10 +251,11 @@ jsdom tests pin for `FilterManager`.
 ## 6. CLI
 
 ```
-fluidity-tui [options]
+fluidity-tui [server-url] [options]
 
-  --server URL        Fluidity service base URL
-                      (default: FLUIDITY_SERVER env, else https://localhost:3000)
+  server-url          Fluidity service URL, e.g. f-y.io or https://host:3000
+                      (scheme optional, defaults to https; forgiving parse)
+  --server URL        same as the positional server-url (compatibility alias)
   --follow            force stream mode even on a TTY
   --json              raw FluidityPacket NDJSON (implies stream mode)
   --site NAME         pre-filter by site (repeatable)
@@ -266,9 +267,13 @@ fluidity-tui [options]
   --version, --help
 ```
 
-Server resolution order: `--server` > `FLUIDITY_SERVER` >
+Server resolution order: positional `server-url` (or its `--server` alias —
+giving both, if they disagree, is an error) > `FLUIDITY_SERVER` >
 `https://localhost:3000` (the dev server default — supports the README's
-"everything on one box" getting-started flow).
+"everything on one box" getting-started flow). The URL is parsed forgivingly:
+surrounding whitespace and a stray leading `//` are tolerated, a missing scheme
+defaults to https, and `host:port` is not mistaken for a `scheme:path`; only
+http/https are accepted.
 
 TLS: verification is relaxed automatically for **loopback hosts only**
 (localhost, 127.0.0.1, ::1), with a one-line notice — the dev server ships
@@ -279,7 +284,7 @@ Env: `FLUIDITY_SERVER`, `NO_COLOR` (forces mono, per no-color.org),
 `FORCE_COLOR` (overrides non-TTY detection).
 
 Exit codes: 0 user quit · 1 bad args · 2 cannot reach server at startup
-(the error suggests `--server` if the default was used).
+(the error notes when the local default was used because no server was given).
 
 ---
 

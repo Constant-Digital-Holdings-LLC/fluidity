@@ -3,14 +3,17 @@ import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { detectCaps } from './modules/caps.js';
 import { shouldVerifyTLS } from './modules/transport.js';
+import { normalizeServerUrl } from './modules/serverUrl.js';
 import { runStream } from './modules/stream.js';
 import { runInteractive } from './modules/interactive.js';
 const HELP = `fluidity-tui - terminal client for Fluidity
 
-Usage: fluidity-tui [options]
+Usage: fluidity-tui [server-url] [options]
 
-  --server URL        Fluidity service base URL
-                      (default: FLUIDITY_SERVER env, else https://localhost:3000)
+  server-url          Fluidity service URL, e.g. f-y.io or https://host:3000
+                      (scheme optional, defaults to https; falls back to the
+                      FLUIDITY_SERVER env, else https://localhost:3000)
+  --server URL        same as the positional server-url (kept for compatibility)
   --follow            force stream mode even on a TTY
   --json              raw FluidityPacket NDJSON output
   --site NAME         pre-filter by site (repeatable)
@@ -26,9 +29,10 @@ const fail = (msg) => {
     process.exit(1);
 };
 const main = () => {
-    let args;
+    let parsed;
     try {
-        args = parseArgs({
+        parsed = parseArgs({
+            allowPositionals: true,
             options: {
                 server: { type: 'string' },
                 follow: { type: 'boolean', default: false },
@@ -42,11 +46,13 @@ const main = () => {
                 version: { type: 'boolean', default: false },
                 help: { type: 'boolean', default: false }
             }
-        }).values;
+        });
     }
     catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
     }
+    const args = parsed.values;
+    const positionals = parsed.positionals;
     if (args.help) {
         process.stdout.write(HELP);
         return;
@@ -70,14 +76,22 @@ const main = () => {
     if (!Number.isInteger(history) || history < 0) {
         return fail('--history must be a non-negative integer');
     }
-    const usedDefaultServer = !args.server && !process.env['FLUIDITY_SERVER'];
-    const serverRaw = args.server ?? process.env['FLUIDITY_SERVER'] ?? 'https://localhost:3000';
+    if (positionals.length > 1) {
+        return fail(`unexpected extra argument(s): ${positionals.slice(1).join(' ')}`);
+    }
+    const positionalServer = positionals[0];
+    if (positionalServer !== undefined && args.server !== undefined) {
+        return fail('specify the server once: as the first argument or with --server, not both');
+    }
+    const serverArg = positionalServer ?? args.server;
+    const usedDefaultServer = serverArg === undefined && !process.env['FLUIDITY_SERVER'];
+    const serverRaw = serverArg ?? process.env['FLUIDITY_SERVER'] ?? 'https://localhost:3000';
     let base;
     try {
-        base = new URL(serverRaw);
+        base = normalizeServerUrl(serverRaw);
     }
-    catch {
-        return fail(`invalid server URL: ${serverRaw}`);
+    catch (err) {
+        return fail(err instanceof Error ? err.message : String(err));
     }
     if (base.protocol === 'https:' && !shouldVerifyTLS(base, args.insecure) && !args.insecure) {
         process.stderr.write(`fluidity-tui: loopback server - TLS verification relaxed\n`);
@@ -85,7 +99,7 @@ const main = () => {
     const caps = detectCaps(process.env, Boolean(process.stdout.isTTY), args.color);
     const unreachable = () => {
         process.stderr.write(`fluidity-tui: cannot reach ${base.href}`);
-        process.stderr.write(usedDefaultServer ? ' - no --server given, tried the local default\n' : '\n');
+        process.stderr.write(usedDefaultServer ? ' - no server given, tried the local default\n' : '\n');
         return process.exit(2);
     };
     const interactive = Boolean(process.stdout.isTTY) && Boolean(process.stdin.isTTY) && !args.follow && !args.json;
