@@ -338,3 +338,40 @@ void test('floodBypass thresholds on a trailing one-second window', async () => 
     //2s later the window has fully drained: a lone arrival animates again
     assert.equal(inst.floodBypass(3000), false, 'stale arrivals expire from the window');
 });
+
+void test('drainRenderQueue: bounded budget per frame, sheds oldest backlog beyond cap', async () => {
+    const { drainRenderQueue } = await import('#@client/modules/rxPump.js');
+
+    //a flood: 300 queued, cap 256, budget 48 -> shed 44 oldest, render 48 next
+    const q = Array.from({ length: 300 }, (_, i) => i);
+    const seen: number[] = [];
+    const r = drainRenderQueue(q, { budget: 48, cap: 256 }, x => seen.push(x));
+
+    assert.equal(r.dropped, 44, 'oldest 44 shed to honor the cap');
+    assert.equal(r.rendered, 48, 'only a frame budget rendered');
+    assert.deepEqual(
+        seen,
+        Array.from({ length: 48 }, (_, i) => 44 + i),
+        'rendered in arrival order after the shed'
+    );
+    assert.equal(q.length, 300 - 44 - 48, 'remainder stays queued for the next frame');
+});
+
+void test('drainRenderQueue: under the cap nothing is dropped; null render only sheds', async () => {
+    const { drainRenderQueue } = await import('#@client/modules/rxPump.js');
+
+    const q = [1, 2, 3];
+    const seen: number[] = [];
+    const r = drainRenderQueue(q, { budget: 48, cap: 256 }, x => seen.push(x));
+    assert.equal(r.dropped, 0);
+    assert.deepEqual(seen, [1, 2, 3]);
+    assert.equal(q.length, 0, 'a small queue drains fully within one frame');
+
+    //before the UI exists, render is null: the queue is still capped (memory
+    //stays bounded during the history load) but nothing renders
+    const big = Array.from({ length: 400 }, (_, i) => i);
+    const r2 = drainRenderQueue(big, { budget: 48, cap: 256 }, null);
+    assert.equal(r2.rendered, 0, 'no render before the UI is ready');
+    assert.equal(r2.dropped, 400 - 256, 'but the backlog is still shed to the cap');
+    assert.equal(big.length, 256);
+});
