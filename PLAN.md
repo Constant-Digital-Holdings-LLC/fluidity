@@ -457,6 +457,82 @@ branch pass. Highlights, by theme:
 > unimplemented (clients self-heal by refetch); the replay damper remains
 > a damper, not a transcript authenticator.
 
+## Log tailing + shared line tokenizer (L1/L2/L3 — planned)
+
+> The most universal collector: tail a growing file and turn each line into a
+> styled FluidityPacket. The key design move is that the **source** (file
+> tail) and the **tokenizer** (line → styled fields) are orthogonal — the
+> tokenizer is a reusable module any line-oriented collector opts into, so
+> `genericSerial` watching a chatty console gets the same rich coloring. It
+> fits the core rule perfectly: the tokenizer *suggests* `fieldType`/
+> `suggestStyle` per token; the clients still decide CSS vs ANSI. No client
+> change — a tokenized line is just a multi-field packet, exactly the shape
+> srsSerial already emits (heading + per-port states), which both renderers
+> already lay out as a sequence of styled segments.
+>
+> **Resolved decisions (settled before code):**
+> 1. **Source/tokenizer split.** New `modules/tokenize.ts` exposes
+>    `tokenize(line, opts) → FormattedData[]`, built on the existing
+>    `FormatHelper` (`fh.e(text, style)` / `DATE` / `LINK`). New file-tail
+>    *source* is a base alongside SerialCollector/PollingCollector; `logTail`
+>    = file-tail source + tokenizer. genericSerial keeps its source, gains the
+>    tokenizer as an option.
+> 2. **Per-source defaults.** Tokenizer is **off by default for
+>    genericSerial** (arbitrary, possibly binary serial data — silent
+>    tokenizing could mangle it; opt in via `extendedOptions.tokenize`) and
+>    **on/auto for logTail** (logs by definition).
+> 3. **Graceful fallback == today's behavior.** A line the detector can't
+>    classify is emitted whole as one `STRING` at style 0 — exactly what
+>    genericSerial does now. Turning tokenization on can never render *worse*
+>    than raw, only better. (Makes adoption risk-free.)
+> 4. **Config surface:** `extendedOptions.tokenize` = `true` | `false` |
+>    `{ format: 'auto'|'json'|'logfmt'|'syslog'|'levelmsg'|'raw',
+>    rules?: [{ match, style, fieldType? }] }`. Built-in detectors cover the
+>    common formats; user regex rules handle the long tail.
+> 5. **First-cut category → palette mapping** (11 slots, 0–10, + the ≥100
+>    trim convention; level coloring is the anchor, the rest is secondary and
+>    up for debate in implementation):
+>    - ERROR/FATAL/PANIC → 6 (pink) + trim (106) · WARN → 9 (peach) ·
+>      INFO → 0 (light) · DEBUG/TRACE → 7 (gray)
+>    - timestamp → `DATE` fieldType · logger/source → 2 (periwinkle) ·
+>      ip/host → 3 (blue) · number/metric → 4 (cyan) · path/url → `LINK`
+>    - `key=` → 7 (dim) / value → 0 · message/quoted body → 0
+>
+> **L1 — robust file-tail source (line-as-one-STRING, no tokenizer yet).**
+> The unglamorous-but-load-bearing infra, nailed in isolation: follow appended
+> bytes; **start at EOF by default** (opt-in replay, or a flood on a big
+> existing file); handle file-not-yet-existing, **rotation** (logrotate
+> rename+recreate → inode change → reopen by path), **in-place truncation**
+> (size shrinks → reset to offset 0), and **partial lines** at a read
+> boundary. Decode as a UTF-8 *stream* (never per-chunk `toString` — the same
+> bug class fixed in transport.ts/collectors.ts). Size-poll-and-read-the-delta
+> rather than fs.watch (unreliable cross-platform; stay dependency-free).
+> Inherits the base backpressure shed + `dropCounts`, and a **fleet-style
+> throttle default** (a busy log easily does thousands of lines/s — apply the
+> udpStruct lesson, not the base 2/s). A `log://` (or `file://`) sim source +
+> a fixture log makes it testable without real files, à la `sim://srs`.
+> *Accept:* tail a fixture through rotation + truncation with zero lost/dup
+> lines and no mojibake on a multibyte char split across reads; start-at-EOF
+> proven; a golden-capture test pins behavior (goldenCapture.test.ts pattern).
+>
+> **L2 — the shared tokenizer.** `modules/tokenize.ts` with built-in
+> detectors for JSON-lines, logfmt, syslog, and the generic
+> `LEVEL timestamp message` shape; the category→palette mapping above;
+> `DATE`/`LINK` promotion; optional user regex rules. genericSerial opts in;
+> logTail defaults on. **ReDoS guardrails from day one:** anchored/bounded
+> patterns, a hard line-length cap *before* tokenizing, a per-line work
+> budget — logs are untrusted input. *Accept:* each detector pins a fixture
+> line → exact FormattedData (a goldenCapture-style table); an adversarial
+> line (pathological + huge + control chars) tokenizes within budget and
+> never injects escapes (the renderers sanitize, but the tokenizer must not be
+> the hole); the unclassifiable line falls back to whole-line style 0.
+>
+> **L3 — multiline (optional, deferrable).** Stack traces / pretty-printed
+> JSON spanning lines: continuation detection (leading whitespace, or a
+> configurable start-of-entry pattern), coalesced into one packet. Every log
+> shipper has a fiddly "multiline" config; line-per-packet is correct for most
+> logs, so this is a fair deferral until a real need.
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under
