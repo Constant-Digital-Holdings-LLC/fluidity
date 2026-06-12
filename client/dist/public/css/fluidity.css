@@ -104,6 +104,16 @@ body {
     font-size: 0.8rem;
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
+    /* fill the viewport so the app (and the data stream) use the full height
+       instead of stopping ~3/4 down with dead background below. A DEFINITE
+       height (not min-height) is what bounds the grid's 1fr row so #cell-data
+       scrolls internally instead of growing the whole page; dvh tracks mobile
+       browser chrome, vh is the fallback. box-sizing:border-box (set on *)
+       means the breakpoint padding counts inside this height. */
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
 }
 
 ::selection {
@@ -225,6 +235,11 @@ a:focus-visible {
     display: grid;
     gap: var(--small-gap);
     grid-template-columns: 99vw;
+    /* grow to fill the body's height; the content row (the rail + the message
+       column) takes the slack so the stream fills the screen */
+    grid-template-rows: auto 1fr;
+    flex: 1 1 auto;
+    min-height: 0;
     /* min-width: 23.4rem; */
 }
 
@@ -236,6 +251,9 @@ a:focus-visible {
     display: flex;
     flex-direction: column;
     gap: var(--small-gap);
+    /* lives in the grid's 1fr row; min-height:0 lets #cell-data scroll rather
+       than forcing the column to grow past the viewport */
+    min-height: 0;
 }
 
 #container-logo-and-spinner {
@@ -375,7 +393,10 @@ li i {
 }
 #cell-data {
     overflow: auto;
-    max-height: clamp(75vh, 72vh, 77vh);
+    /* fill the leftover height in the message column (was capped at ~75vh,
+       which left dead space at the bottom); min-height:0 keeps it scrollable */
+    flex: 1 1 auto;
+    min-height: 0;
     scrollbar-gutter: stable;
     /* the stream reads like a terminal; chrome stays Outfit */
     font-family: var(--mono);
@@ -699,7 +720,9 @@ li i {
 
 @media (min-width: 550px) {
     body {
-        margin: var(--small-gap);
+        /* padding, not margin: it sits inside the 100svh box so the app fills
+           the viewport exactly (margin would push it past and add a scrollbar) */
+        padding: var(--small-gap);
     }
 
     #pulse {
@@ -763,7 +786,7 @@ li i {
 /*  Large high-res */
 @media (min-width: 1920px) {
     body {
-        margin: var(--big-gap);
+        padding: var(--big-gap);
     }
 
     #container-main {
