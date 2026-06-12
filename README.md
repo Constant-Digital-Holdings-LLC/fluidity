@@ -2,13 +2,17 @@
 
 Fluidity is an extensible, lightweight, real-time aggregator for serial data. It
 runs on all modern operating systems and offers very fast centralized viewing
-with syntax highlighting. The interface is clean and mobile-friendly.
+with syntax highlighting — plus pattern-based **alerting** that can notify you
+the moment a device goes quiet or an event storms. The interface is clean and
+mobile-friendly.
 
 See a live demonstration with actual production data: **<https://f-y.io/>**
 
 There, Fluidity displays distributed communication devices called "Sierra Radio
 Systems (SRS) Controllers" — a more advanced use case, but Fluidity can
-aggregate any serial data.
+aggregate any serial data. Those controllers stream periodic heartbeats, which
+is exactly the kind of signal the Watcher can alert on the moment one goes
+silent.
 
 Fluidity has **no internet runtime dependencies**: the clients deliberately use
 no external CDNs, so the entire stack runs self-contained on a local LAN.
