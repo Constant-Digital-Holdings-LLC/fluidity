@@ -48,6 +48,37 @@ const send = (client: dgram.Socket, port: number, buf: Buffer): Promise<void> =>
         client.send(buf, port, '127.0.0.1', err => (err ? reject(err) : resolve()));
     });
 
+void test('udpStruct defaults to a fleet upstream rate, not the base per-device 2', () => {
+    //one collector aggregates the whole fleet through one throttle; the base
+    //default of 2/s would shed almost everything (load test: 16k offered, 22
+    //through). Unset -> fleet default; an explicit value is still honored.
+    const { maxHttpsReqPerCollectorPerSec: _unset, ...noThrottle } = udpParams();
+    void _unset;
+    const fleet = new UdpStructCollector(noThrottle);
+    assert.equal(fleet.maxPostsPerSec, 1000);
+    fleet.stop();
+
+    const custom = new UdpStructCollector(udpParams({ maxHttpsReqPerCollectorPerSec: 4000 }));
+    assert.equal(custom.maxPostsPerSec, 4000);
+    custom.stop();
+});
+
+void test('udpStruct warns when the upstream throttle is too low for a fleet', () => {
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...a: unknown[]): void => void warnings.push(a.join(' '));
+    try {
+        //an explicit low value is honored but flagged: a fleet hub at 2/s sheds
+        new UdpStructCollector(udpParams({ maxHttpsReqPerCollectorPerSec: 2 })).stop();
+    } finally {
+        console.warn = origWarn;
+    }
+    assert.ok(
+        warnings.some(w => /fleet aggregator/.test(w) && /maxHttpsReqPerCollectorPerSec=2\b/.test(w)),
+        `expected a low-throttle fleet warning, got: ${JSON.stringify(warnings)}`
+    );
+});
+
 void test('sim packer and agent encoder emit identical bytes for the same packet', () => {
     //two deliberately independent implementations of UDP-SPEC s3 - the sim
     //is the firmware reference - must agree byte-for-byte

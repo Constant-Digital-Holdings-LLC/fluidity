@@ -142,6 +142,9 @@ export abstract class DataCollector implements DataCollectorPlugin {
     private pendingPosts = 0;
     private readonly maxPendingPosts: number;
     private shedTotal = 0;
+    //the resolved upstream POST rate limit (posts/sec). A subclass may raise the
+    //default before super() - udpStruct aggregates a fleet and sets a fleet rate.
+    public readonly maxPostsPerSec: number;
     //target locations are constant for the collector's lifetime
     private readonly urlCache = new Map<string, URL>();
     //per-reason drop accounting, one surface for every collector (srsSerial
@@ -152,6 +155,7 @@ export abstract class DataCollector implements DataCollectorPlugin {
         if (!isDataCollectorParams(params)) throw new Error(`DataCollector class constructor - invalid runtime params`);
 
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
+        this.maxPostsPerSec = maxHttpsReqPerCollectorPerSec;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
 
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });

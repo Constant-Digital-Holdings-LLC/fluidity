@@ -38,6 +38,28 @@ const liveCollector = async (over = {}) => {
 const send = (client, port, buf) => new Promise((resolve, reject) => {
     client.send(buf, port, '127.0.0.1', err => (err ? reject(err) : resolve()));
 });
+void test('udpStruct defaults to a fleet upstream rate, not the base per-device 2', () => {
+    const { maxHttpsReqPerCollectorPerSec: _unset, ...noThrottle } = udpParams();
+    void _unset;
+    const fleet = new UdpStructCollector(noThrottle);
+    assert.equal(fleet.maxPostsPerSec, 1000);
+    fleet.stop();
+    const custom = new UdpStructCollector(udpParams({ maxHttpsReqPerCollectorPerSec: 4000 }));
+    assert.equal(custom.maxPostsPerSec, 4000);
+    custom.stop();
+});
+void test('udpStruct warns when the upstream throttle is too low for a fleet', () => {
+    const warnings = [];
+    const origWarn = console.warn;
+    console.warn = (...a) => void warnings.push(a.join(' '));
+    try {
+        new UdpStructCollector(udpParams({ maxHttpsReqPerCollectorPerSec: 2 })).stop();
+    }
+    finally {
+        console.warn = origWarn;
+    }
+    assert.ok(warnings.some(w => /fleet aggregator/.test(w) && /maxHttpsReqPerCollectorPerSec=2\b/.test(w)), `expected a low-throttle fleet warning, got: ${JSON.stringify(warnings)}`);
+});
 void test('sim packer and agent encoder emit identical bytes for the same packet', () => {
     const logical = {
         site: 'greenhouse',

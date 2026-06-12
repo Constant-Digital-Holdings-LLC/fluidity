@@ -65,6 +65,7 @@ export class DataCollector {
     pendingPosts = 0;
     maxPendingPosts;
     shedTotal = 0;
+    maxPostsPerSec;
     urlCache = new Map();
     drops = new Map();
     constructor(params) {
@@ -72,6 +73,7 @@ export class DataCollector {
         if (!isDataCollectorParams(params))
             throw new Error(`DataCollector class constructor - invalid runtime params`);
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
+        this.maxPostsPerSec = maxHttpsReqPerCollectorPerSec;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
         this.maxPendingPosts = Math.min(MAX_PENDING_POSTS_ABS, Math.max(32, 2 * maxHttpsReqPerCollectorPerSec));

@@ -12,6 +12,8 @@ const MAX_SOURCES = 1024;
 const MAX_DEVICES = 4096;
 const RECOVERY_STREAK = 8;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const UDP_FLEET_DEFAULT_THROTTLE = 1000;
+const UDP_FLEET_MIN_RECOMMENDED = 50;
 export default class UdpStructCollector extends DataCollector {
     port;
     bindAddr;
@@ -27,7 +29,14 @@ export default class UdpStructCollector extends DataCollector {
     sourceTableFull = false;
     seqTableFull = false;
     constructor(params) {
-        super(params);
+        const fleetThrottle = params.maxHttpsReqPerCollectorPerSec ?? UDP_FLEET_DEFAULT_THROTTLE;
+        super({ ...params, maxHttpsReqPerCollectorPerSec: fleetThrottle });
+        if (fleetThrottle < UDP_FLEET_MIN_RECOMMENDED) {
+            log.warn(`udpStruct [${params.description}]: maxHttpsReqPerCollectorPerSec=${fleetThrottle} is low for a ` +
+                `fleet aggregator - every device on this port shares one upstream throttle, so a busy fleet ` +
+                `will shed. Size it to the fleet's aggregate packet rate (the base default of 2 assumes a ` +
+                `single serial device).`);
+        }
         const { port, bind } = params;
         if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) {
             throw new Error(`udpStruct [${params.description}]: port must be an integer 0..65535`);
@@ -108,6 +117,8 @@ export default class UdpStructCollector extends DataCollector {
         this.socket.on('listening', () => {
             const { address, port } = this.socket.address();
             log.info(`started: ${this.params.plugin} [${this.params.description}] on udp ${address}:${port}`);
+            log.info(`udpStruct [${this.params.description}]: upstream throttle ${this.maxPostsPerSec} posts/sec ` +
+                `(raise maxHttpsReqPerCollectorPerSec if the fleet's aggregate rate exceeds this)`);
             if (!this.key) {
                 log.info(`udpStruct [${this.params.description}]: open mode - no MAC required; ` +
                     `keep this port LAN-only (UDP-SPEC s4)`);

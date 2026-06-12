@@ -43,6 +43,19 @@ const RECOVERY_STREAK = 8;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+//unlike the single-device serial collectors, one udpStruct collector funnels
+//an entire LAN device fleet through a single upstream throttle. The base
+//per-collector default of 2 posts/sec (a single serial device's rate) would
+//shed almost a whole fleet (a load test offered 16k datagrams and 22 got
+//through), so default to a fleet-appropriate rate when the operator hasn't
+//set one: generous for realistic fleets, an order of magnitude below the
+//measured single-host pipeline ceiling, and still a hard cap on a runaway.
+const UDP_FLEET_DEFAULT_THROTTLE = 1000;
+//below this an even modestly busy fleet sheds at the throttle; warn, because
+//the operator likely sized it for one device without realizing this collector
+//is the whole fleet's upstream hub
+const UDP_FLEET_MIN_RECOMMENDED = 50;
+
 export default class UdpStructCollector extends DataCollector {
     private readonly port: number;
     private readonly bindAddr: string | undefined;
@@ -59,7 +72,19 @@ export default class UdpStructCollector extends DataCollector {
     private seqTableFull = false;
 
     constructor(params: UdpStructCollectorParams) {
-        super(params);
+        //one collector funnels the whole fleet through one upstream throttle, so
+        //default to a fleet rate when unset rather than the base per-device 2
+        const fleetThrottle = params.maxHttpsReqPerCollectorPerSec ?? UDP_FLEET_DEFAULT_THROTTLE;
+        super({ ...params, maxHttpsReqPerCollectorPerSec: fleetThrottle });
+
+        if (fleetThrottle < UDP_FLEET_MIN_RECOMMENDED) {
+            log.warn(
+                `udpStruct [${params.description}]: maxHttpsReqPerCollectorPerSec=${fleetThrottle} is low for a ` +
+                    `fleet aggregator - every device on this port shares one upstream throttle, so a busy fleet ` +
+                    `will shed. Size it to the fleet's aggregate packet rate (the base default of 2 assumes a ` +
+                    `single serial device).`
+            );
+        }
 
         const { port, bind } = params;
 
@@ -173,6 +198,12 @@ export default class UdpStructCollector extends DataCollector {
         this.socket.on('listening', () => {
             const { address, port } = this.socket.address();
             log.info(`started: ${this.params.plugin} [${this.params.description}] on udp ${address}:${port}`);
+
+            //effective fleet ceiling, one glance at the log
+            log.info(
+                `udpStruct [${this.params.description}]: upstream throttle ${this.maxPostsPerSec} posts/sec ` +
+                    `(raise maxHttpsReqPerCollectorPerSec if the fleet's aggregate rate exceeds this)`
+            );
 
             //the security posture is one glance at the log, always
             if (!this.key) {

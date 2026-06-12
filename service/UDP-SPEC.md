@@ -218,7 +218,13 @@ beats a misparsed one (same doctrine as the serial decoder).
   contained change in `collectors.ts`, used only by this plugin.
 - Existing collector knobs apply: `keepRaw` stores the datagram as lowercase
   hex (capped at full struct size); `maxHttpsReqPerCollectorPerSec`
-  throttles upstream as usual (a boot-looping device cannot flood f-y.io).
+  throttles upstream as usual (a boot-looping fleet cannot flood f-y.io).
+  NOTE: unlike the single-device serial collectors, ONE udpStruct collector
+  aggregates the whole device fleet through one upstream throttle, so it
+  defaults to **1000 posts/sec** (not the base per-device default of 2, which
+  would shed almost an entire fleet). Size it to your fleet's aggregate
+  packet rate; the collector warns at startup if it is set below 50/sec and
+  logs the effective ceiling on every start.
 
 ## 6. Validation pipeline and observability (normative order)
 
