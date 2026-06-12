@@ -224,3 +224,35 @@ void test('site and collector filters intersect', async () => {
     await sleep(20);
     assert.equal(byId('filter-count').textContent, '0');
 });
+void test('live lines type in at a calm rate, then render instantly once the stream floods', async () => {
+    const { FluidityUI: UI } = await import('#@client/modules/ui.js');
+    let clock = 100_000;
+    const typed = [];
+    const fresh = new UI([pkt(900, 'Verdugo Pk', 'srsSerial')]);
+    fresh.now = () => clock;
+    fresh.typeFn = (el) => {
+        typed.push(el.id);
+    };
+    for (let i = 0; i < 6; i++) {
+        clock += 50;
+        fresh.packetAdd(pkt(901 + i, 'Verdugo Pk', 'srsSerial'));
+    }
+    assert.equal(typed.length, 6, 'first six live lines animate');
+    for (let i = 0; i < 6; i++) {
+        clock += 50;
+        fresh.packetAdd(pkt(920 + i, 'Verdugo Pk', 'srsSerial'));
+    }
+    assert.equal(typed.length, 6, 'flooded lines are not animated');
+    clock += 2000;
+    fresh.packetAdd(pkt(950, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, 7, 'typing resumes once the burst subsides');
+});
+void test('floodBypass thresholds on a trailing one-second window', async () => {
+    const { FluidityUI: UI } = await import('#@client/modules/ui.js');
+    const inst = new UI([]);
+    let bypassed = false;
+    for (let i = 0; i < 7; i++)
+        bypassed = inst.floodBypass(1000);
+    assert.ok(bypassed, 'the 7th arrival inside the window bypasses');
+    assert.equal(inst.floodBypass(3000), false, 'stale arrivals expire from the window');
+});

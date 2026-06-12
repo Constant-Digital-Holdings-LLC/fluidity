@@ -236,11 +236,15 @@ class FilterManager {
         this.index(fp);
     }
 }
+const TYPE_BYPASS_PER_SEC = 6;
 export class FluidityUI {
     constructor(history) {
         var _a, _b, _c, _d;
         this.history = history;
         this.highestScrollPos = 0;
+        this.liveArrivals = [];
+        this.typeFn = typeIn;
+        this.now = () => performance.now();
         this.lastVh = window.innerHeight;
         this.demarc = (_a = history.at(-1)) === null || _a === void 0 ? void 0 : _a.seq;
         this.fm = new FilterManager({
@@ -417,12 +421,23 @@ export class FluidityUI {
                     }
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
-                        typeIn(current.lastChild);
+                        if (!this.floodBypass(this.now())) {
+                            this.typeFn(current.lastChild);
+                        }
                     }
                 }
                 this.autoScrollRequest();
             });
         }
+    }
+    floodBypass(now) {
+        var _a;
+        this.liveArrivals.push(now);
+        const cutoff = now - 1000;
+        while (this.liveArrivals.length && ((_a = this.liveArrivals[0]) !== null && _a !== void 0 ? _a : 0) < cutoff) {
+            this.liveArrivals.shift();
+        }
+        return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
     }
     packetAdd(fp) {
         if (typeof this.demarc === 'number' && typeof fp.seq === 'number') {

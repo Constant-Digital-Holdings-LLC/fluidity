@@ -5,6 +5,9 @@ export declare class FluidityUI {
     private fm;
     private highestScrollPos;
     private lastVh;
+    private liveArrivals;
+    protected typeFn: (root: HTMLElement, opts?: import("./typewriter.js").TypeOpts) => void;
+    protected now: () => number;
     constructor(history: FluidityPacket[]);
     refreshLiveness(now?: number): void;
     private scrollReset;
@@ -13,6 +16,7 @@ export declare class FluidityUI {
     protected renderFormattedData(fArr: FormattedData[]): DocumentFragment;
     private packetRender;
     private packetSet;
+    private floodBypass;
     packetAdd(fp: FluidityPacket): void;
 }
 //# sourceMappingURL=ui.d.ts.map

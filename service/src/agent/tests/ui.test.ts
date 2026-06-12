@@ -286,3 +286,55 @@ void test('site and collector filters intersect', async () => {
     await sleep(20);
     assert.equal(byId('filter-count').textContent, '0');
 });
+
+//these run last: they spin up throwaway FluidityUI instances against the
+//shared jsdom document, so they use high, non-colliding seq numbers and only
+//assert on instance-local state (the typeFn spy / floodBypass return)
+void test('live lines type in at a calm rate, then render instantly once the stream floods', async () => {
+    const { FluidityUI: UI } = await import('#@client/modules/ui.js');
+    let clock = 100_000;
+    const typed: string[] = [];
+
+    const fresh = new UI([pkt(900, 'Verdugo Pk', 'srsSerial')]) as unknown as {
+        typeFn: (el: HTMLElement) => void;
+        now: () => number;
+        packetAdd: (fp: FluidityPacket) => void;
+    };
+    fresh.now = (): number => clock;
+    fresh.typeFn = (el: HTMLElement): void => {
+        typed.push(el.id);
+    };
+
+    //six packets inside one second: the typewriter keeps up, each animates
+    for (let i = 0; i < 6; i++) {
+        clock += 50;
+        fresh.packetAdd(pkt(901 + i, 'Verdugo Pk', 'srsSerial'));
+    }
+    assert.equal(typed.length, 6, 'first six live lines animate');
+
+    //the flood continues: more than six arrivals now sit in the trailing
+    //second, so further lines skip the typewriter and land as instant text
+    for (let i = 0; i < 6; i++) {
+        clock += 50;
+        fresh.packetAdd(pkt(920 + i, 'Verdugo Pk', 'srsSerial'));
+    }
+    assert.equal(typed.length, 6, 'flooded lines are not animated');
+
+    //after a quiet gap the window drains and typing resumes
+    clock += 2000;
+    fresh.packetAdd(pkt(950, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, 7, 'typing resumes once the burst subsides');
+});
+
+void test('floodBypass thresholds on a trailing one-second window', async () => {
+    const { FluidityUI: UI } = await import('#@client/modules/ui.js');
+    const inst = new UI([]) as unknown as { floodBypass: (now: number) => boolean };
+
+    //seven arrivals in the same instant: the seventh trips the bypass (>6)
+    let bypassed = false;
+    for (let i = 0; i < 7; i++) bypassed = inst.floodBypass(1000);
+    assert.ok(bypassed, 'the 7th arrival inside the window bypasses');
+
+    //2s later the window has fully drained: a lone arrival animates again
+    assert.equal(inst.floodBypass(3000), false, 'stale arrivals expire from the window');
+});

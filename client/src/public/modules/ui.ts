@@ -283,11 +283,21 @@ class FilterManager {
     }
 }
 
+//above this live arrival rate the ~420cps typewriter can't finish a typical
+//multi-field line before the next packet lands, so the stream would visibly
+//trail real time; past it we render instantly. A trailing-1s window gives
+//natural hysteresis (a burst has to actually subside to re-enable typing).
+const TYPE_BYPASS_PER_SEC = 6;
+
 export class FluidityUI {
     private demarc: number | undefined;
     private fm: FilterManager;
     private highestScrollPos = 0;
     private lastVh: number;
+    private liveArrivals: number[] = [];
+    //injectable so tests can assert when a live line animates vs lands instant
+    protected typeFn = typeIn;
+    protected now: () => number = () => performance.now();
 
     constructor(protected history: FluidityPacket[]) {
         this.lastVh = window.innerHeight;
@@ -501,14 +511,30 @@ export class FluidityUI {
                     current.appendChild(this.packetRender(fp));
                     if (current.lastChild instanceof HTMLElement) {
                         //live lines type in fast (history renders instantly);
-                        //no-ops to instant text under reduced motion or tests
-                        typeIn(current.lastChild);
+                        //but once the stream floods, skip straight to instant
+                        //text so the display never trails the data. typeIn also
+                        //no-ops under reduced motion or in tests (no rAF).
+                        if (!this.floodBypass(this.now())) {
+                            this.typeFn(current.lastChild);
+                        }
                     }
                 }
 
                 this.autoScrollRequest();
             });
         }
+    }
+
+    //records a live arrival and reports whether the typewriter should be
+    //skipped: true once more than TYPE_BYPASS_PER_SEC packets landed in the
+    //trailing second. Pure given `now`, so the threshold is unit-testable.
+    private floodBypass(now: number): boolean {
+        this.liveArrivals.push(now);
+        const cutoff = now - 1000;
+        while (this.liveArrivals.length && (this.liveArrivals[0] ?? 0) < cutoff) {
+            this.liveArrivals.shift();
+        }
+        return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
     }
 
     public packetAdd(fp: FluidityPacket) {
