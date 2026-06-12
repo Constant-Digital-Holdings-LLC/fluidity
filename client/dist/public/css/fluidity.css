@@ -30,7 +30,7 @@
     --surface-brand: #53354a;
     --surface-brand-hi: #6b4862;
     --surface-cell: #1d1d21;
-    --surface-cell-hi: #271d2a;
+    --surface-cell-hi: #342138;
     --accent-a: #fe8dc6;
     --accent-b: #fed1c7;
     --line: rgba(112, 108, 157, 0.32);
@@ -39,6 +39,8 @@
     --chip-active: rgba(254, 141, 198, 0.13);
     --chip-active-ring: rgba(254, 141, 198, 0.4);
     --icon-idle: rgba(255, 255, 255, 0.45);
+
+    --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
 
     --small-gap: 0.5rem;
     --big-gap: 0.75rem;
@@ -83,9 +85,9 @@
 
 .bg-gradient {
     background: rgb(29, 29, 33);
-    /* 75% flat graphite, then a breath of plum at the edge (the original
+    /* 72% flat graphite, then a breath of plum at the edge (the original
        gradient device, demoted from surface color to shading) */
-    background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
+    background: linear-gradient(90deg, var(--surface-cell) 72%, var(--surface-cell-hi) 100%);
 }
 
 body {
@@ -347,6 +349,7 @@ li i {
 
 .stat-data {
     color: var(--color3);
+    font-family: var(--mono);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
@@ -358,6 +361,25 @@ li i {
     overflow: auto;
     max-height: clamp(75vh, 72vh, 77vh);
     scrollbar-gutter: stable;
+    /* the stream reads like a terminal; chrome stays Outfit */
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+/* terminal cursor after the newest packet */
+#current-data::after {
+    content: '\258a';
+    color: var(--accent-a);
+    opacity: 0.65;
+    margin-left: 0.3rem;
+    animation: cursorBlink 1.2s steps(2, start) infinite;
+}
+
+@keyframes cursorBlink {
+    50% {
+        opacity: 0;
+    }
 }
 
 .overflow-anchor-none {
@@ -512,7 +534,7 @@ li i {
     padding: 20px;
     border-radius: 14px;
     border: 1px solid var(--line);
-    background: linear-gradient(90deg, var(--surface-cell) 75%, var(--surface-cell-hi) 100%);
+    background: linear-gradient(90deg, var(--surface-cell) 72%, var(--surface-cell-hi) 100%);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -643,6 +665,11 @@ li i {
 
     .live-dot--fresh {
         animation: none;
+    }
+
+    #current-data::after {
+        animation: none;
+        opacity: 0.4;
     }
 }
 
