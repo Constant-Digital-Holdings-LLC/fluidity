@@ -1,0 +1,28 @@
+{
+    "appName": "Fluidity Watcher",
+    "logLevel": "info",
+    "watch": "https://localhost:3000",
+    "insecure": true,
+    "evalIntervalMs": 1000,
+    "alerts": [
+        {
+            "name": "example-heartbeat",
+            "enabled": false,
+            "match": { "site": "greenhouse" },
+            "trigger": { "type": "silence", "window": "120s" },
+            "exec": "/etc/fluidity/alerts/ntfy.sh",
+            "message": "{{site}} silent for {{silenceSec}}s (last seen {{lastSeen}})",
+            "cooldown": "10m",
+            "recover": true
+        },
+        {
+            "name": "example-error-storm",
+            "enabled": false,
+            "match": { "plugin": "logTail", "text": "ERROR|CRIT" },
+            "trigger": { "type": "frequency", "count": 20, "window": "60s" },
+            "exec": "/etc/fluidity/alerts/ntfy.sh",
+            "message": "error storm on {{site}}: {{count}} in {{window}} - {{text}}",
+            "cooldown": "2m"
+        }
+    ]
+}

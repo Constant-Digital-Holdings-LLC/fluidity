@@ -15,10 +15,11 @@
     "scripts": {
         "build": "tsc --build service/tsconfig.json tui/tsconfig.json",
         "lint": "eslint client/src service/src sims/src tui/src",
-        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test tests/*.test.js ../server/tests/*.test.js ../../../tui/dist/tests/*.test.js",
-        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --all --check-coverage --lines 78 --statements 78 --branches 75 --functions 80 --allow-external --src . --src ../server --src ../../../client/dist/public --src ../../../sims/dist --src ../../../tui/dist --exclude \"**/tests/**\" --exclude \"**/conf/**\" --exclude \"**/external/**\" --exclude \"**/ssl/**\" --exclude \"**/*.d.ts\" --reporter=text-summary --reporter=text node --test tests/*.test.js ../server/tests/*.test.js ../../../tui/dist/tests/*.test.js",
+        "test": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development node --test tests/*.test.js ../server/tests/*.test.js ../watcher/tests/*.test.js ../../../tui/dist/tests/*.test.js",
+        "test:coverage": "npm run build && cd service/dist/agent && cross-env NODE_ENV=development c8 --all --check-coverage --lines 78 --statements 78 --branches 75 --functions 80 --allow-external --src . --src ../server --src ../watcher --src ../../../client/dist/public --src ../../../sims/dist --src ../../../tui/dist --exclude \"**/tests/**\" --exclude \"**/conf/**\" --exclude \"**/external/**\" --exclude \"**/ssl/**\" --exclude \"**/*.d.ts\" --reporter=text-summary --reporter=text node --test tests/*.test.js ../server/tests/*.test.js ../watcher/tests/*.test.js ../../../tui/dist/tests/*.test.js",
         "start:server": "cd service/dist/server && node --enable-source-maps app.js",
         "start:agent": "cd service/dist/agent && node --enable-source-maps app.js",
+        "start:watcher": "cd service/dist/watcher && node --enable-source-maps app.js",
         "start:agent-verbose": "npm --loglevel verbose run start:agent",
         "dev:server": "cd service/dist/server && cross-env NODE_ENV=development NODE_OPTIONS=--enable-source-maps concurrently -n tsc-service,nm-service --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" ",
         "dev:agent": "cd service/dist/agent && cross-env NODE_ENV=development NODE_OPTIONS=\"--inspect --enable-source-maps\" concurrently -n tsc-agent,nm-agent --kill-others \"tsc --build ../../tsconfig.json -w\" \"nodemon --delay 1.5 app.js\" ",
