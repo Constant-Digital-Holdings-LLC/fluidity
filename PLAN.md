@@ -557,6 +557,98 @@ branch pass. Highlights, by theme:
 > shipper has a fiddly "multiline" config; line-per-packet is correct for most
 > logs, so this is a fair deferral until a real need.
 
+## Watcher — pattern alerting via a server subscriber (W1/W2/W3 — planned)
+
+> Register patterns of interest and, when a pattern fires at a frequency (a
+> storm) or a heartbeat goes silent for a duration, exec a registered program
+> with a configured message on stdin (first use: NTFY on a missing heartbeat /
+> a problematic pattern). The whole thing is a **standalone subscriber**, not
+> code in the server.
+>
+> **Why a subscriber, not in the server (resolved):** a watchdog must be
+> independent of what it watches. An in-server matcher dies with the server -
+> the one moment you most want an alert - whereas a separate process survives
+> the server's death and can alert "the server/agent went dark." It also
+> quarantines the exec/fork-bomb risk from the hardened ingest path, keeps the
+> "server relays, never interprets" doctrine intact, and is just another SSE
+> consumer (like the dashboard, the TUI, and the loadtest harness). The one
+> cost - absence detection over a lossy feed - is handled (see W2).
+>
+> **Resolved decisions (proposed defaults; cheap to revisit before code):**
+> 1. **Standalone component** `service/src/watcher/`, `npm run start:watcher`,
+>    its own config. Runs alongside the server (typically same host so exec'd
+>    scripts and NTFY egress are local).
+> 2. **Rule shape** = selector + trigger + action:
+>    ```jsonc
+>    { "name": "greenhouse-heartbeat", "enabled": true,
+>      "match": { "site": "greenhouse" },              // site/plugin equality + optional text regex
+>      "trigger": { "type": "silence", "window": "120s" },
+>      "exec": "/etc/fluidity/alerts/ntfy.sh",
+>      "message": "{{site}} silent for {{window}} (last seen {{lastSeen}})",
+>      "cooldown": "10m", "recover": true }
+>    ```
+>    Triggers: `silence` (no match for window → fire; the heartbeat/dead-man
+>    case) and `frequency` (matches in a rolling window cross a count → fire;
+>    the storm case). Under-frequency = `silence` with window = expected
+>    cadence (no third comparator in v1).
+> 3. **Selector reach (v1):** `site`/`plugin` equality + an optional
+>    length-capped, anchored regex over the joined field text. `rawData` /
+>    per-field matching deferred.
+> 4. **Absence re-fire (v1):** fire once on going-silent, once on `recover`;
+>    not every window while down.
+> 5. **State (v1):** in-memory; bootstrap last-seen from `/FIFO` at startup
+>    with a grace period; reset on restart, logged. No persistence yet.
+> 6. **Decomposition for shells:** stdin = the rendered `message` template
+>    (`{{site}}`,`{{plugin}}`,`{{ts}}`,`{{text}}`,`{{seq}}`,`{{count}}`,`{{rule}}`;
+>    optional `format:"json"` for jq); env = `FLU_SITE/PLUGIN/DESCRIPTION/TS/
+>    SEQ/TEXT/RAW/RULE/REASON/COUNT`. **`shell:false`, args array, minimal
+>    clean env** (PATH + FLU_* only - the server's TLS/API-key env is never
+>    inherited): untrusted packet content reaches the child as data, never as
+>    a command string.
+>
+> **W1 — the subscriber + shared SSE-follow.** Factor a small headless
+> SSE-follow client (connect, reconnect with backoff, `/FIFO` reconcile +
+> seq/ts dedup, connection-state events) out of the three existing consumers
+> (tui transport.ts, dashboard EventSource, loadtest harness) and reuse it.
+> The watcher process consumes it and exposes a connection state (healthy /
+> blind). *Accept:* the watcher follows a live server, survives a server
+> restart (self-heals via `/FIFO`), and reports blind vs healthy; a fake
+> server drop is observable to the matcher.
+>
+> **W2 — PatternMatcher (pure, injectable clock).** Compiled rules;
+> `observe(packet)` updates per-rule rolling windows (`frequency`) and
+> last-seen timers (`silence`); emits `Fire { rule, reason:
+> match|silence|recover, packet?, count, context }`. **Connection-aware
+> absence:** suspend `silence` evaluation while blind (no false "down" from a
+> dropped pipe; optional one "monitoring lost the server" meta-alert), and on
+> reconnect/startup reconcile last-seen from `/FIFO` packet timestamps (not
+> "now"). Absence is judged against the packet `ts`, not local arrival.
+> ReDoS-bounded selectors (line cap + anchored patterns, the tokenizer
+> discipline). *Accept:* fake-clock tests pin a storm firing at the threshold,
+> a silence firing after the window + a recover, NO false silence across a
+> simulated disconnect, and correct reconciliation from a `/FIFO` snapshot.
+>
+> **W3 — AlertRunner (bounded exec pool + protections).** `fire(event)` ->
+> bounded queue -> spawn (`shell:false`, clean env, FLU_* env, templated
+> stdin) -> timeout (SIGTERM→SIGKILL) -> exit handling. Anti-fork-bomb: a
+> global **concurrency cap** (the hard ceiling), a **bounded queue that sheds
+> and counts** past it (the collector-backpressure pattern), output bounding.
+> Anti-message-bomb: per-rule **cooldown + coalescing** (suppressed matches
+> counted into the next message - the drop-damping pattern; the primary NTFY
+> guard), a per-rule **token bucket**, and a **failure circuit-breaker** that
+> parks a rule whose script keeps failing/timing out. Plus `dryRun` (log what
+> would fire, no exec), per-rule `enabled:false`, and misconfiguration
+> (bad regex / missing-or-non-executable `exec` / nonsensical window) **throws
+> at startup**, never warn-and-run-broken. *Accept:* against an echo script -
+> stdin/env are correct; the cap holds at K under a burst; cooldown coalesces;
+> a hung script is killed at the timeout; and an **injection test** (a packet
+> whose text is `$(touch pwned); rm -rf` reaches the child as inert bytes,
+> nothing executed).
+>
+> Deferred: SSE/`/FIFO` auth (read-only and unauthenticated today - fine for a
+> local watcher, needed if it runs off-box); persisted alert state; richer
+> selectors (rawData, per-field, boolean combinations).
+
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 
 - **`dist/` layout:** configs, EJS views, and TLS certs live under
