@@ -19,6 +19,8 @@ const LOG_FLEET_DEFAULT_THROTTLE = 1000;
 const TAIL_POLL_MS_DEFAULT = 300;
 const TAIL_CHUNK_BYTES = 64 * 1024;
 const TAIL_MAX_LINE_BYTES_DEFAULT = 64 * 1024;
+const TAIL_MULTILINE_MAX_LINES = 500;
+const TAIL_MULTILINE_FLUSH_MS = 1000;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const shouldVerifyTLS = (hostname) => !(NODE_ENV === 'development' && LOOPBACK_HOSTS.has(hostname));
 export const extOpt = (eo, key) => eo && key in eo ? eo[key] : undefined;
@@ -383,20 +385,25 @@ export class SerialCollector extends DataCollector {
         }
     }
 }
+const fileIdentity = (m) => (m.ino && Number.isFinite(m.ino) ? m.ino : m.birthMs);
 export class FileTailCollector extends DataCollector {
     path;
     fromStart;
     pollMs;
     maxLineBytes;
     pos = 0;
-    ino;
+    identity;
     decoder = new StringDecoder('utf8');
     lineBuf = '';
+    atStart = false;
     timer;
     stopped = false;
     polling = false;
     tok;
-    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }) {
+    ml;
+    entryLines = [];
+    entryAt = 0;
+    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, multiline, ...params }) {
         super({
             ...params,
             maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
@@ -412,11 +419,46 @@ export class FileTailCollector extends DataCollector {
             throw new Error(`file-tail collector pollIntervalMs must be a number >= 50 (${params.description})`);
         }
         this.pollMs = pm;
-        const ml = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
-        if (typeof ml !== 'number' || !Number.isInteger(ml) || ml < 1) {
+        const mlb = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
+        if (typeof mlb !== 'number' || !Number.isInteger(mlb) || mlb < 1) {
             throw new Error(`file-tail collector maxLineBytes must be a positive integer (${params.description})`);
         }
-        this.maxLineBytes = ml;
+        this.maxLineBytes = mlb;
+        this.ml = this.parseMultiline(multiline, params.description);
+    }
+    parseMultiline(raw, desc) {
+        if (raw === undefined || raw === false)
+            return null;
+        const cfg = raw === true ? {} : raw;
+        if (!isObject(cfg))
+            throw new Error(`logTail [${desc}]: multiline must be a boolean or an object`);
+        const o = cfg;
+        let startRe;
+        if (o.startPattern !== undefined) {
+            if (typeof o.startPattern !== 'string')
+                throw new Error(`logTail [${desc}]: multiline.startPattern must be a string`);
+            try {
+                startRe = new RegExp(o.startPattern);
+            }
+            catch (e) {
+                throw new Error(`logTail [${desc}]: multiline.startPattern is not a valid regex: ${e.message}`);
+            }
+        }
+        if (!startRe && o.indent === false) {
+            throw new Error(`logTail [${desc}]: multiline needs either startPattern or indent mode`);
+        }
+        const joiner = o.joiner ?? '\n';
+        if (typeof joiner !== 'string')
+            throw new Error(`logTail [${desc}]: multiline.joiner must be a string`);
+        const maxLines = o.maxLines ?? TAIL_MULTILINE_MAX_LINES;
+        if (!Number.isInteger(maxLines) || maxLines < 2) {
+            throw new Error(`logTail [${desc}]: multiline.maxLines must be an integer >= 2`);
+        }
+        const flushMs = o.flushMs ?? TAIL_MULTILINE_FLUSH_MS;
+        if (!Number.isFinite(flushMs) || flushMs < 0) {
+            throw new Error(`logTail [${desc}]: multiline.flushMs must be a number >= 0`);
+        }
+        return { startRe, joiner, maxLines, flushMs };
     }
     format(data, fh) {
         void fh;
@@ -430,6 +472,7 @@ export class FileTailCollector extends DataCollector {
         this.stopped = true;
         if (this.timer)
             clearTimeout(this.timer);
+        this.flushEntry();
     }
     scheduleNext(delay) {
         if (this.stopped)
@@ -456,33 +499,43 @@ export class FileTailCollector extends DataCollector {
         }
     }
     async poll() {
-        let st;
+        if (this.ml && this.entryLines.length && Date.now() - this.entryAt >= this.ml.flushMs) {
+            this.flushEntry();
+        }
+        const meta = await this.statFile();
+        if (!meta || !meta.isFile)
+            return;
+        const id = fileIdentity(meta);
+        if (this.identity === undefined) {
+            this.identity = id;
+            this.pos = this.fromStart ? 0 : meta.size;
+            this.atStart = this.fromStart;
+        }
+        else if (id !== this.identity) {
+            this.rollover();
+            this.identity = id;
+            this.pos = 0;
+            this.atStart = true;
+        }
+        else if (meta.size < this.pos) {
+            this.rollover();
+            this.pos = 0;
+            this.atStart = true;
+        }
+        if (meta.size <= this.pos)
+            return;
+        await this.readDelta(meta.size);
+    }
+    async statFile() {
         try {
-            st = await stat(this.path);
+            const st = await stat(this.path);
+            return { isFile: st.isFile(), size: st.size, ino: Number(st.ino), birthMs: st.birthtimeMs };
         }
         catch (err) {
             if (err.code === 'ENOENT')
-                return;
+                return null;
             throw err;
         }
-        if (!st.isFile())
-            return;
-        if (this.ino === undefined) {
-            this.ino = st.ino;
-            this.pos = this.fromStart ? 0 : st.size;
-        }
-        else if (st.ino !== this.ino) {
-            this.rollover();
-            this.ino = st.ino;
-            this.pos = 0;
-        }
-        else if (st.size < this.pos) {
-            this.rollover();
-            this.pos = 0;
-        }
-        if (st.size <= this.pos)
-            return;
-        await this.readDelta(st.size);
     }
     async readDelta(size) {
         const fh = await open(this.path, 'r');
@@ -503,6 +556,11 @@ export class FileTailCollector extends DataCollector {
     }
     ingest(chunk) {
         this.lineBuf += this.decoder.write(chunk);
+        if (this.atStart && this.lineBuf.length) {
+            if (this.lineBuf.charCodeAt(0) === 0xfeff)
+                this.lineBuf = this.lineBuf.slice(1);
+            this.atStart = false;
+        }
         let nl;
         while ((nl = this.lineBuf.indexOf('\n')) !== -1) {
             this.emitLine(this.lineBuf.slice(0, nl));
@@ -516,13 +574,34 @@ export class FileTailCollector extends DataCollector {
     }
     emitLine(raw) {
         const line = raw.replace(/\r$/, '');
-        if (line.length)
+        if (!line.length)
+            return;
+        if (!this.ml) {
             this.send(line);
+            return;
+        }
+        const startsEntry = this.ml.startRe ? this.ml.startRe.test(line) : !/^[ \t]/.test(line);
+        if (startsEntry && this.entryLines.length)
+            this.flushEntry();
+        this.entryLines.push(line);
+        this.entryAt = Date.now();
+        if (this.entryLines.length >= this.ml.maxLines) {
+            this.noteDrop('multiline-cap');
+            this.flushEntry();
+        }
+    }
+    flushEntry() {
+        if (!this.ml || !this.entryLines.length)
+            return;
+        const entry = this.entryLines.join(this.ml.joiner);
+        this.entryLines = [];
+        this.send(entry);
     }
     rollover() {
         const tail = this.lineBuf + this.decoder.end();
         if (tail.length)
             this.emitLine(tail);
+        this.flushEntry();
         this.lineBuf = '';
         this.decoder = new StringDecoder('utf8');
     }

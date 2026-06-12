@@ -57,6 +57,12 @@ const TAIL_CHUNK_BYTES = 64 * 1024;
 //one (oversize) line past this and count it
 const TAIL_MAX_LINE_BYTES_DEFAULT = 64 * 1024;
 
+//L3 multiline coalescing defaults: a runaway entry is flushed past this many
+//physical lines, and a pending entry is flushed once idle this long (so the
+//last entry isn't held forever when logging pauses mid-entry)
+const TAIL_MULTILINE_MAX_LINES = 500;
+const TAIL_MULTILINE_FLUSH_MS = 1000;
+
 //mirror the TUI's verify policy (tui/src/modules/transport.ts): cert
 //verification is relaxed only for loopback targets in development - an env
 //var must never disable verification for a remote host
@@ -605,12 +611,47 @@ export abstract class SerialCollector extends DataCollector implements SerialCol
     }
 }
 
+export interface MultilineConfig {
+    //a line matching this (anchored against the line start) begins a new entry;
+    //non-matching lines are continuations of the current one
+    startPattern?: string;
+    //the simpler default rule (when startPattern is absent): an indented line
+    //(leading space/tab) is a continuation, a non-indented line starts an entry
+    indent?: boolean;
+    joiner?: string; //how coalesced physical lines are joined (default '\n')
+    maxLines?: number; //flush a runaway entry past this many lines
+    flushMs?: number; //flush a pending entry once idle this long
+}
+
 export interface FileTailCollectorParams extends DataCollectorParams {
     path: string;
     fromStart?: boolean; //default false: begin at EOF, like `tail -f`
     pollIntervalMs?: number; //default 300
     maxLineBytes?: number; //flush a newline-less run past this (default 64KiB)
+    //L3: coalesce continuation lines (stack traces, pretty-printed JSON) into
+    //one entry/packet. Off by default = one packet per physical line (L1/L2).
+    multiline?: boolean | MultilineConfig;
 }
+
+interface ResolvedMultiline {
+    startRe: RegExp | undefined;
+    joiner: string;
+    maxLines: number;
+    flushMs: number;
+}
+
+//normalized file signals used to detect rotation. The inode is the reliable
+//identity on Unix; Windows/FAT can report ino 0 or an unstable value, so fall
+//back to the creation time (NTFS/APFS/ext4 track birthtime), which changes
+//when the path is replaced by a fresh file. If neither is usable (both 0),
+//rotation is still caught by the size-shrink (truncation) path.
+export interface FileMeta {
+    isFile: boolean;
+    size: number;
+    ino: number;
+    birthMs: number;
+}
+const fileIdentity = (m: FileMeta): number => (m.ino && Number.isFinite(m.ino) ? m.ino : m.birthMs);
 
 //L1 file-tail source: follow a growing log file and emit each appended line.
 //Robustness is the whole job here - rotation (logrotate rename+recreate),
@@ -627,16 +668,25 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
     private readonly pollMs: number;
     private readonly maxLineBytes: number;
     private pos = 0;
-    private ino: number | undefined;
+    private identity: number | undefined;
     private decoder = new StringDecoder('utf8');
     private lineBuf = '';
+    //true while the next decoded bytes are a file's first bytes (fresh attach,
+    //rotation, or truncation), so a leading UTF-8 BOM (common from Windows
+    //editors) can be stripped once rather than leaking into the first field
+    private atStart = false;
     private timer: NodeJS.Timeout | undefined;
     private stopped = false;
     private polling = false;
     //shared line tokenizer, on by default for a log source (a log is logs)
     private readonly tok: TokenizeConfig;
+    //L3 multiline: null when off; otherwise the buffered physical lines of the
+    //current entry, flushed as one packet on the next entry-start/idle/rollover
+    private readonly ml: ResolvedMultiline | null;
+    private entryLines: string[] = [];
+    private entryAt = 0;
 
-    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }: FileTailCollectorParams) {
+    constructor({ path, fromStart, pollIntervalMs, maxLineBytes, multiline, ...params }: FileTailCollectorParams) {
         super({
             ...params,
             maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
@@ -662,11 +712,49 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
         }
         this.pollMs = pm;
 
-        const ml = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
-        if (typeof ml !== 'number' || !Number.isInteger(ml) || ml < 1) {
+        const mlb = maxLineBytes ?? TAIL_MAX_LINE_BYTES_DEFAULT;
+        if (typeof mlb !== 'number' || !Number.isInteger(mlb) || mlb < 1) {
             throw new Error(`file-tail collector maxLineBytes must be a positive integer (${params.description})`);
         }
-        this.maxLineBytes = ml;
+        this.maxLineBytes = mlb;
+
+        this.ml = this.parseMultiline(multiline, params.description);
+    }
+
+    private parseMultiline(raw: FileTailCollectorParams['multiline'], desc: string): ResolvedMultiline | null {
+        if (raw === undefined || raw === false) return null;
+        const cfg = raw === true ? {} : raw;
+        if (!isObject(cfg)) throw new Error(`logTail [${desc}]: multiline must be a boolean or an object`);
+        const o = cfg;
+
+        let startRe: RegExp | undefined;
+        if (o.startPattern !== undefined) {
+            if (typeof o.startPattern !== 'string')
+                throw new Error(`logTail [${desc}]: multiline.startPattern must be a string`);
+            try {
+                startRe = new RegExp(o.startPattern);
+            } catch (e) {
+                throw new Error(
+                    `logTail [${desc}]: multiline.startPattern is not a valid regex: ${(e as Error).message}`
+                );
+            }
+        }
+        //no explicit start rule -> indent mode: a non-indented line starts an
+        //entry, an indented (continuation) line appends. Matches stack traces.
+        if (!startRe && o.indent === false) {
+            throw new Error(`logTail [${desc}]: multiline needs either startPattern or indent mode`);
+        }
+        const joiner = o.joiner ?? '\n';
+        if (typeof joiner !== 'string') throw new Error(`logTail [${desc}]: multiline.joiner must be a string`);
+        const maxLines = o.maxLines ?? TAIL_MULTILINE_MAX_LINES;
+        if (!Number.isInteger(maxLines) || maxLines < 2) {
+            throw new Error(`logTail [${desc}]: multiline.maxLines must be an integer >= 2`);
+        }
+        const flushMs = o.flushMs ?? TAIL_MULTILINE_FLUSH_MS;
+        if (!Number.isFinite(flushMs) || flushMs < 0) {
+            throw new Error(`logTail [${desc}]: multiline.flushMs must be a number >= 0`);
+        }
+        return { startRe, joiner, maxLines, flushMs };
     }
 
     //the line (already \r-stripped and non-empty by emitLine) through the
@@ -684,6 +772,7 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
     override stop(): void {
         this.stopped = true;
         if (this.timer) clearTimeout(this.timer);
+        this.flushEntry(); //don't lose a pending multiline entry on shutdown
     }
 
     private scheduleNext(delay: number): void {
@@ -717,33 +806,50 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
     //protected so tests can drive a single iteration deterministically without
     //the timer; start()/the timer is the production path.
     protected async poll(): Promise<void> {
-        let st;
-        try {
-            st = await stat(this.path);
-        } catch (err) {
-            //not yet created, or a momentary gap mid-rotation - try next poll
-            if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
-            throw err;
+        //flush a multiline entry that has gone idle (logging paused mid-entry),
+        //so the last entry isn't held until the next entry-start
+        if (this.ml && this.entryLines.length && Date.now() - this.entryAt >= this.ml.flushMs) {
+            this.flushEntry();
         }
-        if (!st.isFile()) return;
 
-        if (this.ino === undefined) {
+        const meta = await this.statFile();
+        if (!meta || !meta.isFile) return; //not yet created, gap mid-rotation, or not a file
+        const id = fileIdentity(meta);
+
+        if (this.identity === undefined) {
             //first attach: start at EOF unless replaying from the beginning
-            this.ino = st.ino;
-            this.pos = this.fromStart ? 0 : st.size;
-        } else if (st.ino !== this.ino) {
+            this.identity = id;
+            this.pos = this.fromStart ? 0 : meta.size;
+            this.atStart = this.fromStart;
+        } else if (id !== this.identity) {
             //rotation: a fresh file at this path - read it from the start
             this.rollover();
-            this.ino = st.ino;
+            this.identity = id;
             this.pos = 0;
-        } else if (st.size < this.pos) {
-            //in-place truncation: the file shrank under our offset
+            this.atStart = true;
+        } else if (meta.size < this.pos) {
+            //in-place truncation (incl. logrotate copytruncate): the file shrank
+            //under our offset, same identity
             this.rollover();
             this.pos = 0;
+            this.atStart = true;
         }
 
-        if (st.size <= this.pos) return; //nothing appended
-        await this.readDelta(st.size);
+        if (meta.size <= this.pos) return; //nothing appended
+        await this.readDelta(meta.size);
+    }
+
+    //normalized file metadata, the single seam tests override to emulate other
+    //operating systems' stat behavior (e.g. Windows/FAT reporting ino 0).
+    //null on ENOENT (absent / mid-rotation gap).
+    protected async statFile(): Promise<FileMeta | null> {
+        try {
+            const st = await stat(this.path);
+            return { isFile: st.isFile(), size: st.size, ino: Number(st.ino), birthMs: st.birthtimeMs };
+        } catch (err) {
+            if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+            throw err;
+        }
     }
 
     private async readDelta(size: number): Promise<void> {
@@ -767,6 +873,12 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
         //a UTF-8 char split at a read/poll boundary is never corrupted
         this.lineBuf += this.decoder.write(chunk);
 
+        //strip a single leading UTF-8 BOM at a file's start (Windows editors)
+        if (this.atStart && this.lineBuf.length) {
+            if (this.lineBuf.charCodeAt(0) === 0xfeff) this.lineBuf = this.lineBuf.slice(1);
+            this.atStart = false;
+        }
+
         let nl: number;
         while ((nl = this.lineBuf.indexOf('\n')) !== -1) {
             this.emitLine(this.lineBuf.slice(0, nl));
@@ -783,14 +895,39 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
 
     private emitLine(raw: string): void {
         const line = raw.replace(/\r$/, ''); //CRLF logs leave a trailing \r
-        if (line.length) this.send(line);
+        if (!line.length) return;
+
+        if (!this.ml) {
+            this.send(line);
+            return;
+        }
+        //multiline: a start-of-entry line flushes the previous entry; a
+        //continuation appends. With no startPattern, indent = continuation.
+        const startsEntry = this.ml.startRe ? this.ml.startRe.test(line) : !/^[ \t]/.test(line);
+        if (startsEntry && this.entryLines.length) this.flushEntry();
+        this.entryLines.push(line);
+        this.entryAt = Date.now();
+        if (this.entryLines.length >= this.ml.maxLines) {
+            this.noteDrop('multiline-cap');
+            this.flushEntry();
+        }
+    }
+
+    //coalesce the buffered physical lines into one entry and publish it
+    private flushEntry(): void {
+        if (!this.ml || !this.entryLines.length) return;
+        const entry = this.entryLines.join(this.ml.joiner);
+        this.entryLines = [];
+        this.send(entry);
     }
 
     //on rotation/truncation the current file is gone/reset: surface any
-    //buffered partial line (it can never get its newline now) and start clean
+    //buffered partial line (it can never get its newline now), flush a pending
+    //multiline entry, and start clean
     private rollover(): void {
         const tail = this.lineBuf + this.decoder.end();
         if (tail.length) this.emitLine(tail);
+        this.flushEntry();
         this.lineBuf = '';
         this.decoder = new StringDecoder('utf8');
     }

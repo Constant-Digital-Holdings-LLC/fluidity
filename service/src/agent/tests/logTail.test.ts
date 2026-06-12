@@ -160,6 +160,68 @@ void test('the timer-driven loop tails a live append, then stop() releases it', 
     assert.equal(c.captured.length, at, 'stop() halts the loop (and clears the timer so the process can exit)');
 });
 
+void test('multiline (indent mode) coalesces a stack trace into one entry', async () => {
+    const f = tmpFile();
+    writeFileSync(f, '');
+    const c = new TestLogTail(params(f, { fromStart: true, multiline: true }));
+    appendFileSync(f, 'ERROR boom\n  at a.js:1\n  at b.js:2\nINFO next\n');
+    await c.pollOnce();
+    //the ERROR entry + its indented frames flushed when 'INFO next' (a new,
+    //non-indented entry) began; 'INFO next' is still buffered
+    assert.deepEqual(c.captured, ['ERROR boom\n  at a.js:1\n  at b.js:2']);
+    c.stop(); //flushes the pending entry so it isn't lost on shutdown
+    assert.deepEqual(c.captured, ['ERROR boom\n  at a.js:1\n  at b.js:2', 'INFO next']);
+});
+
+void test('multiline startPattern begins entries; non-matching lines continue', async () => {
+    const f = tmpFile();
+    writeFileSync(f, '');
+    const c = new TestLogTail(params(f, { fromStart: true, multiline: { startPattern: '^\\d{4}-' } }));
+    appendFileSync(f, '2026-01-01 one\n  detail\nmore\n2026-01-02 two\n');
+    await c.pollOnce();
+    assert.deepEqual(c.captured, ['2026-01-01 one\n  detail\nmore']);
+    c.stop();
+    assert.deepEqual(c.captured, ['2026-01-01 one\n  detail\nmore', '2026-01-02 two']);
+});
+
+void test('multiline caps a runaway entry and counts it', async () => {
+    const f = tmpFile();
+    writeFileSync(f, '');
+    const c = new TestLogTail(params(f, { fromStart: true, multiline: { maxLines: 3 } }));
+    appendFileSync(f, 'start\n cont1\n cont2\n cont3\n');
+    await c.pollOnce();
+    assert.deepEqual(c.captured, ['start\n cont1\n cont2'], 'flushed at the line cap');
+    assert.equal(c.dropCounts.get('multiline-cap'), 1);
+    c.stop();
+});
+
+void test('multiline flushes a pending entry once idle (flushMs)', async () => {
+    const f = tmpFile();
+    writeFileSync(f, '');
+    const c = new TestLogTail(params(f, { fromStart: true, multiline: { flushMs: 0 } }));
+    appendFileSync(f, 'only entry\n');
+    await c.pollOnce(); //buffers the entry (first, nothing to flush yet)
+    assert.deepEqual(c.captured, []);
+    await c.pollOnce(); //idle (flushMs 0) -> flush before reading
+    assert.deepEqual(c.captured, ['only entry']);
+    c.stop();
+});
+
+void test('multiline flushes the pending entry on rotation', async () => {
+    const f = tmpFile();
+    writeFileSync(f, '');
+    const c = new TestLogTail(params(f, { fromStart: true, multiline: true }));
+    appendFileSync(f, 'entry1\n  cont\n');
+    await c.pollOnce();
+    assert.deepEqual(c.captured, [], 'entry1 still pending (no next entry yet)');
+    renameSync(f, `${f}.1`);
+    writeFileSync(f, 'entry2\n');
+    await c.pollOnce();
+    assert.deepEqual(c.captured, ['entry1\n  cont'], 'rotation flushed the pending entry');
+    c.stop();
+    assert.deepEqual(c.captured, ['entry1\n  cont', 'entry2']);
+});
+
 void test('e2e: a tailed line becomes a FluidityPacket on the publish path', async () => {
     const target = await startTarget();
     const f = tmpFile();
