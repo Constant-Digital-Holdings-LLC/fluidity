@@ -4,6 +4,7 @@
 //doctrine: degrade loudly at startup, never warn-and-run-broken).
 
 import { FluidityPacket, isObject } from '#@shared/types.js';
+import { isCatastrophicRegex } from '#@shared/modules/utils.js';
 
 export type FireReason = 'match' | 'silence' | 'recover';
 
@@ -80,6 +81,12 @@ const parseSelector = (raw: unknown, where: string): RuleSelector => {
     if (o['plugin'] !== undefined) sel.plugin = asString(o['plugin'], `${where}.match.plugin`);
     if (o['text'] !== undefined) {
         if (typeof o['text'] !== 'string') throw new Error(`${where}.match.text must be a string regex`);
+        if (isCatastrophicRegex(o['text'])) {
+            throw new Error(
+                `${where}.match.text has a nested unbounded quantifier (catastrophic-backtracking risk ` +
+                    `on hostile packet text); simplify the pattern`
+            );
+        }
         try {
             sel.text = new RegExp(o['text']); //no /g: test() must stay stateless
         } catch (e) {

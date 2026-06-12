@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prettyFsNotFound, isErrnoException, nodeEnv, counter } from '#@shared/modules/utils.js';
+import { prettyFsNotFound, isErrnoException, nodeEnv, counter, isCatastrophicRegex } from '#@shared/modules/utils.js';
 
 //coverage for shared/utils - prettyFsNotFound was under-tested (54%) and the
 //audit fixed an unsettled-promise path in it; pin its behavior here.
@@ -41,4 +41,36 @@ void test('nodeEnv classifies the environment (development only when explicit)',
 void test('counter yields a monotonic sequence from 1', () => {
     const c = counter();
     assert.deepEqual([c.next().value, c.next().value, c.next().value], [1, 2, 3]);
+});
+
+void test('isCatastrophicRegex flags nested unbounded quantifiers, clears safe patterns', () => {
+    //the classic ReDoS shapes (operator-supplied tokenize rules / watcher
+    //selectors run against attacker-influenced text) - all must be flagged
+    for (const bad of [
+        '(a+)+',
+        '(a+)+$',
+        '(.*)*',
+        '(a*)*',
+        '([a-z]+)*',
+        '((ab)+)+',
+        '(\\d+)+',
+        '(a{2,})+',
+        '(x+){3,}'
+    ]) {
+        assert.equal(isCatastrophicRegex(bad), true, `should flag ${bad}`);
+    }
+    //safe / benign patterns the guard must NOT reject
+    for (const ok of [
+        'ERROR|CRIT',
+        'greenhouse',
+        '(ab)+', //group quantified, body has no unbounded quantifier
+        'a+b+', //quantifiers, but not nested in a quantified group
+        '[a-z]+', //a char class, not a group
+        '(a{2,5})+', //bounded inner quantifier
+        '(abc){1,3}', //bounded outer
+        '\\(a+\\)+', //escaped parens -> literal, not a group
+        'https?://\\S+'
+    ]) {
+        assert.equal(isCatastrophicRegex(ok), false, `should allow ${ok}`);
+    }
 });

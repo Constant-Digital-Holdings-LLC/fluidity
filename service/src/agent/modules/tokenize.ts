@@ -4,13 +4,17 @@
 //genericSerial (opt-in via extendedOptions.tokenize). Pure over FormattedData,
 //imports only shared types, so there is no cycle with collectors.ts.
 //
-//Untrusted input: every regex here is anchored and/or length-bounded and the
-//line is capped before any matching runs (ReDoS guard), because logs are
-//attacker-influenced. The renderers sanitize control chars; we additionally
-//refuse to emit a LINK whose location isn't a clean http(s) URL, since the
-//server validates LINK fields and would 400 the whole packet otherwise.
+//Untrusted input: logs are attacker-influenced, so the line is capped before
+//any matching runs and the built-in detectors are anchored/length-bounded. The
+//one un-vetted pattern is an operator's tokenize.rules[].match - a vulnerable
+//one would catastrophically backtrack on hostile content - so parse rejects the
+//common nested-quantifier shape at startup (isCatastrophicRegex). The renderers
+//sanitize control chars; we additionally refuse to emit a LINK whose location
+//isn't a clean http(s) URL, since the server validates LINK fields and would
+//400 the whole packet otherwise.
 
 import { FormattedData, isObject, stripControlChars } from '#@shared/types.js';
+import { isCatastrophicRegex } from '#@shared/modules/utils.js';
 
 export type TokenFieldType = 'STRING' | 'LINK' | 'DATE';
 export type TokenizeFormat = 'auto' | 'json' | 'logfmt' | 'syslog' | 'levelmsg' | 'raw';
@@ -261,6 +265,12 @@ export const parseTokenizeConfig = (raw: unknown, defaultOn: boolean, label: str
             const rr = r as Record<string, unknown>;
             if (typeof rr['match'] !== 'string')
                 throw new Error(`${label}: tokenize.rules[${i}].match must be a string`);
+            if (isCatastrophicRegex(rr['match'])) {
+                throw new Error(
+                    `${label}: tokenize.rules[${i}].match has a nested unbounded quantifier ` +
+                        `(catastrophic-backtracking risk on hostile log lines); simplify the pattern`
+                );
+            }
             if (typeof rr['style'] !== 'number' || !Number.isFinite(rr['style'])) {
                 throw new Error(`${label}: tokenize.rules[${i}].style must be a finite number`);
             }

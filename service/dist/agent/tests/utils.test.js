@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prettyFsNotFound, isErrnoException, nodeEnv, counter } from '#@shared/modules/utils.js';
+import { prettyFsNotFound, isErrnoException, nodeEnv, counter, isCatastrophicRegex } from '#@shared/modules/utils.js';
 const enoent = (path) => Object.assign(new Error('ENOENT'), { code: 'ENOENT', ...(path !== undefined ? { path } : {}) });
 void test('prettyFsNotFound resolves a readable message for an ENOENT with a path', async () => {
     const msg = await prettyFsNotFound(enoent('./conf/missing.json'));
@@ -26,4 +26,32 @@ void test('nodeEnv classifies the environment (development only when explicit)',
 void test('counter yields a monotonic sequence from 1', () => {
     const c = counter();
     assert.deepEqual([c.next().value, c.next().value, c.next().value], [1, 2, 3]);
+});
+void test('isCatastrophicRegex flags nested unbounded quantifiers, clears safe patterns', () => {
+    for (const bad of [
+        '(a+)+',
+        '(a+)+$',
+        '(.*)*',
+        '(a*)*',
+        '([a-z]+)*',
+        '((ab)+)+',
+        '(\\d+)+',
+        '(a{2,})+',
+        '(x+){3,}'
+    ]) {
+        assert.equal(isCatastrophicRegex(bad), true, `should flag ${bad}`);
+    }
+    for (const ok of [
+        'ERROR|CRIT',
+        'greenhouse',
+        '(ab)+',
+        'a+b+',
+        '[a-z]+',
+        '(a{2,5})+',
+        '(abc){1,3}',
+        '\\(a+\\)+',
+        'https?://\\S+'
+    ]) {
+        assert.equal(isCatastrophicRegex(ok), false, `should allow ${ok}`);
+    }
 });

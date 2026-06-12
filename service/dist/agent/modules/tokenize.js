@@ -1,4 +1,5 @@
 import { isObject, stripControlChars } from '#@shared/types.js';
+import { isCatastrophicRegex } from '#@shared/modules/utils.js';
 const FORMATS = ['auto', 'json', 'logfmt', 'syslog', 'levelmsg', 'raw'];
 const STYLE = { error: 6, warn: 9, info: 0, debug: 7, source: 2, link: 3, kv: 7, msg: 0 };
 const TOKENIZE_MAX_LEN = 2000;
@@ -197,6 +198,10 @@ export const parseTokenizeConfig = (raw, defaultOn, label) => {
             const rr = r;
             if (typeof rr['match'] !== 'string')
                 throw new Error(`${label}: tokenize.rules[${i}].match must be a string`);
+            if (isCatastrophicRegex(rr['match'])) {
+                throw new Error(`${label}: tokenize.rules[${i}].match has a nested unbounded quantifier ` +
+                    `(catastrophic-backtracking risk on hostile log lines); simplify the pattern`);
+            }
             if (typeof rr['style'] !== 'number' || !Number.isFinite(rr['style'])) {
                 throw new Error(`${label}: tokenize.rules[${i}].style must be a finite number`);
             }

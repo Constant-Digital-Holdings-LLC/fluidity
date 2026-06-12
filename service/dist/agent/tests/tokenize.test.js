@@ -101,4 +101,5 @@ void test('parseTokenizeConfig: defaults and validation', () => {
     assert.throws(() => parseTokenizeConfig({ rules: 'x' }, true, 't'), /tokenize.rules/);
     assert.throws(() => parseTokenizeConfig({ rules: [{ match: '(', style: 1 }] }, true, 't'), /not a valid regex/);
     assert.throws(() => parseTokenizeConfig({ rules: [{ match: 'x' }] }, true, 't'), /\.style/);
+    assert.throws(() => parseTokenizeConfig({ rules: [{ match: '(a+)+$', style: 1 }] }, true, 't'), /nested unbounded quantifier/);
 });

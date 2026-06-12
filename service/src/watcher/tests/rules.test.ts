@@ -116,6 +116,7 @@ void test('parseRules: misconfiguration throws at parse time', () => {
     assert.throws(() => parseRules([{ ...base, name: '' }]), /name must be/);
     assert.throws(() => parseRules([{ ...base, match: {} }]), /at least one of site\/plugin\/text/);
     assert.throws(() => parseRules([{ ...base, match: { text: '(' } }]), /not a valid regex/);
+    assert.throws(() => parseRules([{ ...base, match: { text: '(a+)+' } }]), /nested unbounded quantifier/);
     assert.throws(() => parseRules([{ ...base, trigger: { type: 'nope' } }]), /must be "silence" or "frequency"/);
     assert.throws(
         () => parseRules([{ ...base, trigger: { type: 'frequency', count: 0, window: '1m' } }]),

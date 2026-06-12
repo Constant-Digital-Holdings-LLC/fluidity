@@ -1,4 +1,5 @@
 import { livenessOf, PULSE_WINDOWS } from '#@client/modules/pulse.js';
+import { stripControlChars } from '#@shared/types.js';
 import { paint, chromeDef, styleDef } from './theme.js';
 import { padEndAnsi, truncateAnsi, visibleLength } from './ansiText.js';
 import { composeChrome } from './renderLine.js';
@@ -98,7 +99,8 @@ export const composeFrame = (st, caps) => {
             if (live)
                 mark = paint(live.ch, live.def, tier);
         }
-        const text = `[${i + 1}]${st.group === 'sites' ? name.toUpperCase() : name} ${count}`;
+        const safeName = stripControlChars(name);
+        const text = `[${i + 1}]${st.group === 'sites' ? safeName.toUpperCase() : safeName} ${count}`;
         const def = isSel ? { ...ACCENT, bold: true, underline: tier !== 'mono' } : styleDef(7);
         const chunkLen = (mark ? 1 : 0) + visibleLength(text) + ((isSel && tier === 'mono' ? 1 : 0) + 2);
         if (visibleLength(pane) + chunkLen > w - 8) {

@@ -1,4 +1,5 @@
 import { isObject } from '#@shared/types.js';
+import { isCatastrophicRegex } from '#@shared/modules/utils.js';
 const DEFAULT_COOLDOWN_MS = 60_000;
 const DEFAULT_MAX_PER_HOUR = 12;
 export const SELECTOR_TEXT_CAP = 4000;
@@ -51,6 +52,10 @@ const parseSelector = (raw, where) => {
     if (o['text'] !== undefined) {
         if (typeof o['text'] !== 'string')
             throw new Error(`${where}.match.text must be a string regex`);
+        if (isCatastrophicRegex(o['text'])) {
+            throw new Error(`${where}.match.text has a nested unbounded quantifier (catastrophic-backtracking risk ` +
+                `on hostile packet text); simplify the pattern`);
+        }
         try {
             sel.text = new RegExp(o['text']);
         }

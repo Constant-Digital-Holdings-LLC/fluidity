@@ -1,4 +1,5 @@
 import { livenessOf, PULSE_WINDOWS } from '#@client/modules/pulse.js';
+import { stripControlChars } from '#@shared/types.js';
 import { TermCaps } from './caps.js';
 import { paint, chromeDef, styleDef, StyleDef } from './theme.js';
 import { padEndAnsi, truncateAnsi, visibleLength } from './ansiText.js';
@@ -124,7 +125,12 @@ export const composeFrame = (st: UIState, caps: TermCaps): string[] => {
             if (live) mark = paint(live.ch, live.def, tier);
         }
 
-        const text = `[${i + 1}]${st.group === 'sites' ? name.toUpperCase() : name} ${count}`;
+        //site/plugin names are untrusted device data: strip control chars so a
+        //hostile name can't inject an escape sequence into the pane (the stream
+        //lines sanitize via renderLine; this pane path must too). The raw name
+        //stays the registry/lookup key above; only the displayed copy is cleaned.
+        const safeName = stripControlChars(name);
+        const text = `[${i + 1}]${st.group === 'sites' ? safeName.toUpperCase() : safeName} ${count}`;
         //selected = brand pink, matching the web's "pink carries meaning"
         const def: StyleDef = isSel ? { ...ACCENT, bold: true, underline: tier !== 'mono' } : styleDef(7);
         const chunkLen = (mark ? 1 : 0) + visibleLength(text) + ((isSel && tier === 'mono' ? 1 : 0) + 2);
