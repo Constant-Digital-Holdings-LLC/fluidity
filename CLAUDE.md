@@ -17,6 +17,9 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
 - `npm run dev:server` / `dev:agent` — tsc watch + nodemon
 - `npm run sim:udp` — fire a simulated UDP device fleet at the dev agent's
   `udpStruct` collector on 17996 (`--once` for a single burst)
+- `npm run sim:udp-stress` — rate-controlled barrage for load testing
+  (`--rate --duration --devices --mix valid:70,garbage:30 --secret --seed`);
+  sender-side counts are exact, seeded runs are deterministic
 
 ## Conventions and gotchas
 

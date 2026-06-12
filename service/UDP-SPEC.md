@@ -221,6 +221,11 @@ beats a misparsed one (same doctrine as the serial decoder).
 6. field_count bounds → `bad-fields`
 7. UTF-8 + required strings → `bad-encoding` / `bad-identity`
 8. timestamp policy (3.4) → may count `bad-time` (packet still accepted)
+9. upstream backpressure → `backpressure`: the throttled HTTPS path keeps
+   a bounded in-flight backlog (`max(32, 2×maxHttpsReqPerCollectorPerSec)`);
+   beyond it the newest packet is shed and counted. A flood of valid
+   packets must cost lines, never agent memory (and the throttle queue
+   offers no cancellation, so shedding old work is not an option).
 
 All drops are counted by reason in `collector.dropCounts` (same surface the
 hardened srsSerial exposes) and logged at debug with source address. A
@@ -277,6 +282,11 @@ sites do.
   sites, heartbeats + occasional events) firing real datagrams at a
   configurable port; used for dev demos exactly like `sim://srs`, and a
   `--once` mode for smoke scripts.
+- **Stress emitter**: `sims/src/udpStressEmitter.ts` (`npm run
+  sim:udp-stress`) — rate-controlled, seed-deterministic barrage with a
+  traffic mix (`valid` / `garbage` / `tampered` / `unsigned`), exact
+  sender-side counts for reconciliation against `dropCounts`. Exercises
+  decode/drop at volume and the backpressure shed (§6 step 9).
 - **Golden fixture**: once the first real device runs, capture a datagram
   set to `sims/fixtures/` and pin the decoder to it (the srsSerial/f-y.io
   precedent).

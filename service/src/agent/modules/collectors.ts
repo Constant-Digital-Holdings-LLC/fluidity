@@ -250,18 +250,20 @@ export abstract class DataCollector implements DataCollectorPlugin {
     //its own identity (udpStruct: site/plugin/description/ts arrive in each
     //datagram). Builds an exact FluidityPacket - per-packet values win over
     //collector params - and rides the same throttled HTTPS path as send().
+    //Resolves when the upstream attempt settles (never rejects), so callers
+    //can bound how much work they leave in flight.
     protected sendPacket(
         formattedData: FormattedData[],
         perPacket: Partial<Pick<FluidityPacket, 'site' | 'plugin' | 'description' | 'ts'>> & {
             rawData?: string | null;
         } = {}
-    ): void {
-        if (!formattedData.length) return;
+    ): Promise<void> {
+        if (!formattedData.length) return Promise.resolve();
 
         const { rawData = null, ...overrides } = perPacket;
         const { site, plugin, description, targets } = this.params;
 
-        this.sendHttps(targets, {
+        return this.sendHttps(targets, {
             site,
             plugin,
             description,

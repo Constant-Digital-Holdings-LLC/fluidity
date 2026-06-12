@@ -350,6 +350,21 @@ no `@ts-ignore` interop hacks left.
 > M5Stack on a LAN with MAC mode (hardware in Sean's hands, not the
 > repo's). Consider tagging v2.1.0: UDP ingest + UI refresh + lightened
 > quiet tone are all unreleased in binaries.
+>
+> **Stress emitter + backpressure (post-U3 hardening).**
+> `sims/src/udpStressEmitter.ts` (`npm run sim:udp-stress`) - rate-
+> controlled, count-exact, seed-deterministic barrage with a
+> valid/garbage/tampered/unsigned mix, for load testing and counter
+> reconciliation. It exposed a real hazard: the HTTPS throttle queues
+> without bound, so a sustained flood of *valid* packets grew agent
+> memory forever. udpStruct now keeps a bounded in-flight backlog
+> (`max(32, 2x maxHttpsReqPerCollectorPerSec)`) and sheds the newest
+> packet beyond it, counted as `backpressure` (spec s6 step 9);
+> `sendPacket()` returns its settle promise so collectors can bound
+> in-flight work. Tests: 1500pps mixed barrage with drop-counter
+> reconciliation (generous floors - loopback UDP sheds under load),
+> 800pps valid flood proving shedding + bounded publishing + survival,
+> seeded determinism, config validation.
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

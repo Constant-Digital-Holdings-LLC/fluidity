@@ -168,10 +168,10 @@ export class DataCollector {
     }
     sendPacket(formattedData, perPacket = {}) {
         if (!formattedData.length)
-            return;
+            return Promise.resolve();
         const { rawData = null, ...overrides } = perPacket;
         const { site, plugin, description, targets } = this.params;
-        this.sendHttps(targets, {
+        return this.sendHttps(targets, {
             site,
             plugin,
             description,
