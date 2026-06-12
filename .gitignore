@@ -114,3 +114,7 @@ service/dist/*/conf/dev_conf.json
 
 # TUI standalone build output (binaries, ~100MB)
 tui/build/
+
+# Python bytecache (from running the MicroPython example/tests under CPython)
+__pycache__/
+*.pyc

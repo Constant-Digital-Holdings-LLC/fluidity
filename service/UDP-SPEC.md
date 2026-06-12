@@ -278,10 +278,16 @@ sites do.
   always use the full-struct form (237 bytes): the trailer must follow
   the signed bytes, and fixed-size keeps firmware trivial. Big-endian
   targets fail at compile time rather than emit a byte-swapped wire.
+- `firmware/README.md` — developer landing page: artifact map, the
+  no-hardware quickstart, a security-mode decision guide (open / MAC /
+  MAC+replay), and a wire-format porting table for non-C targets.
 - Example sketches under `sims/arduino/`:
   - `udp-m5stack/` — ESP32/M5Stack via WiFiUDP, MAC mode, NTP device time;
   - `udp-avr-w5500/` — classic Arduino/AVR via Ethernet, open mode,
     compact form, event+heartbeat publishing.
+- `sims/micropython/` — `fluidity_udp.py` (packing + SipHash-2-4) +
+  `main.py` (Pico W / ESP32; MicroPython or CircuitPython): the portable
+  path for non-C devices.
 - README section "UDP Devices (Microcontrollers)": first packet from a
   shell via `xxd -r -p | nc -u` (validated live against a dev agent).
 - `firmware/test/wirecheck.c` + `tests/udpFirmware.test.ts`: the header is
@@ -289,6 +295,10 @@ sites do.
   byte-for-byte against the agent codec and sim packer; the C SipHash is
   compared against the TS implementation on the official-vector inputs.
   Skips cleanly on hosts without a C compiler; CI always has one.
+- `sims/micropython/fluidity_udp.py` + `tests/udpMicropython.test.ts`: the
+  same byte-for-byte pin (agent codec, sim packer, the 64 SipHash vectors,
+  MAC verify through the agent path) under any `python3`; skips cleanly
+  where `python3` is absent.
 
 ## 9. Sims and testing
 

@@ -62,11 +62,14 @@ Don't move rendering decisions serverward.
   per spec §4 — misconfigured security options throw at startup, never
   warn-and-fallback. Sim signs with `--secret <hex32>`.
 - **Firmware kit** (U3): `firmware/fluidity_udp.h` is the C reference —
-  a third independent wire implementation. `udpFirmware.test.ts`
-  host-compiles it (gcc/clang, -Werror) and pins C output byte-for-byte
-  against the agent codec and sim packer; it skips on hosts without a C
-  compiler. Sketches in `sims/arduino/udp-*` expect the header copied
-  beside the .ino (Arduino IDE limitation) — don't commit copies.
+  a third independent wire implementation (the MicroPython port in
+  `sims/micropython/fluidity_udp.py` is a fourth). `udpFirmware.test.ts`
+  host-compiles the C (gcc/clang, -Werror) and pins its output byte-for-byte
+  against the agent codec and sim packer; `udpMicropython.test.ts` pins the
+  Python the same way under `python3`. Both skip cleanly when the toolchain
+  is absent. Sketches in `sims/arduino/udp-*` expect the header copied
+  beside the .ino (Arduino IDE limitation) — don't commit copies. Dev-facing
+  docs (artifact map, security-mode guide, porting table): `firmware/README.md`.
 - **srsSerial suppression**: messages decoding to nothing but states in
   `extendedOptions.suppress` (default `["COR", "CLEAR"]` — CLEAR is the
   synthetic state for all-zero release frames) are dropped at the agent.
