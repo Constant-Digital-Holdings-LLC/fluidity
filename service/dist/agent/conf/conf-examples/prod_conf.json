@@ -28,7 +28,10 @@
             "port": 17996,
             "bind": "192.168.1.10",
             "extendedOptions": {
-                "siteFromPacket": true
+                "siteFromPacket": true,
+                "secret": "GENERATE WITH openssl rand -hex 16 - DO NOT STORE KEY IN GITHUB REPO",
+                "requireMac": true,
+                "replayWindow": 64
             }
         }
 

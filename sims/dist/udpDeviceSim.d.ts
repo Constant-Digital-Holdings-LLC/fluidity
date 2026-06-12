@@ -11,11 +11,13 @@ export interface FluSimPacket {
     fields: FluSimField[];
 }
 export declare const packFluPacket: (p: FluSimPacket) => Buffer;
+export declare const signFluPacket: (struct: Uint8Array, key: Uint8Array) => Buffer;
 export interface UdpFleetOptions {
     host?: string;
     port?: number;
     seed?: number;
     once?: boolean;
+    secret?: string;
 }
 export interface UdpFleetHandle {
     stop(): void;

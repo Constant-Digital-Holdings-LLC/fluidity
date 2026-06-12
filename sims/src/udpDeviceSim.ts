@@ -11,6 +11,7 @@
 import dgram from 'node:dgram';
 import { pathToFileURL } from 'node:url';
 import { Rng, mulberry32 } from './prng.js';
+import { siphash24, sipKeyFromHex } from './siphash.js';
 
 export interface FluSimField {
     style: number;
@@ -123,11 +124,21 @@ const makeFleet = (): SimDevice[] => {
     ];
 };
 
+//device-side signing reference (UDP-SPEC s4), exactly what firmware does:
+//set FLU_F_MAC, SipHash-2-4 the whole struct (flags included), append the
+//8-byte trailer
+export const signFluPacket = (struct: Uint8Array, key: Uint8Array): Buffer => {
+    const signed = Buffer.from(struct);
+    signed[5] = (signed[5] ?? 0) | 0x02; //FLU_F_MAC
+    return Buffer.concat([signed, Buffer.from(siphash24(key, signed))]);
+};
+
 export interface UdpFleetOptions {
     host?: string; //default 127.0.0.1
     port?: number; //default 17996 (FLU_DEFAULT_PORT)
     seed?: number;
     once?: boolean; //one datagram per device, then stop (smoke scripts)
+    secret?: string; //32 hex chars: sign every datagram (MAC mode devices)
 }
 
 export interface UdpFleetHandle {
@@ -141,6 +152,13 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
     const port = options?.port ?? 17996;
     const rng = mulberry32(options?.seed ?? Math.floor(Math.random() * 0xffffffff));
     const fleet = makeFleet();
+
+    let key: Uint8Array | undefined;
+    if (options?.secret !== undefined) {
+        const parsed = sipKeyFromHex(options.secret);
+        if (!parsed) throw new Error('udpDeviceSim: secret must be 32 hex chars (openssl rand -hex 16)');
+        key = parsed;
+    }
 
     const socket = dgram.createSocket(host.includes(':') ? 'udp6' : 'udp4');
     socket.on('error', () => undefined); //fire-and-forget, like the devices
@@ -160,7 +178,7 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
                 fields: dev.fields(rng)
             });
             dev.seq = (dev.seq + 1) & 0xffff;
-            socket.send(pkt, port, host, () => resolve());
+            socket.send(key ? signFluPacket(pkt, key) : pkt, port, host, () => resolve());
         });
 
     const schedule = (dev: SimDevice): void => {
@@ -197,7 +215,8 @@ export const startUdpFleet = (options?: UdpFleetOptions): UdpFleetHandle => {
     return { stop, done };
 };
 
-//CLI for dev demos: node sims/dist/udpDeviceSim.js [--port N] [--host H] [--seed N] [--once]
+//CLI for dev demos:
+//node sims/dist/udpDeviceSim.js [--port N] [--host H] [--seed N] [--secret HEX32] [--once]
 const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMain) {
@@ -209,10 +228,19 @@ if (isMain) {
     const port = Number(arg('port') ?? 17996);
     const host = arg('host') ?? '127.0.0.1';
     const seedArg = arg('seed');
+    const secret = arg('secret');
 
-    const fleet = startUdpFleet({ host, port, once, ...(seedArg ? { seed: Number(seedArg) } : {}) });
+    const fleet = startUdpFleet({
+        host,
+        port,
+        once,
+        ...(seedArg ? { seed: Number(seedArg) } : {}),
+        ...(secret ? { secret } : {})
+    });
 
-    console.log(`udpDeviceSim: 3-device fleet -> udp ${host}:${port}${once ? ' (once)' : ''}`);
+    console.log(
+        `udpDeviceSim: 3-device fleet -> udp ${host}:${port}${secret ? ' (signed)' : ''}${once ? ' (once)' : ''}`
+    );
 
     if (once) {
         void fleet.done.then(() => console.log('udpDeviceSim: burst sent'));

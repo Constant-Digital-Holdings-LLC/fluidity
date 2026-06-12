@@ -25,7 +25,7 @@ const decodeName = (buf, offset, width) => {
         return null;
     }
 };
-export const decodeFluPacket = (buf) => {
+export const decodeFluPacket = (buf, opts) => {
     if (buf.length < FLU_HEADER_BYTES || buf.length > FLU_MAX_DATAGRAM) {
         return { ok: false, reason: 'bad-length' };
     }
@@ -43,6 +43,12 @@ export const decodeFluPacket = (buf) => {
     const full = buf.length === FLU_FULL_BYTES + macLen;
     if (!compact && !full) {
         return { ok: false, reason: 'bad-length' };
+    }
+    if (hasMac && opts?.verifyMac) {
+        const split = buf.length - FLU_MAC_BYTES;
+        if (!opts.verifyMac(buf.subarray(0, split), buf.subarray(split))) {
+            return { ok: false, reason: 'bad-mac' };
+        }
     }
     if (fieldCount < 1 || fieldCount > FLU_MAX_FIELDS) {
         return { ok: false, reason: 'bad-fields' };

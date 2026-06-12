@@ -1,7 +1,8 @@
 # Fluidity UDP Ingest — Specification
 
-Status: **U1 implemented** (codec, open-mode collector, sim, tests) ·
-U2 (MAC) and U3 (firmware kit) pending · all open questions resolved (§11)
+Status: **U1 + U2 implemented** (codec, collector, SipHash-2-4 MAC with
+migration mode, optional replay window, sim, tests) · U3 (firmware kit)
+pending · all open questions resolved (§11)
 
 Microcontrollers (M5Stack/ESP32, Arduino, AVR, ARM) publish telemetry into
 Fluidity by sending a **packed C struct over UDP** to a Fluidity **agent**,
@@ -151,9 +152,20 @@ beats a misparsed one (same doctrine as the serial decoder).
   preceding bytes with that key, and set FLU_F_MAC. SipHash was chosen
   over HMAC-SHA256 deliberately: it is small and fast on 8-bit AVRs and
   costs nothing on ESP32/ARM. Wrong/missing MAC → drop (`bad-mac`).
-- Replay: not prevented in v1 (documented). `device_seq` exists in the
-  header so a strict sequence-window option can be added without a wire
-  change (U2 decides; see Open questions).
+- Replay (implemented in U2, **off by default**): `replayWindow: N`
+  (1..1024, requires a secret — unsigned sequence numbers are
+  attacker-chosen values, not evidence) enforces a strict per-device
+  window over MAC-verified packets only. Device identity is
+  (site, plugin); one physical device per identity when the window is on.
+  Accept iff `(seq - anchor) mod 2^16` is in `1..N`; accepted packets
+  advance the anchor. An out-of-window packet is dropped (`replay`), but
+  two *coherent* consecutive rejects (the second advancing `1..N` past the
+  first — a device counting up from reset) re-anchor the window, so a
+  reboot costs exactly one packet and firmware needs no persistent
+  counter. Honest limit: an attacker who captured a consecutive signed
+  pair can force one stale line through and momentarily steal the anchor
+  (the device then re-anchors back the same way). It is a replay *damper*
+  for display integrity, not a transcript authenticator.
 - Defense in depth regardless of mode: `bind` to a LAN interface, never
   port-forward this from the WAN, and remember the upstream hop still
   requires the real API key — a LAN attacker can pollute the *display*,
@@ -170,6 +182,7 @@ beats a misparsed one (same doctrine as the serial decoder).
     "extendedOptions": {
         "secret": "0123456789abcdef0123456789abcdef",
         "requireMac": true,
+        "replayWindow": 64,
         "siteFromPacket": true
     }
 }
@@ -180,7 +193,10 @@ beats a misparsed one (same doctrine as the serial decoder).
   address on multi-homed gateways.
 - `secret` + `requireMac`: MAC mode as above. `secret` present with
   `requireMac:false` accepts both (migration mode), counting unsigned
-  packets separately (`unsigned`).
+  packets separately (`unsigned`). Misconfigured security options refuse
+  to start the agent — they never warn-and-fallback to something weaker.
+- `replayWindow`: the strict sequence window of §4 (1..1024; needs
+  `secret`). Off when absent.
 - `siteFromPacket` (default **true**): the datagram's `site` becomes the
   FluidityPacket site, so each device (or device cluster) is a first-class
   site with its own pill and liveness dot. Set false to stamp the agent's
@@ -262,11 +278,15 @@ dev server → web/TUI shows device sites with working liveness dots; suite
 green; a malformed-datagram fuzz loop (random bytes) produces zero decoded
 packets and zero crashes.
 
-**U2 — authentication**
-SipHash-2-4 trailer verify, `requireMac`/migration mode, decision + possible
-implementation of the `device_seq` strict window. *Accept:* signed sim
-traffic passes, tampered bytes drop with `bad-mac`, perf is a non-issue at
-1k datagrams/s on a Pi.
+**U2 — authentication ✅**
+SipHash-2-4 trailer verify, `requireMac`/migration mode, and the
+`device_seq` strict window (off by default). *Accepted:* signed sim
+traffic passes a MAC-required collector e2e; tampered/unsigned datagrams
+drop with `bad-mac`; replays drop with `replay` and a rebooted device
+re-anchors at the cost of one packet; the primitive is pinned to all 64
+official SipHash reference vectors; measured ~34k MACs/s over max-size
+datagrams on a dev box (BigInt impl) — orders of magnitude past the
+1k/s-on-a-Pi bar.
 
 **U3 — firmware kit**
 `fluidity_udp.h`, the two example sketches, README quickstart. *Accept:* a
@@ -281,6 +301,7 @@ MAC mode on.
 3. **Replay protection (U2): available, off by default.** Strict
    `device_seq` window 1..1024 behind a config flag; the window re-anchors
    when a device resets, so firmware needs no persistent counter.
+   *Implemented in U2 as specified — semantics in §4.*
 4. **One shared secret per collector.** Per-device keys remain addable
    without a wire change (the agent can key lookup off the packet's
    site/plugin) if ever needed.

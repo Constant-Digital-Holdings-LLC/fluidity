@@ -1,8 +1,9 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { confFromFS } from '#@shared/modules/fluidityConfig.js';
 import { FormattedData } from '#@shared/types.js';
+import { siphash24, macEqual, sipKeyFromHex } from '#@sims/siphash.js';
 import { DataCollector, DataCollectorParams } from '../collectors.js';
-import { decodeFluPacket, FluDropReason, FLU_DEFAULT_PORT } from '../udpCodec.js';
+import { decodeFluPacket, FluDecoded, FluDecodeOptions, FluDropReason, FLU_DEFAULT_PORT } from '../udpCodec.js';
 import dgram from 'node:dgram';
 
 const conf = await confFromFS();
@@ -14,9 +15,10 @@ export interface UdpStructCollectorParams extends DataCollectorParams {
     bind?: string;
 }
 
-//bad-time is not a drop (the packet is accepted, re-stamped); it shares the
-//counter surface so a device with a wild clock is just as visible
-type UdpCountReason = FluDropReason | 'bad-time';
+//bad-time and unsigned are not drops (the packet is accepted); they share
+//the counter surface so a wild clock or an unmigrated device is just as
+//visible. replay is a drop: an authentic-but-stale sequence number.
+type UdpCountReason = FluDropReason | 'bad-time' | 'unsigned' | 'replay';
 
 //per-source log damping (UDP-SPEC s6): the reason counters always increment,
 //but a chattering source logs its first few drops and then every 100th
@@ -27,17 +29,28 @@ const DAMP_EVERY = 100;
 //exactly when the log must stay quiet)
 const MAX_SOURCES = 1024;
 
+//replay-window device table cap; beyond it the window fails OPEN, because
+//every packet reaching it carried a valid MAC - whoever fills the table
+//holds the shared secret and the window is moot anyway
+const MAX_DEVICES = 4096;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default class UdpStructCollector extends DataCollector {
     private readonly port: number;
     private readonly bindAddr: string | undefined;
     private readonly siteFromPacket: boolean;
+    private readonly key: Uint8Array | undefined;
+    private readonly requireMac: boolean;
+    private readonly replayWindow: number | undefined;
+    private readonly decodeOpts: FluDecodeOptions | undefined;
     private readonly socket: dgram.Socket;
     private readonly bound: Promise<number>;
     private readonly counts = new Map<UdpCountReason, number>();
     private readonly sourceDrops = new Map<string, number>();
+    private readonly seqState = new Map<string, { last: number; lastReject: number | null }>();
     private sourceTableFull = false;
+    private seqTableFull = false;
 
     constructor(params: UdpStructCollectorParams) {
         super(params);
@@ -57,14 +70,57 @@ export default class UdpStructCollector extends DataCollector {
 
         const eo = params.extendedOptions;
 
-        //MAC mode is milestone U2: a config that asks for authentication must
-        //refuse to run open, never silently accept unauthenticated traffic
-        if (eo && typeof eo === 'object' && ('secret' in eo || 'requireMac' in eo)) {
+        //authentication config degrades LOUDLY: any misconfigured security
+        //option refuses to start - warn-and-fallback would silently weaken
+        //the very thing the operator asked for
+        let key: Uint8Array | undefined;
+        let requireMac = false;
+        let replayWindow: number | undefined;
+
+        if (eo && typeof eo === 'object') {
+            if ('secret' in eo && eo.secret !== undefined) {
+                const parsed = typeof eo.secret === 'string' ? sipKeyFromHex(eo.secret) : null;
+                if (!parsed) {
+                    throw new Error(
+                        `udpStruct [${params.description}]: secret must be exactly 32 hex chars ` +
+                            `(a 16-byte SipHash key; generate one with: openssl rand -hex 16)`
+                    );
+                }
+                key = parsed;
+            }
+
+            if ('requireMac' in eo && eo.requireMac !== undefined) {
+                if (typeof eo.requireMac !== 'boolean') {
+                    throw new Error(`udpStruct [${params.description}]: requireMac must be a boolean`);
+                }
+                requireMac = eo.requireMac;
+            }
+
+            if ('replayWindow' in eo && eo.replayWindow !== undefined) {
+                const rw = eo.replayWindow;
+                if (typeof rw !== 'number' || !Number.isInteger(rw) || rw < 1 || rw > 1024) {
+                    throw new Error(`udpStruct [${params.description}]: replayWindow must be an integer 1..1024`);
+                }
+                replayWindow = rw;
+            }
+        }
+
+        if (requireMac && !key) {
+            throw new Error(`udpStruct [${params.description}]: requireMac needs a secret to verify against`);
+        }
+        if (replayWindow !== undefined && !key) {
             throw new Error(
-                `udpStruct [${params.description}]: secret/requireMac (MAC mode) is not implemented yet (U2) - ` +
-                    `remove it to run in open mode`
+                `udpStruct [${params.description}]: replayWindow needs a secret - ` +
+                    `sequence numbers are forgeable without a MAC`
             );
         }
+
+        this.key = key;
+        this.requireMac = requireMac;
+        this.replayWindow = replayWindow;
+        this.decodeOpts = key
+            ? { verifyMac: (signed, mac): boolean => macEqual(siphash24(key, signed), mac) }
+            : undefined;
 
         let siteFromPacket = true;
         if (eo && typeof eo === 'object' && 'siteFromPacket' in eo && eo.siteFromPacket !== undefined) {
@@ -107,10 +163,24 @@ export default class UdpStructCollector extends DataCollector {
         this.socket.on('listening', () => {
             const { address, port } = this.socket.address();
             log.info(`started: ${this.params.plugin} [${this.params.description}] on udp ${address}:${port}`);
-            log.info(
-                `udpStruct [${this.params.description}]: open mode - no MAC required; ` +
-                    `keep this port LAN-only (UDP-SPEC s4)`
-            );
+
+            //the security posture is one glance at the log, always
+            if (!this.key) {
+                log.info(
+                    `udpStruct [${this.params.description}]: open mode - no MAC required; ` +
+                        `keep this port LAN-only (UDP-SPEC s4)`
+                );
+            } else if (this.requireMac) {
+                log.info(
+                    `udpStruct [${this.params.description}]: MAC mode - SipHash-2-4 trailer required` +
+                        (this.replayWindow !== undefined ? `, replay window ${this.replayWindow}` : '')
+                );
+            } else {
+                log.info(
+                    `udpStruct [${this.params.description}]: migration mode - MACs verified when present, ` +
+                        `unsigned packets accepted and counted (set requireMac:true to enforce)`
+                );
+            }
         });
 
         this.socket.bind(this.port, this.bindAddr);
@@ -159,8 +229,55 @@ export default class UdpStructCollector extends DataCollector {
         }
     }
 
+    //strict device_seq window (UDP-SPEC s4, resolved decision 3): accept only
+    //seqs advancing 1..window past the anchor, mod 2^16. Out-of-window seqs
+    //are rejected, but two *coherent* consecutive rejects (the second
+    //advancing 1..window past the first - a device counting up from a reset)
+    //re-anchor the window, so a reboot costs exactly one packet and firmware
+    //needs no persistent counter. Known limit, documented in the spec: a
+    //captured consecutive signed pair can force one stale line through.
+    private acceptSeq(p: FluDecoded): boolean {
+        const win = this.replayWindow ?? 0;
+        //NUL separator cannot collide: the codec strips control chars from names
+        const id = `${p.site}\u0000${p.plugin}`;
+        const st = this.seqState.get(id);
+
+        if (!st) {
+            if (this.seqState.size >= MAX_DEVICES) {
+                if (!this.seqTableFull) {
+                    this.seqTableFull = true;
+                    log.warn(
+                        `udpStruct [${this.params.description}]: replay-window device table full ` +
+                            `(${MAX_DEVICES}) - failing open for new identities (all carried valid MACs)`
+                    );
+                }
+                return true;
+            }
+            this.seqState.set(id, { last: p.deviceSeq, lastReject: null });
+            return true;
+        }
+
+        const delta = (p.deviceSeq - st.last) & 0xffff;
+        if (delta >= 1 && delta <= win) {
+            st.last = p.deviceSeq;
+            st.lastReject = null;
+            return true;
+        }
+
+        if (st.lastReject !== null) {
+            const stride = (p.deviceSeq - st.lastReject) & 0xffff;
+            if (stride >= 1 && stride <= win) {
+                st.last = p.deviceSeq; //second coherent reject: device reset, re-anchor
+                st.lastReject = null;
+                return true;
+            }
+        }
+        st.lastReject = p.deviceSeq;
+        return false;
+    }
+
     private ingest(msg: Buffer, rinfo: dgram.RemoteInfo): void {
-        const result = decodeFluPacket(msg);
+        const result = decodeFluPacket(msg, this.decodeOpts);
 
         if (!result.ok) {
             this.note(result.reason, rinfo, msg.length);
@@ -168,6 +285,23 @@ export default class UdpStructCollector extends DataCollector {
         }
 
         const p = result.packet;
+
+        //MAC presence policy (s4): in MAC mode a missing trailer is as bad as
+        //a wrong one; in migration mode it is accepted and counted 'unsigned'
+        if (this.key && !p.hasMac) {
+            if (this.requireMac) {
+                this.note('bad-mac', rinfo, msg.length);
+                return;
+            }
+            this.note('unsigned', rinfo, msg.length, true);
+        }
+
+        //replay window applies only to MAC-verified packets - an unsigned
+        //sequence number is an attacker-chosen value, not evidence
+        if (this.replayWindow !== undefined && this.key && p.hasMac && !this.acceptSeq(p)) {
+            this.note('replay', rinfo, msg.length);
+            return;
+        }
 
         //s3.4: device time is honored only within +-24h of agent time; a wild
         //clock is counted and the packet re-stamped, preserving display order

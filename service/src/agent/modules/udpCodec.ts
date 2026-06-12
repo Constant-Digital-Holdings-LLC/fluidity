@@ -48,6 +48,15 @@ export interface FluDecoded {
 
 export type FluResult = { ok: true; packet: FluDecoded } | { ok: false; reason: FluDropReason };
 
+export interface FluDecodeOptions {
+    //MAC verification hook, invoked only when the datagram carries a trailer:
+    //signed = everything before the trailer, mac = the 8 trailer bytes.
+    //Runs between the exact-length check (§6 step 4) and the field-count
+    //check (step 6), so a tampered datagram drops as bad-mac, never as some
+    //downstream reason. The codec stays key-free; policy lives in the caller.
+    verifyMac?: (signed: Buffer, mac: Buffer) => boolean;
+}
+
 const utf8Strict = new TextDecoder('utf-8', { fatal: true });
 
 //NUL-terminated, UTF-8-validated, control-chars stripped (renderers sanitize
@@ -66,7 +75,7 @@ const decodeName = (buf: Buffer, offset: number, width: number): string | null =
     }
 };
 
-export const decodeFluPacket = (buf: Buffer): FluResult => {
+export const decodeFluPacket = (buf: Buffer, opts?: FluDecodeOptions): FluResult => {
     if (buf.length < FLU_HEADER_BYTES || buf.length > FLU_MAX_DATAGRAM) {
         return { ok: false, reason: 'bad-length' };
     }
@@ -90,6 +99,15 @@ export const decodeFluPacket = (buf: Buffer): FluResult => {
     const full = buf.length === FLU_FULL_BYTES + macLen;
     if (!compact && !full) {
         return { ok: false, reason: 'bad-length' };
+    }
+
+    //§6 step 5: the MAC covers every preceding byte (flags included), so a
+    //failed verification masks all later reasons - the bytes can't be trusted
+    if (hasMac && opts?.verifyMac) {
+        const split = buf.length - FLU_MAC_BYTES;
+        if (!opts.verifyMac(buf.subarray(0, split), buf.subarray(split))) {
+            return { ok: false, reason: 'bad-mac' };
+        }
     }
 
     if (fieldCount < 1 || fieldCount > FLU_MAX_FIELDS) {

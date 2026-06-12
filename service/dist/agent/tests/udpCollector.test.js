@@ -4,7 +4,8 @@ import dgram from 'node:dgram';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { isFfluidityPacket } from '#@shared/types.js';
 import { mulberry32 } from '#@sims/prng.js';
-import { packFluPacket, startUdpFleet } from '#@sims/udpDeviceSim.js';
+import { sipKeyFromHex } from '#@sims/siphash.js';
+import { packFluPacket, signFluPacket, startUdpFleet } from '#@sims/udpDeviceSim.js';
 import { encodeFluPacket, decodeFluPacket } from '../modules/udpCodec.js';
 import { buildCollectors } from '../modules/runner.js';
 import UdpStructCollector from '../modules/collectors/udpStruct.js';
@@ -225,13 +226,11 @@ void test('udp: the runner constructs udpStruct from a config stanza', async () 
     assert.ok(built[0] instanceof UdpStructCollector);
     built.forEach(c => c.stop());
 });
-void test('udp: config validation refuses bad ports, bad binds, and unimplemented MAC mode', () => {
+void test('udp: config validation refuses bad ports and bad binds', () => {
     assert.throws(() => new UdpStructCollector(udpParams({ port: -1 })), /port/);
     assert.throws(() => new UdpStructCollector(udpParams({ port: 70000 })), /port/);
     assert.throws(() => new UdpStructCollector(udpParams({ port: 1.5 })), /port/);
     assert.throws(() => new UdpStructCollector(udpParams({ bind: 5 })), /bind/);
-    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { requireMac: true } })), /U2/);
-    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: 'abc123' } })), /U2/);
 });
 void test('udp: sim fleet once-mode burst decodes cleanly via the agent codec', async () => {
     const server = dgram.createSocket('udp4');
@@ -264,5 +263,154 @@ void test('udp: sim fleet once-mode burst decodes cleanly via the agent codec', 
     finally {
         fleet.stop();
         server.close();
+    }
+});
+const SECRET = 'a0a1a2a3a4a5a6a7a8a9aaabacadaeaf';
+const KEY = sipKeyFromHex(SECRET);
+const tick = (site, deviceSeq, text) => packFluPacket({ site, plugin: 'm5-env', deviceSeq, fields: [{ style: 0, text }] });
+void test('udp MAC mode: genuine trailers publish; tampered and unsigned drop as bad-mac', async () => {
+    const target = await startTarget();
+    const live = await liveCollector({
+        targets: [{ location: target.location, key: 'udpkey1' }],
+        extendedOptions: { secret: SECRET, requireMac: true }
+    });
+    try {
+        let posted = target.next();
+        await send(live.client, live.port, signFluPacket(tick('signed-ok', 1, 'hello'), KEY));
+        const first = (await posted);
+        assert.equal(first.site, 'signed-ok');
+        assert.equal(live.collector.dropCounts.get('bad-mac'), undefined);
+        const tampered = signFluPacket(tick('signed-ok', 2, 'hello'), KEY);
+        tampered[70] = (tampered[70] ?? 0) ^ 0x01;
+        await send(live.client, live.port, tampered);
+        await sleep(5);
+        await send(live.client, live.port, tick('unsigned-dev', 3, 'hello'));
+        await sleep(5);
+        posted = target.next();
+        await send(live.client, live.port, signFluPacket(tick('signed-ok', 4, 'still here'), KEY));
+        await posted;
+        await sleep(20);
+        assert.equal(target.received.length, 2, 'only the two genuine packets published');
+        assert.equal(live.collector.dropCounts.get('bad-mac'), 2, 'one tampered + one unsigned');
+    }
+    finally {
+        live.close();
+        target.server.close();
+    }
+});
+void test('udp migration mode: unsigned accepted and counted; a bad signature still drops', async () => {
+    const target = await startTarget();
+    const live = await liveCollector({
+        targets: [{ location: target.location, key: 'udpkey1' }],
+        extendedOptions: { secret: SECRET, requireMac: false }
+    });
+    try {
+        let posted = target.next();
+        await send(live.client, live.port, tick('legacy-dev', 1, 'not migrated yet'));
+        const legacy = (await posted);
+        assert.equal(legacy.site, 'legacy-dev', 'unsigned publishes during migration');
+        assert.equal(live.collector.dropCounts.get('unsigned'), 1, 'and is counted');
+        posted = target.next();
+        await send(live.client, live.port, signFluPacket(tick('new-dev', 1, 'migrated'), KEY));
+        const migrated = (await posted);
+        assert.equal(migrated.site, 'new-dev');
+        const forged = signFluPacket(tick('evil-dev', 1, 'spoof'), KEY);
+        forged[forged.length - 1] = (forged[forged.length - 1] ?? 0) ^ 0xff;
+        await send(live.client, live.port, forged);
+        await sleep(50);
+        assert.equal(live.collector.dropCounts.get('bad-mac'), 1);
+        assert.equal(target.received.length, 2);
+    }
+    finally {
+        live.close();
+        target.server.close();
+    }
+});
+void test('udp open mode: a signed packet flows, trailer ignored', async () => {
+    const target = await startTarget();
+    const live = await liveCollector({ targets: [{ location: target.location, key: 'udpkey1' }] });
+    try {
+        const posted = target.next();
+        await send(live.client, live.port, signFluPacket(tick('keen-dev', 1, 'signed anyway'), KEY));
+        const packet = (await posted);
+        assert.equal(packet.site, 'keen-dev');
+    }
+    finally {
+        live.close();
+        target.server.close();
+    }
+});
+void test('udp auth config: misconfigured security refuses to start', () => {
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: 'tooshort' } })), /32 hex/);
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: SECRET + '00' } })), /32 hex/);
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: 42 } })), /32 hex/);
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { requireMac: true } })), /secret/);
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: SECRET, requireMac: 'yes' } })), /boolean/);
+    assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { replayWindow: 64 } })), /secret/);
+    for (const bad of [0, 1025, 1.5, '64']) {
+        assert.throws(() => new UdpStructCollector(udpParams({ extendedOptions: { secret: SECRET, replayWindow: bad } })), /1\.\.1024/);
+    }
+});
+void test('udp replay window: replays drop, jumps re-anchor on coherence, reboot costs one packet', async () => {
+    const target = await startTarget();
+    const live = await liveCollector({
+        targets: [{ location: target.location, key: 'udpkey1' }],
+        extendedOptions: { secret: SECRET, requireMac: true, replayWindow: 16 }
+    });
+    const signedTick = (seq, text) => signFluPacket(tick('seq-dev', seq, text), KEY);
+    const replays = () => live.collector.dropCounts.get('replay') ?? 0;
+    try {
+        let posted = target.next();
+        await send(live.client, live.port, signedTick(10, 't1'));
+        await posted;
+        await send(live.client, live.port, signedTick(10, 't1'));
+        await sleep(5);
+        posted = target.next();
+        await send(live.client, live.port, signedTick(11, 't2'));
+        await posted;
+        assert.equal(replays(), 1, 'the replay was counted');
+        await send(live.client, live.port, signedTick(31, 't3'));
+        await sleep(5);
+        assert.equal(replays(), 2);
+        posted = target.next();
+        await send(live.client, live.port, signedTick(32, 't4'));
+        await posted;
+        await send(live.client, live.port, signedTick(0, 't5'));
+        await sleep(5);
+        assert.equal(replays(), 3);
+        posted = target.next();
+        await send(live.client, live.port, signedTick(1, 't6'));
+        await posted;
+        await sleep(20);
+        const texts = target.received.map(p => p.formattedData[0]?.field);
+        assert.deepEqual(texts, ['t1', 't2', 't4', 't6'], 'exactly the in-window packets published, in order');
+    }
+    finally {
+        live.close();
+        target.server.close();
+    }
+});
+void test('udp signed sim fleet passes a MAC-required collector end-to-end', async () => {
+    const target = await startTarget();
+    const live = await liveCollector({
+        targets: [{ location: target.location, key: 'udpkey1' }],
+        extendedOptions: { secret: SECRET, requireMac: true, replayWindow: 64 }
+    });
+    try {
+        const fleet = startUdpFleet({ host: '127.0.0.1', port: live.port, once: true, seed: 11, secret: SECRET });
+        await fleet.done;
+        for (let waited = 0; target.received.length < 3 && waited < 100; waited++)
+            await sleep(20);
+        assert.equal(target.received.length, 3, 'every signed fleet packet published');
+        assert.deepEqual(target.received.map(p => p.site).sort(), [
+            'gate-1',
+            'greenhouse',
+            'water-tank'
+        ]);
+        assert.equal(live.collector.dropCounts.get('bad-mac'), undefined, 'no MAC complaints');
+    }
+    finally {
+        live.close();
+        target.server.close();
     }
 });

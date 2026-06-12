@@ -318,7 +318,22 @@ no `@ts-ignore` interop hacks left.
 > the agent encoder in tests. 23 new tests incl. dgram→HTTPS e2e and a
 > through-the-socket fuzz barrage (paced: loopback UDP drops ~25% of an
 > unpaced burst — the loss-tolerance doctrine, observed live). Stanzas in
-> dev conf + conf-examples. Next: U2 SipHash MAC, U3 firmware kit.
+> dev conf + conf-examples.
+>
+> **U2 done.** `sims/src/siphash.ts` — the repo's one SipHash-2-4
+> (BigInt, pure; device-side home because service→sims is the allowed
+> dependency direction), pinned to all 64 official reference vectors
+> (veorq/SipHash) fetched at implementation time; ~34k MACs/s measured
+> over max-size datagrams. Codec gains a `verifyMac` injection point at
+> exactly §6 step 5, so bad-mac masks downstream reasons (order pinned
+> both ways in tests); the codec stays key-free. Collector: open /
+> migration (`unsigned` counted, accepted) / MAC-required modes, any
+> misconfigured security option refuses to start; `replayWindow` strict
+> seq window over MAC-verified packets with coherent-reject re-anchor
+> (reboot costs one packet; limits documented in spec §4), bounded device
+> table failing open. Sim fleet signs with `--secret`; signed-fleet e2e
+> against a MAC-required collector passes. 147 tests, 80.7% lines.
+> Next: U3 firmware kit (fluidity_udp.h + example sketches).
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

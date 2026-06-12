@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mulberry32 } from '#@sims/prng.js';
+import { siphash24, macEqual } from '#@sims/siphash.js';
 import { FLU_MAGIC, FLU_HEADER_BYTES, FLU_FIELD_BYTES, FLU_FULL_BYTES, FLU_MAC_BYTES, FLU_MAX_DATAGRAM, FLU_F_TS, FLU_F_MAC, decodeFluPacket, encodeFluPacket } from '../modules/udpCodec.js';
 const decodeOk = (buf) => {
     const r = decodeFluPacket(buf);
@@ -203,4 +204,73 @@ void test('udpCodec: fuzz - single-byte corruption of a valid packet never crash
             assert.ok(r.packet.fields.length >= 1 && r.packet.fields.length <= 4);
         }
     }
+});
+const SIGNED_KEY = Uint8Array.from({ length: 16 }, (_, i) => 0xa0 + i);
+const signManually = (struct, key) => {
+    const flagged = Buffer.from(struct);
+    flagged[5] = (flagged[5] ?? 0) | FLU_F_MAC;
+    return Buffer.concat([flagged, Buffer.from(siphash24(key, flagged))]);
+};
+void test('udpCodec: verifyMac receives the exact signed-region/trailer split', () => {
+    const wire = signManually(encodeFluPacket({ site: 's', plugin: 'p', fields: [{ style: 0, text: 'x' }] }), SIGNED_KEY);
+    let seen;
+    const r = decodeFluPacket(wire, {
+        verifyMac: (signed, mac) => {
+            seen = { signed, mac };
+            return true;
+        }
+    });
+    assert.ok(r.ok);
+    assert.ok(seen, 'verifier must be consulted for a MAC-flagged datagram');
+    assert.equal(seen.signed.length, wire.length - FLU_MAC_BYTES);
+    assert.ok(seen.signed.equals(wire.subarray(0, wire.length - FLU_MAC_BYTES)));
+    assert.ok(seen.mac.equals(wire.subarray(wire.length - FLU_MAC_BYTES)));
+});
+void test('udpCodec: verifyMac is never consulted for unsigned datagrams', () => {
+    const unsigned = encodeFluPacket({ site: 's', plugin: 'p', fields: [{ style: 0, text: 'x' }] });
+    let called = false;
+    const r = decodeFluPacket(unsigned, {
+        verifyMac: () => {
+            called = true;
+            return false;
+        }
+    });
+    assert.ok(r.ok, 'unsigned datagrams pass through to caller policy');
+    assert.equal(r.packet.hasMac, false);
+    assert.equal(called, false);
+});
+void test('udpCodec: bad-mac masks downstream reasons (§6 step 5 before step 6)', () => {
+    const struct = encodeFluPacket({ site: 's', plugin: 'p', fields: [{ style: 0, text: 'x' }], full: true });
+    struct[FLU_HEADER_BYTES - 1] = 5;
+    const wire = signManually(struct, SIGNED_KEY);
+    const rejected = decodeFluPacket(wire, { verifyMac: () => false });
+    assert.ok(!rejected.ok && rejected.reason === 'bad-mac');
+    const accepted = decodeFluPacket(wire, { verifyMac: () => true });
+    assert.ok(!accepted.ok && accepted.reason === 'bad-fields', 'with the MAC good, step 6 fires normally');
+});
+void test('udpCodec: real SipHash round-trip - genuine trailer passes, any flipped byte drops', () => {
+    const wire = signManually(encodeFluPacket({
+        site: 'greenhouse',
+        plugin: 'm5-env',
+        deviceSeq: 99,
+        tsEpochSec: 1_765_000_000,
+        fields: [{ style: 2, text: 'temp 21.4C' }]
+    }), SIGNED_KEY);
+    const verifyMac = (signed, mac) => macEqual(siphash24(SIGNED_KEY, signed), mac);
+    const r = decodeFluPacket(wire, { verifyMac });
+    assert.ok(r.ok);
+    assert.equal(r.packet.hasMac, true);
+    assert.equal(r.packet.site, 'greenhouse');
+    for (const at of [5, 6, 14, FLU_HEADER_BYTES + 4, wire.length - 1]) {
+        const evil = Buffer.from(wire);
+        evil[at] = (evil[at] ?? 0) ^ 0x01;
+        const dropped = decodeFluPacket(evil, { verifyMac });
+        assert.ok(!dropped.ok, `flip at byte ${at} must not decode`);
+    }
+    const otherKey = Uint8Array.from(SIGNED_KEY);
+    otherKey[0] = (otherKey[0] ?? 0) ^ 0xff;
+    const wrongKey = decodeFluPacket(wire, {
+        verifyMac: (signed, mac) => macEqual(siphash24(otherKey, signed), mac)
+    });
+    assert.ok(!wrongKey.ok && wrongKey.reason === 'bad-mac');
 });

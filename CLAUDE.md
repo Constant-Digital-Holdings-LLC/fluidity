@@ -41,6 +41,11 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
   implementation of the wire format (firmware reference) — tests pin the
   two byte-for-byte; don't "deduplicate" them. Loopback UDP drops part of
   any unpaced burst — tests pace sends and retry sentinels by design.
+  Auth (U2): `sims/src/siphash.ts` is the repo's one SipHash-2-4, pinned
+  to the 64 official vectors (it lives in sims because service→sims is
+  the allowed dependency direction); collector modes open/migration/MAC
+  per spec §4 — misconfigured security options throw at startup, never
+  warn-and-fallback. Sim signs with `--secret <hex32>`.
 - **srsSerial suppression**: messages decoding to nothing but states in
   `extendedOptions.suppress` (default `["COR", "CLEAR"]` — CLEAR is the
   synthetic state for all-zero release frames) are dropped at the agent.
