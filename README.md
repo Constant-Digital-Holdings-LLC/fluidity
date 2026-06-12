@@ -15,7 +15,9 @@ In the aforementioned, Fluidity is being used to display distributed communicati
 -   Dashboard (web)
 -   Terminal Client (TUI)
 
-The Agent is responsible for connecting to _n_ local serial devices. Devices are associated with a plugin which suggests how the data should be delimited and stylized, or the generic plugin if a data-specific plugin is unavailable. As serial data streams in, the Agent immediately posts the corresponding data to the web service. Devices are read and published in parallel.
+The Agent is responsible for collecting data from _n_ local devices. Most commonly these are serial devices: each is associated with a plugin which suggests how the data should be delimited and stylized, or the generic plugin if a data-specific plugin is unavailable. As data streams in, the Agent immediately posts the corresponding data to the web service. Devices are read and published in parallel.
+
+The Agent also acts as a **UDP forwarding gateway** for microcontrollers (M5Stack/ESP32, Arduino, AVR, ARM): its `udpStruct` collector listens for a tiny packed binary struct over UDP on the LAN, validates and decodes it into a normal Fluidity packet, and forwards it upstream over the same HTTPS path — no TLS, JSON, or HTTP needed on the device. This makes the Agent the single trust boundary and protocol adapter: hostile-input validation, optional SipHash-2-4 authentication, and bounded backpressure all live there, while the web service stays a single hardened ingest path (and Heroku, which cannot accept UDP, keeps working untouched). See the [UDP Devices](#udp-devices-microcontrollers) section below and `service/UDP-SPEC.md` for the wire format and security model.
 
 The Web Service simply maintains a running FIFO of agent-submitted data, for consumption by clients. The Web Service utilizes Server-Sent Events (SSE) to ensure real-time client rendering. The FIFO keeps a configurable amount of running historical data.
 

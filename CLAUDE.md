@@ -1,12 +1,14 @@
 # Fluidity — project guide
 
 Real-time serial data aggregator. Four components in one monorepo:
-**Agent** (`service/src/agent`) reads serial devices via plugins and POSTs
-packets over HTTPS · **Web Service** (`service/src/server`) keeps a FIFO and
-broadcasts via SSE · **Dashboard** (`client/src/public`) and **TUI** (`tui/src`)
-render. Core design rule: plugins *suggest* (`fieldType`, `suggestStyle` on
-each `FluidityPacket`), the server relays without interpreting, each client
-decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
+**Agent** (`service/src/agent`) reads serial devices via plugins — and acts as
+a UDP forwarding gateway for microcontrollers (`udpStruct` collector, see UDP
+ingest below) — and POSTs packets over HTTPS · **Web Service**
+(`service/src/server`) keeps a FIFO and broadcasts via SSE · **Dashboard**
+(`client/src/public`) and **TUI** (`tui/src`) render. Core design rule: plugins
+*suggest* (`fieldType`, `suggestStyle` on each `FluidityPacket`), the server
+relays without interpreting, each client decides presentation (CSS vs ANSI).
+Don't move rendering decisions serverward.
 
 ## Commands
 
