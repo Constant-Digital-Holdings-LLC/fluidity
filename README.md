@@ -159,6 +159,23 @@ Fluidity includes a terminal client that renders the same live stream in your te
 
 The TUI can also be packaged as a single self-contained executable (no Node required on the target machine) — release tags build binaries for Linux (x64/arm64), macOS, and Windows automatically, or build your own with `npm run build:tui-sea` (see `tui/BUILD.md`).
 
+#### UDP Devices (Microcontrollers)
+
+Microcontrollers (M5Stack/ESP32, Arduino, AVR, ARM) publish straight into Fluidity by sending a packed C struct over UDP to an agent running the `udpStruct` collector — no TLS, no JSON, no HTTP on the device. Each device names its own site, so it appears on the dashboards as a first-class site with its own pill and liveness dot. The full wire format and security model live in `service/UDP-SPEC.md`.
+
+Send your first packet from any shell (agent listening on 17996):
+
+```sh
+HEX=464c5531010000000000000068656c6c6f00000000000000000000006e632d746573740000000000000000006669727374207061636b65740000000001060068692066726f6d206e65746361740000000000000000000000000000000000000000000000000000
+printf '%s' "$HEX" | xxd -r -p | nc -u -w1 your-agent-host 17996
+```
+
+(no `xxd`? — `perl -e 'print pack "H*", $ENV{HEX}' | nc -u -w1 your-agent-host 17996`)
+
+A site named `hello` appears on the dashboard with the field "hi from netcat". For real firmware, **firmware/fluidity_udp.h** is a single dependency-free header: `flu_init` / `flu_set_field` / `flu_wire_size`, plus SipHash-2-4 signing (`flu_sign`) behind `FLU_ENABLE_MAC` for authenticated mode. Example sketches live in **sims/arduino/**: `udp-m5stack/` (ESP32/WiFi, MAC mode, NTP device time) and `udp-avr-w5500/` (Ethernet shield, open mode, compact form). The header, the agent's decoder, and the TypeScript device simulator are three independent implementations of the wire format, pinned byte-for-byte against each other (and SipHash against its official test vectors) by the test suite.
+
+A software fleet of simulated UDP devices is also available for development: `npm run sim:udp` (add `--secret <hex32>` for signed traffic, `--once` for a single burst).
+
 #### Simulated Devices & Testing
 
 The simulators live in **sims/** as a TypeScript library (`sims/src/`). Any serial collector can be pointed at a simulator by using a `sim://` path in its config (`sim://srs` for SRS controller telemetry, `sim://generic` for assorted serial console data). Simulated devices behave like real ones: same parsers, same plugins, same data path to the dashboard.

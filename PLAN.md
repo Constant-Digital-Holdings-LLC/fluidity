@@ -333,7 +333,23 @@ no `@ts-ignore` interop hacks left.
 > (reboot costs one packet; limits documented in spec §4), bounded device
 > table failing open. Sim fleet signs with `--secret`; signed-fleet e2e
 > against a MAC-required collector passes. 147 tests, 80.7% lines.
-> Next: U3 firmware kit (fluidity_udp.h + example sketches).
+>
+> **U3 done (software-complete).** `firmware/fluidity_udp.h` — single
+> dependency-free header (C99/C11/Arduino C++): the packed struct with
+> compile-time offset asserts, big-endian targets refused at compile
+> time, flu_init/flu_set_field/flu_set_time/flu_wire_size, SipHash-2-4 +
+> flu_sign behind FLU_ENABLE_MAC (signed = always full struct, 237B).
+> Sketches: sims/arduino/udp-m5stack (ESP32, MAC mode, NTP) and
+> udp-avr-w5500 (Ethernet, open mode, compact, event+heartbeat). README
+> "UDP Devices" quickstart with a netcat first-packet validated live.
+> firmware/test/wirecheck.c + udpFirmware.test.ts host-compile the header
+> (-Wall -Wextra -Werror, gcc and clang) and pin C output byte-for-byte
+> against BOTH TypeScript implementations — three independent impls of
+> the wire format agree — plus C-vs-TS SipHash on the official-vector
+> inputs; skips without a cc (CI has one). Remaining ceremony: a real
+> M5Stack on a LAN with MAC mode (hardware in Sean's hands, not the
+> repo's). Consider tagging v2.1.0: UDP ingest + UI refresh + lightened
+> quiet tone are all unreleased in binaries.
 
 ## Deferred / known hazards (not in scope, tracked so they're not forgotten)
 

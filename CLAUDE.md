@@ -46,6 +46,12 @@ decides presentation (CSS vs ANSI). Don't move rendering decisions serverward.
   the allowed dependency direction); collector modes open/migration/MAC
   per spec §4 — misconfigured security options throw at startup, never
   warn-and-fallback. Sim signs with `--secret <hex32>`.
+- **Firmware kit** (U3): `firmware/fluidity_udp.h` is the C reference —
+  a third independent wire implementation. `udpFirmware.test.ts`
+  host-compiles it (gcc/clang, -Werror) and pins C output byte-for-byte
+  against the agent codec and sim packer; it skips on hosts without a C
+  compiler. Sketches in `sims/arduino/udp-*` expect the header copied
+  beside the .ino (Arduino IDE limitation) — don't commit copies.
 - **srsSerial suppression**: messages decoding to nothing but states in
   `extendedOptions.suppress` (default `["COR", "CLEAR"]` — CLEAR is the
   synthetic state for all-zero release frames) are dropped at the agent.

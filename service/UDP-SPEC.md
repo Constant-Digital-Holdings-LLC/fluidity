@@ -1,8 +1,11 @@
 # Fluidity UDP Ingest — Specification
 
-Status: **U1 + U2 implemented** (codec, collector, SipHash-2-4 MAC with
-migration mode, optional replay window, sim, tests) · U3 (firmware kit)
-pending · all open questions resolved (§11)
+Status: **U1 + U2 + U3 implemented** — codec, collector, SipHash-2-4 MAC
+with migration mode, optional replay window, sim, firmware kit
+(`firmware/fluidity_udp.h` + example sketches), tests. The C header is
+host-compiled in CI and pinned byte-for-byte against the agent codec and
+the sim packer; the only acceptance step left for U3 is ceremonial — a
+physical board on a real LAN. All open questions resolved (§11).
 
 Microcontrollers (M5Stack/ESP32, Arduino, AVR, ARM) publish telemetry into
 Fluidity by sending a **packed C struct over UDP** to a Fluidity **agent**,
@@ -241,16 +244,25 @@ Heartbeat guidance for firmware: send at least one packet every **≤100s**
 thresholds were derived from, so device sites glow/fade exactly like SRS
 sites do.
 
-## 8. Firmware deliverables (U3)
+## 8. Firmware deliverables (U3) — shipped
 
-- `firmware/fluidity_udp.h` — the normative header above plus a tiny
-  `flu_init/flu_set_field/flu_send_ready` helper API and optional SipHash
-  reference implementation (public domain SipHash-2-4, ~100 lines).
-- Example sketches under `sims/arduino/` (house style):
-  - `udp-m5stack/` — ESP32/M5Stack via WiFiUDP, MAC mode;
-  - `udp-avr-w5500/` — classic Arduino/AVR via Ethernet, open mode.
-- README section: five-line "send your first packet" with netcat-equivalent
-  (`printf ... | xxd -r -p | nc -u agent 17996` for smoke tests).
+- `firmware/fluidity_udp.h` — the normative struct with compile-time
+  offset asserts, `flu_init/flu_set_field/flu_set_time/flu_wire_size`,
+  and SipHash-2-4 + `flu_sign` behind `FLU_ENABLE_MAC`. Signed datagrams
+  always use the full-struct form (237 bytes): the trailer must follow
+  the signed bytes, and fixed-size keeps firmware trivial. Big-endian
+  targets fail at compile time rather than emit a byte-swapped wire.
+- Example sketches under `sims/arduino/`:
+  - `udp-m5stack/` — ESP32/M5Stack via WiFiUDP, MAC mode, NTP device time;
+  - `udp-avr-w5500/` — classic Arduino/AVR via Ethernet, open mode,
+    compact form, event+heartbeat publishing.
+- README section "UDP Devices (Microcontrollers)": first packet from a
+  shell via `xxd -r -p | nc -u` (validated live against a dev agent).
+- `firmware/test/wirecheck.c` + `tests/udpFirmware.test.ts`: the header is
+  host-compiled (`-Wall -Wextra -Werror`) and its datagrams compared
+  byte-for-byte against the agent codec and sim packer; the C SipHash is
+  compared against the TS implementation on the official-vector inputs.
+  Skips cleanly on hosts without a C compiler; CI always has one.
 
 ## 9. Sims and testing
 
@@ -288,10 +300,14 @@ official SipHash reference vectors; measured ~34k MACs/s over max-size
 datagrams on a dev box (BigInt impl) — orders of magnitude past the
 1k/s-on-a-Pi bar.
 
-**U3 — firmware kit**
-`fluidity_udp.h`, the two example sketches, README quickstart. *Accept:* a
-real M5Stack on the LAN appears on f-y.io-style dashboards end-to-end with
-MAC mode on.
+**U3 — firmware kit ✅ (software-complete)**
+`fluidity_udp.h`, the two example sketches, README quickstart. *Accepted
+so far:* the header compiles warning-free under gcc and clang, its
+datagrams (open compact/full, timestamped, MAC-signed) are byte-identical
+to both TypeScript implementations, a C-signed datagram passes the agent's
+verify path, and the README first-packet line was validated against a live
+dev agent. *Remaining:* the ceremonial hardware walk — a real M5Stack on
+the LAN appearing on an f-y.io-style dashboard with MAC mode on.
 
 ## 11. Resolved decisions (2026-06-11)
 
