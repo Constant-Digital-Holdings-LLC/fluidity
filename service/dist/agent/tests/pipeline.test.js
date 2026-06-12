@@ -124,3 +124,23 @@ void test('a line source that outruns the throttle is shed at the base class, ne
         target.server.close();
     }
 });
+void test('the in-flight bound is hard-capped, so a huge throttle cannot balloon memory', async () => {
+    const stalled = await startTarget();
+    const sockets = [];
+    stalled.server.on('connection', s => sockets.push(s));
+    try {
+        const collector = new FloodCollector({
+            plugin: 'floodTest',
+            description: 'huge throttle',
+            site: 'test',
+            targets: [{ location: stalled.location, key: 'floodkey1' }],
+            maxHttpsReqPerCollectorPerSec: 100000
+        });
+        collector.flood(4000);
+        assert.equal(collector.backpressureShed, 4000 - 1024);
+    }
+    finally {
+        sockets.forEach(s => s.destroy());
+        stalled.server.close();
+    }
+});

@@ -24,6 +24,11 @@ import https from 'https';
 const NODE_ENV: NodeEnv = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
 type SerialParser = ReadlineParser | RegexParser;
 
+//absolute ceiling on in-flight upstream posts, independent of the throttle.
+//A few thousand outstanding requests is more than any responsive server
+//needs; past it we are buffering RAM for a target that cannot keep up.
+const MAX_PENDING_POSTS_ABS = 1024;
+
 export interface DataCollectorParams extends Omit<FluidityPacket, 'formattedData' | 'seq' | 'ts'> {
     targets: PublishTarget[];
     keepRaw?: boolean;
@@ -123,8 +128,13 @@ export abstract class DataCollector implements DataCollectorPlugin {
 
         //the throttle queues without limit, so any source that can outrun it
         //(UDP barrage, serial line noise through genericSerial, a tight
-        //poller) would grow memory forever; dispatch() sheds beyond this
-        this.maxPendingPosts = Math.max(32, 2 * maxHttpsReqPerCollectorPerSec);
+        //poller) would grow memory forever; dispatch() sheds beyond this.
+        //Scaled to the throttle, but hard-capped: a load test showed a high
+        //throttle (100k) let the backlog reach ~200k posts and ~1.6GB RSS.
+        //With a fast upstream the in-flight count stays far below this cap
+        //(it is throttle x round-trip latency), so the ceiling only bites a
+        //genuinely stalled/saturated target - exactly when shedding is right.
+        this.maxPendingPosts = Math.min(MAX_PENDING_POSTS_ABS, Math.max(32, 2 * maxHttpsReqPerCollectorPerSec));
     }
 
     abstract start(): void;

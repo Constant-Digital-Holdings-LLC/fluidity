@@ -8,6 +8,7 @@ const conf = await confFromFS();
 const log = fetchLogger(conf);
 import https from 'https';
 const NODE_ENV = process.env['NODE_ENV'] === 'development' ? 'development' : 'production';
+const MAX_PENDING_POSTS_ABS = 1024;
 export const isDataCollectorParams = (item) => {
     const { targets, keepRaw, extendedOptions } = item;
     return (isFfluidityPacket(item, true) &&
@@ -65,7 +66,7 @@ export class DataCollector {
         const { maxHttpsReqPerCollectorPerSec = 2 } = params;
         log.info(`Agent: maxHttpsReqPerCollectorPerSec: ${maxHttpsReqPerCollectorPerSec}`);
         this.throttle = throttledQueue({ maxPerInterval: maxHttpsReqPerCollectorPerSec, interval: 1000 });
-        this.maxPendingPosts = Math.max(32, 2 * maxHttpsReqPerCollectorPerSec);
+        this.maxPendingPosts = Math.min(MAX_PENDING_POSTS_ABS, Math.max(32, 2 * maxHttpsReqPerCollectorPerSec));
     }
     stop() { }
     _reqJSON(method, uo, data, key) {

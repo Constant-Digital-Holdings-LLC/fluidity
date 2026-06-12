@@ -156,3 +156,30 @@ void test('a line source that outruns the throttle is shed at the base class, ne
         target.server.close();
     }
 });
+
+void test('the in-flight bound is hard-capped, so a huge throttle cannot balloon memory', async () => {
+    //a server that never answers: every admitted post stays in flight, so the
+    //cap is what bounds the backlog (and thus memory) under a flood
+    const stalled = await startTarget();
+    const sockets: { destroy: () => void }[] = [];
+    stalled.server.on('connection', s => sockets.push(s));
+    try {
+        const collector = new FloodCollector({
+            plugin: 'floodTest',
+            description: 'huge throttle',
+            site: 'test',
+            targets: [{ location: stalled.location, key: 'floodkey1' }],
+            //2x throttle would be 200000; the absolute ceiling (1024) must win
+            maxHttpsReqPerCollectorPerSec: 100000
+        });
+
+        collector.flood(4000);
+
+        //synchronous burst: 1024 admitted (the hard cap), the rest shed -
+        //never the 8000 that 2x throttle would have allowed into memory
+        assert.equal(collector.backpressureShed, 4000 - 1024);
+    } finally {
+        sockets.forEach(s => s.destroy());
+        stalled.server.close();
+    }
+});
