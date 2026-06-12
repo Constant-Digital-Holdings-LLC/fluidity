@@ -367,18 +367,26 @@ li i {
     line-height: 1.5;
 }
 
-/* terminal cursor after the newest packet */
+/* terminal cursor after the newest packet: fixed underline, gentle throb */
 #current-data::after {
-    content: '\258a';
-    color: var(--accent-a);
-    opacity: 0.65;
+    content: '';
+    display: inline-block;
+    width: 0.6em;
+    height: 0.14em;
+    border-radius: 1px;
+    background: var(--accent-a);
     margin-left: 0.3rem;
-    animation: cursorBlink 1.2s steps(2, start) infinite;
+    opacity: 0.3;
+    animation: cursorThrob 2.6s ease-in-out infinite;
 }
 
-@keyframes cursorBlink {
+@keyframes cursorThrob {
+    0%,
+    100% {
+        opacity: 0.25;
+    }
     50% {
-        opacity: 0;
+        opacity: 0.7;
     }
 }
 
