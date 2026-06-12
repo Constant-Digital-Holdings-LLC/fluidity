@@ -1,3 +1,4 @@
+import { HEARTBEAT_SEC } from '#@shared/types.js';
 export class RateBuckets {
     constructor(bucketMs, size, now) {
         this.bucketMs = bucketMs;
@@ -43,8 +44,8 @@ export class RateBuckets {
         return values.map((v, i) => ({ t: headEnd - (values.length - 1 - i) * this.bucketMs, v }));
     }
 }
-export const FRESH_MS = 150000;
-export const RECENT_MS = 450000;
+export const FRESH_MS = HEARTBEAT_SEC * 1500;
+export const RECENT_MS = HEARTBEAT_SEC * 4500;
 export const livenessOf = (lastSeenMs, nowMs) => {
     const age = nowMs - lastSeenMs;
     if (age <= FRESH_MS)

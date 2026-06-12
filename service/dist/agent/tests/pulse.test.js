@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RateBuckets, livenessOf, FRESH_MS, RECENT_MS, PULSE_WINDOWS, PULSE_BUCKETS, restoreWindowIdx } from '#@client/modules/pulse.js';
+import { HEARTBEAT_SEC } from '#@shared/types.js';
 void test('pulse windows: 5m/1h/24h, each fully covered by the bucket count', () => {
     assert.deepEqual(PULSE_WINDOWS.map(w => w.label), ['5m', '1h', '24h']);
     assert.equal(PULSE_WINDOWS[0].bucketMs * PULSE_BUCKETS, 5 * 60_000);
@@ -46,11 +47,13 @@ void test('RateBuckets: series never changes length and tolerates time standing 
     assert.equal(rb.series(0).length, 36);
     assert.equal(rb.series(0).at(-1), 10);
 });
-void test('livenessOf thresholds reflect the 100s heartbeat cadence', () => {
+void test('livenessOf thresholds are the boundary edges and derive from the heartbeat', () => {
     const now = 10_000_000;
     assert.equal(livenessOf(now, now), 'fresh');
     assert.equal(livenessOf(now - FRESH_MS, now), 'fresh');
     assert.equal(livenessOf(now - FRESH_MS - 1, now), 'recent');
     assert.equal(livenessOf(now - RECENT_MS, now), 'recent');
     assert.equal(livenessOf(now - RECENT_MS - 1, now), 'stale');
+    assert.equal(FRESH_MS, HEARTBEAT_SEC * 1500);
+    assert.equal(RECENT_MS, HEARTBEAT_SEC * 4500);
 });

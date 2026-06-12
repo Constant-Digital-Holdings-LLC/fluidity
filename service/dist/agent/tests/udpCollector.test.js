@@ -244,8 +244,9 @@ void test('udp: the runner constructs udpStruct from a config stanza', async () 
         targets: [{ location: 'https://localhost:1/FIFO', key: 'testkey1' }],
         collectors: [{ description: 'LAN sensors', plugin: 'udpStruct', port: 0, bind: '127.0.0.1' }]
     });
-    assert.equal(built.length, 1);
+    assert.equal(built.length, 2);
     assert.ok(built[0] instanceof UdpStructCollector);
+    assert.deepEqual(built.map(c => c.params.plugin), ['udpStruct', 'vRep']);
     built.forEach(c => c.stop());
 });
 void test('udp: config validation refuses bad ports and bad binds', () => {

@@ -1,3 +1,10 @@
+//Canonical liveness heartbeat: the agent emits an internal vRep report this
+//often (see runner.buildCollectors), and the dashboard's fresh/recent/stale
+//windows are derived from it (see pulse.livenessOf). Keeping it here, shared by
+//agent and client, is what makes "how often a site beats" and "how long before
+//it looks stale" stay aligned by construction rather than drifting apart.
+export const HEARTBEAT_SEC = 120;
+
 export interface FluidityLink {
     name: string;
     location: string;

@@ -10,8 +10,8 @@ export declare class RateBuckets {
     series(now: number): number[];
     points(now: number): PulsePoint[];
 }
-export declare const FRESH_MS = 150000;
-export declare const RECENT_MS = 450000;
+export declare const FRESH_MS: number;
+export declare const RECENT_MS: number;
 export type Liveness = 'fresh' | 'recent' | 'stale';
 export declare const livenessOf: (lastSeenMs: number, nowMs: number) => Liveness;
 export declare const PULSE_BUCKETS = 60;

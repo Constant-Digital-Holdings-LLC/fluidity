@@ -6,11 +6,6 @@
 
     "collectors": [
         {
-            "description": "Agent Report",
-            "plugin": "vRep",
-            "pollIntervalSec": 1800
-        },
-        {
             "description": "Device Foo",
             "plugin": "genericSerial",
             "path": "/dev/tty.usbmodem11201",

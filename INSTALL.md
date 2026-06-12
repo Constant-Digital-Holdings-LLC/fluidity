@@ -72,11 +72,14 @@ each `conf/conf-examples/`.
     "site": "MyOffice",
     "logLevel": "debug",
     "collectors": [
-        { "description": "Agent Report", "plugin": "vRep", "pollIntervalSec": 1800 },
         { "description": "Simulated Serial", "plugin": "genericSerial", "path": "sim://generic", "baudRate": 9600 }
     ]
 }
 ```
+
+> The agent also emits an internal **liveness heartbeat** (vRep) on its own —
+> you don't configure it. It reports the agent in every couple of minutes so a
+> site shows "alive" on the dashboard even when no device data is flowing.
 
 The agent's `targets[].key` **must equal** one of the server's `permittedKeys`
 — that shared secret is how the server authorizes a posting agent. The value

@@ -6,11 +6,6 @@
 
     "collectors": [
         {
-            "description": "Agent Report",
-            "plugin": "vRep",
-            "pollIntervalSec": 3600
-        },
-        {
             "description": "Net Watcher",
             "plugin": "hamLive",
             "enabled": false,

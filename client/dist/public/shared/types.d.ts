@@ -1,3 +1,4 @@
+export declare const HEARTBEAT_SEC = 120;
 export interface FluidityLink {
     name: string;
     location: string;

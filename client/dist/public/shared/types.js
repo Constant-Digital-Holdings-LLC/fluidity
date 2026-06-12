@@ -1,3 +1,4 @@
+export const HEARTBEAT_SEC = 120;
 export const isObject = (item) => {
     return typeof item === 'object' && item !== null;
 };

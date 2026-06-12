@@ -1,6 +1,6 @@
 import { fetchLogger } from '#@shared/modules/logger.js';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
-import { isApiKeyFormat } from '#@shared/types.js';
+import { isApiKeyFormat, HEARTBEAT_SEC } from '#@shared/types.js';
 import { DataCollector, DataCollectorParams, isDataCollectorParams } from './collectors.js';
 
 //validates agent config and instantiates the configured collector plugins;
@@ -45,11 +45,32 @@ export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector
         throw new Error('In plugin config processing: no data collectors defined in configuration');
     }
 
+    //vRep is an internal liveness heartbeat, not a user collector: ignore any
+    //configured vRep stanza and always run exactly one at the canonical cadence
+    //(HEARTBEAT_SEC, overridable via conf.heartbeatSec). This guarantees every
+    //site - even one with no data flowing - reports in within the dashboard's
+    //fresh/recent/stale windows, which are derived from the same constant.
+    const collectorList = collectorsConf as unknown[];
+    const hbRaw = (conf as Record<string, unknown>)['heartbeatSec'];
+    const heartbeatSec = typeof hbRaw === 'number' && hbRaw > 0 ? hbRaw : HEARTBEAT_SEC;
+    const heartbeat = { description: 'Agent Report', plugin: 'vRep', pollIntervalSec: heartbeatSec };
+
+    const userCollectors = collectorList.filter(c => (c as { plugin?: string }).plugin !== 'vRep');
+    //a configured vRep is a leftover from before it went internal - it's ignored
+    //(the heartbeat is fixed at heartbeatSec), so say so rather than silently drop it
+    const configuredVRep = collectorList.length - userCollectors.length;
+    if (configuredVRep > 0) {
+        log.warn(
+            `Agent: ${configuredVRep} configured "vRep" stanza(s) ignored - vRep is now an internal liveness ` +
+                `heartbeat fixed at ${heartbeatSec}s. Remove it from collectors (set conf.heartbeatSec to tune the rate).`
+        );
+    }
+
     //only the bare boolean false disables a collector. A non-boolean `enabled`
     //(the string "false", 0, null, ...) does NOT disable it - so warn loudly
     //rather than silently leave a collector the operator meant to switch off
     //running. Same degrade-loudly doctrine as the udpStruct security options.
-    for (const c of collectorsConf) {
+    for (const c of userCollectors) {
         const e = (c as { enabled?: unknown }).enabled;
         if (e !== undefined && typeof e !== 'boolean') {
             const name =
@@ -64,18 +85,19 @@ export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector
     //a collector stanza with "enabled": false is kept in config (documented,
     //easy to switch on) but not loaded. Anything other than an explicit false
     //(missing/true) loads, so enabling is the default and disabling is opt-in.
-    const enabled = collectorsConf.filter(c => (c as { enabled?: unknown }).enabled !== false);
-    const skipped = collectorsConf.length - enabled.length;
+    const enabled = userCollectors.filter(c => (c as { enabled?: unknown }).enabled !== false);
+    const skipped = userCollectors.length - enabled.length;
     if (skipped > 0) {
-        const names = collectorsConf
+        const names = userCollectors
             .filter(c => (c as { enabled?: unknown }).enabled === false)
             .map(c => (c as { description?: string; plugin?: string }).description ?? (c as { plugin?: string }).plugin)
             .join(', ');
         log.info(`Agent: ${skipped} collector(s) disabled in config (not loaded): ${names}`);
     }
 
+    //the internal heartbeat always rides along after the (enabled) user collectors
     return Promise.all(
-        enabled.map(async collectorConfig => {
+        [...enabled, heartbeat].map(async collectorConfig => {
             const pluginParams = { site, targets, ...(collectorConfig as object) } as unknown;
 
             if (!isDataCollectorParams(pluginParams)) {

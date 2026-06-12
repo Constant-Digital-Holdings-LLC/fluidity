@@ -3,6 +3,8 @@
 //canvas drawing so it runs under node/jsdom tests; nothing here touches the
 //filtering engine.
 
+import { HEARTBEAT_SEC } from '#@shared/types.js';
+
 //ring buffer of per-interval packet counts
 export class RateBuckets {
     private counts: number[];
@@ -60,10 +62,13 @@ export class RateBuckets {
     }
 }
 
-//sites emit at least the 100s port-state heartbeat, so: fresh allows one
-//missed beat plus slack, recent allows a few, beyond that the site is quiet
-export const FRESH_MS = 150_000;
-export const RECENT_MS = 450_000;
+//Every site beats at least every HEARTBEAT_SEC (the agent's internal vRep, plus
+//any faster data source like the SRS 100s frame). Derive the windows from it so
+//they track the heartbeat: fresh allows ~one missed beat plus slack, recent a
+//few, beyond that the site is quiet. Change the cadence in one place
+//(HEARTBEAT_SEC) and these move with it.
+export const FRESH_MS = HEARTBEAT_SEC * 1500; //1.5 beats
+export const RECENT_MS = HEARTBEAT_SEC * 4500; //4.5 beats
 
 export type Liveness = 'fresh' | 'recent' | 'stale';
 

@@ -50,12 +50,19 @@ share. Anything other than an explicit `false` loads normally.
 | `srsSerial`     | Sierra Radio Systems controllers (C22A telemetry) | strict frame parsing; `suppress` noise filter                    |
 | `logTail`       | a growing log file                                | tokenizer on by default; rotation/truncation safe                |
 | `udpStruct`     | microcontrollers over UDP                          | the agent's UDP gateway; optional SipHash auth                   |
-| `vRep`          | the agent itself                                  | periodic self-report — a heartbeat *about the agent*             |
 | `hamLive`       | ham.live live-nets API                            | the Net Watcher; **disabled by default**                         |
 
 No hardware? Point any serial collector at a **simulator**: `sim://generic`
 (assorted console data) or `sim://srs` (SRS controller telemetry). They use the
 same parsers and data path as real devices.
+
+> **Liveness heartbeat (internal).** Every agent emits an internal `vRep` report
+> on its own — you do **not** configure it (a configured `vRep` stanza is ignored
+> with a warning). It reports the agent in every `HEARTBEAT_SEC` (120 s by
+> default; override with the top-level `heartbeatSec`), which is what keeps a
+> site showing "alive" on the dashboard even when no device data is flowing. The
+> dashboard's fresh/recent/stale windows are derived from the same constant, so
+> the heartbeat rate and the "looks stale" threshold stay aligned.
 
 ### Serial devices
 
