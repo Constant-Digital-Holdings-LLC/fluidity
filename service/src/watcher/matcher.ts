@@ -95,14 +95,16 @@ export class PatternMatcher {
                     if (r.recover) this.onFire({ rule: r, reason: 'recover', packet: p, count: 1 });
                 }
             } else {
-                const win = r.trigger.windowMs;
                 st.hits.push(t);
                 this.prune(st, r.trigger.windowMs, nowMs);
+                //only the count within the window matters, so keep at most
+                //`count` timestamps - a sustained storm on a long window would
+                //otherwise grow this array without bound (rate x window)
+                if (st.hits.length > r.trigger.count) st.hits.splice(0, st.hits.length - r.trigger.count);
                 if (st.hits.length >= r.trigger.count && !st.firedFreq) {
                     st.firedFreq = true;
                     this.onFire({ rule: r, reason: 'match', packet: p, count: st.hits.length });
                 }
-                void win;
             }
         }
     }

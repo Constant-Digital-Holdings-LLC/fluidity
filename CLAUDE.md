@@ -114,7 +114,8 @@ Don't move rendering decisions serverward.
 - Untrusted serial data: client renderers must sanitize control characters
   (see `tui/src/modules/renderLine.ts`) — terminal escape injection is real.
 - Tracking docs: `PLAN.md` (work log + deferred items), `tui/SPEC.md`
-  (TUI design; T3 standalone executables still pending).
+  (TUI design; all phases incl. T3 standalone executables shipped — the SEA
+  release pipeline builds binaries for five targets).
 - User-facing docs: `README.md` (overview + doc map), `INSTALL.md` (build/run/
   deploy), `RUNBOOK.md` (operate: collectors, viewing, watcher/alerting,
   troubleshooting). Keep them in sync when behavior or config shape changes —

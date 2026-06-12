@@ -246,6 +246,12 @@ connection is never mistaken for a dead site. On (re)connect the watcher
 reconciles last-seen from the server's `/FIFO` snapshot, so a brief blip doesn't
 false-fire.
 
+> **Point a `silence` rule at a single site.** Each rule keeps one aggregate
+> last-seen across everything its selector matches, so a selector that matches a
+> fleet (e.g. `match: { plugin: "logTail" }` with no `site`) stays "alive" as
+> long as *any* member reports — it will not catch one dead site among many.
+> For per-device heartbeats, write one rule per site (`match: { site: "..." }`).
+
 ### What your program receives
 
 Your program is operator-trusted, but packet **content is not** — so it only

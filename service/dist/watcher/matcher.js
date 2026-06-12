@@ -58,14 +58,14 @@ export class PatternMatcher {
                 }
             }
             else {
-                const win = r.trigger.windowMs;
                 st.hits.push(t);
                 this.prune(st, r.trigger.windowMs, nowMs);
+                if (st.hits.length > r.trigger.count)
+                    st.hits.splice(0, st.hits.length - r.trigger.count);
                 if (st.hits.length >= r.trigger.count && !st.firedFreq) {
                     st.firedFreq = true;
                     this.onFire({ rule: r, reason: 'match', packet: p, count: st.hits.length });
                 }
-                void win;
             }
         }
     }
