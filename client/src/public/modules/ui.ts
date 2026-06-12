@@ -337,10 +337,15 @@ class FilterManager {
 }
 
 //above this live arrival rate the ~420cps typewriter can't finish a typical
-//multi-field line before the next packet lands, so the stream would visibly
-//trail real time; past it we render instantly. A trailing-1s window gives
-//natural hysteresis (a burst has to actually subside to re-enable typing).
-const TYPE_BYPASS_PER_SEC = 6;
+//multi-field line before the next packet lands, so the stream visibly trails
+//real time and the bottom rows blink; past it we render instantly. The bypass
+//is sticky for a cooldown: once a burst trips it, typing stays off until the
+//stream is genuinely calm again, so a momentary dip in a noisy feed doesn't
+//flicker the effect back on. (A busy multi-site SRS feed runs a few packets/s
+//of mostly COR noise; once COR is suppressed the rate drops and typing resumes
+//and looks clean.)
+const TYPE_BYPASS_PER_SEC = 3;
+const TYPE_FLOOD_COOLDOWN_MS = 3000;
 
 export class FluidityUI {
     private demarc: number | undefined;
@@ -348,6 +353,7 @@ export class FluidityUI {
     private highestScrollPos = 0;
     private lastVh: number;
     private liveArrivals: number[] = [];
+    private floodUntil = 0;
     //injectable so tests can assert when a live line animates vs lands instant
     protected typeFn = typeIn;
     protected now: () => number = () => performance.now();
@@ -621,15 +627,20 @@ export class FluidityUI {
     }
 
     //records a live arrival and reports whether the typewriter should be
-    //skipped: true once more than TYPE_BYPASS_PER_SEC packets landed in the
-    //trailing second. Pure given `now`, so the threshold is unit-testable.
+    //skipped. More than TYPE_BYPASS_PER_SEC packets in the trailing second arms
+    //a cooldown; the bypass stays true until the cooldown lapses, so typing
+    //resumes only after the stream is genuinely calm (no per-packet flicker
+    //near the threshold). Pure given `now`, so it's unit-testable.
     private floodBypass(now: number): boolean {
         this.liveArrivals.push(now);
         const cutoff = now - 1000;
         while (this.liveArrivals.length && (this.liveArrivals[0] ?? 0) < cutoff) {
             this.liveArrivals.shift();
         }
-        return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
+        if (this.liveArrivals.length > TYPE_BYPASS_PER_SEC) {
+            this.floodUntil = now + TYPE_FLOOD_COOLDOWN_MS;
+        }
+        return now < this.floodUntil;
     }
 
     //re-baseline the live demarcation, called after an SSE reconnect: the

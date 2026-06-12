@@ -6,6 +6,7 @@ export declare class FluidityUI {
     private highestScrollPos;
     private lastVh;
     private liveArrivals;
+    private floodUntil;
     protected typeFn: (root: HTMLElement, opts?: import("./typewriter.js").TypeOpts) => void;
     protected now: () => number;
     constructor(history: FluidityPacket[]);

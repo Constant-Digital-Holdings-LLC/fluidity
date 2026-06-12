@@ -224,7 +224,7 @@ void test('site and collector filters intersect', async () => {
     await sleep(20);
     assert.equal(byId('filter-count').textContent, '0');
 });
-void test('live lines type in at a calm rate, then render instantly once the stream floods', async () => {
+void test('live lines type at a calm rate, go instant under a flood, and stay instant through the cooldown', async () => {
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     let clock = 100_000;
     const typed = [];
@@ -233,28 +233,35 @@ void test('live lines type in at a calm rate, then render instantly once the str
     fresh.typeFn = (el) => {
         typed.push(el.id);
     };
-    for (let i = 0; i < 6; i++) {
-        clock += 50;
-        fresh.packetAdd(pkt(901 + i, 'Verdugo Pk', 'srsSerial'));
+    let seq = 901;
+    for (let i = 0; i < 3; i++) {
+        clock += 700;
+        fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.equal(typed.length, 6, 'first six live lines animate');
-    for (let i = 0; i < 6; i++) {
+    assert.equal(typed.length, 3, 'calm lines animate');
+    const beforeFlood = typed.length;
+    for (let i = 0; i < 12; i++) {
         clock += 50;
-        fresh.packetAdd(pkt(920 + i, 'Verdugo Pk', 'srsSerial'));
+        fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.equal(typed.length, 6, 'flooded lines are not animated');
-    clock += 2000;
-    fresh.packetAdd(pkt(950, 'Verdugo Pk', 'srsSerial'));
-    assert.equal(typed.length, 7, 'typing resumes once the burst subsides');
+    assert.ok(typed.length - beforeFlood <= 3, 'at most the first few of the burst animate before the flood trips');
+    clock += 1500;
+    const beforeDip = typed.length;
+    fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, beforeDip, 'the cooldown holds typing off through a momentary dip');
+    clock += 4000;
+    fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, beforeDip + 1, 'typing resumes once the stream is calm again');
 });
-void test('floodBypass thresholds on a trailing one-second window', async () => {
+void test('floodBypass trips above the rate and stays sticky through the cooldown', async () => {
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     const inst = new UI([]);
     let bypassed = false;
-    for (let i = 0; i < 7; i++)
+    for (let i = 0; i < 4; i++)
         bypassed = inst.floodBypass(1000);
-    assert.ok(bypassed, 'the 7th arrival inside the window bypasses');
-    assert.equal(inst.floodBypass(3000), false, 'stale arrivals expire from the window');
+    assert.ok(bypassed, 'a 4th arrival inside the window trips the flood');
+    assert.equal(inst.floodBypass(2100), true, 'the cooldown holds the bypass through a momentary dip');
+    assert.equal(inst.floodBypass(5200), false, 'typing resumes once the cooldown lapses');
 });
 void test('drainRenderQueue: bounded budget per frame, sheds oldest backlog beyond cap', async () => {
     const { drainRenderQueue } = await import('#@client/modules/rxPump.js');

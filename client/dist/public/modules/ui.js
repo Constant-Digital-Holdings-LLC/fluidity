@@ -271,13 +271,15 @@ class FilterManager {
         this.index(fp);
     }
 }
-const TYPE_BYPASS_PER_SEC = 6;
+const TYPE_BYPASS_PER_SEC = 3;
+const TYPE_FLOOD_COOLDOWN_MS = 3000;
 export class FluidityUI {
     constructor(history) {
         var _a, _b, _c, _d, _e;
         this.history = history;
         this.highestScrollPos = 0;
         this.liveArrivals = [];
+        this.floodUntil = 0;
         this.typeFn = typeIn;
         this.now = () => performance.now();
         this.lastVh = window.innerHeight;
@@ -493,7 +495,10 @@ export class FluidityUI {
         while (this.liveArrivals.length && ((_a = this.liveArrivals[0]) !== null && _a !== void 0 ? _a : 0) < cutoff) {
             this.liveArrivals.shift();
         }
-        return this.liveArrivals.length > TYPE_BYPASS_PER_SEC;
+        if (this.liveArrivals.length > TYPE_BYPASS_PER_SEC) {
+            this.floodUntil = now + TYPE_FLOOD_COOLDOWN_MS;
+        }
+        return now < this.floodUntil;
     }
     resync(history) {
         var _a, _b;

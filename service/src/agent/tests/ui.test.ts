@@ -290,7 +290,7 @@ void test('site and collector filters intersect', async () => {
 //these run last: they spin up throwaway FluidityUI instances against the
 //shared jsdom document, so they use high, non-colliding seq numbers and only
 //assert on instance-local state (the typeFn spy / floodBypass return)
-void test('live lines type in at a calm rate, then render instantly once the stream floods', async () => {
+void test('live lines type at a calm rate, go instant under a flood, and stay instant through the cooldown', async () => {
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     let clock = 100_000;
     const typed: string[] = [];
@@ -305,38 +305,51 @@ void test('live lines type in at a calm rate, then render instantly once the str
         typed.push(el.id);
     };
 
-    //six packets inside one second: the typewriter keeps up, each animates
-    for (let i = 0; i < 6; i++) {
-        clock += 50;
-        fresh.packetAdd(pkt(901 + i, 'Verdugo Pk', 'srsSerial'));
+    //calm (~1.4 pkt/s, 700ms apart): under the rate, so each line animates
+    let seq = 901;
+    for (let i = 0; i < 3; i++) {
+        clock += 700;
+        fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.equal(typed.length, 6, 'first six live lines animate');
+    assert.equal(typed.length, 3, 'calm lines animate');
 
-    //the flood continues: more than six arrivals now sit in the trailing
-    //second, so further lines skip the typewriter and land as instant text
-    for (let i = 0; i < 6; i++) {
+    //flood: a tight burst pushes the trailing-second count past the rate; once
+    //tripped, lines render instantly
+    const beforeFlood = typed.length;
+    for (let i = 0; i < 12; i++) {
         clock += 50;
-        fresh.packetAdd(pkt(920 + i, 'Verdugo Pk', 'srsSerial'));
+        fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.equal(typed.length, 6, 'flooded lines are not animated');
+    assert.ok(typed.length - beforeFlood <= 3, 'at most the first few of the burst animate before the flood trips');
 
-    //after a quiet gap the window drains and typing resumes
-    clock += 2000;
-    fresh.packetAdd(pkt(950, 'Verdugo Pk', 'srsSerial'));
-    assert.equal(typed.length, 7, 'typing resumes once the burst subsides');
+    //sticky: 1.5s later the trailing-1s window has drained to one arrival, but
+    //the cooldown keeps rendering instant - no mid-stream flicker
+    clock += 1500;
+    const beforeDip = typed.length;
+    fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, beforeDip, 'the cooldown holds typing off through a momentary dip');
+
+    //recovery: once the cooldown lapses and the stream is calm, typing resumes
+    clock += 4000;
+    fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
+    assert.equal(typed.length, beforeDip + 1, 'typing resumes once the stream is calm again');
 });
 
-void test('floodBypass thresholds on a trailing one-second window', async () => {
+void test('floodBypass trips above the rate and stays sticky through the cooldown', async () => {
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     const inst = new UI([]) as unknown as { floodBypass: (now: number) => boolean };
 
-    //seven arrivals in the same instant: the seventh trips the bypass (>6)
+    //four arrivals in the same instant: the fourth trips the bypass (>3)
     let bypassed = false;
-    for (let i = 0; i < 7; i++) bypassed = inst.floodBypass(1000);
-    assert.ok(bypassed, 'the 7th arrival inside the window bypasses');
+    for (let i = 0; i < 4; i++) bypassed = inst.floodBypass(1000);
+    assert.ok(bypassed, 'a 4th arrival inside the window trips the flood');
 
-    //2s later the window has fully drained: a lone arrival animates again
-    assert.equal(inst.floodBypass(3000), false, 'stale arrivals expire from the window');
+    //1.1s later the trailing-1s window has drained to a single arrival, but the
+    //cooldown still holds typing off - no per-packet flicker mid-stream
+    assert.equal(inst.floodBypass(2100), true, 'the cooldown holds the bypass through a momentary dip');
+
+    //well past the cooldown with a calm stream: a lone arrival animates again
+    assert.equal(inst.floodBypass(5200), false, 'typing resumes once the cooldown lapses');
 });
 
 void test('drainRenderQueue: bounded budget per frame, sheds oldest backlog beyond cap', async () => {
