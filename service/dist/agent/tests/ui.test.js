@@ -297,3 +297,20 @@ void test('malformed timestamps render a marker, never the literal "Invalid Date
     const dateSpan = el.querySelector('span.fp-date');
     assert.equal(dateSpan?.textContent, '--:--', 'a malformed DATE field also falls back');
 });
+void test('colorbar: a packet exercising all 11 styles renders each with its fp-color-N class', () => {
+    const fresh = new FluidityUI([pkt(7000, 'Colorbar', 'srsSerial')]);
+    fresh.packetAdd({
+        seq: 7001,
+        site: 'Colorbar',
+        plugin: 'srsSerial',
+        ts: '2026-06-12T00:00:00.000Z',
+        description: 'Colorbar device',
+        formattedData: Array.from({ length: 11 }, (_, n) => str(`bar-${n}`, n))
+    });
+    const el = byId('fp-seq-7001');
+    for (let n = 0; n <= 10; n++) {
+        const span = el.querySelector(`span.fp-color-${n}`);
+        assert.ok(span, `style ${n} renders a span.fp-color-${n}`);
+        assert.equal(span.textContent, `bar-${n}`, `style ${n} carries its text`);
+    }
+});
