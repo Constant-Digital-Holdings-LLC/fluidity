@@ -115,3 +115,8 @@ Don't move rendering decisions serverward.
   (see `tui/src/modules/renderLine.ts`) — terminal escape injection is real.
 - Tracking docs: `PLAN.md` (work log + deferred items), `tui/SPEC.md`
   (TUI design; T3 standalone executables still pending).
+- User-facing docs: `README.md` (overview + doc map), `INSTALL.md` (build/run/
+  deploy), `RUNBOOK.md` (operate: collectors, viewing, watcher/alerting,
+  troubleshooting). Keep them in sync when behavior or config shape changes —
+  the watcher rule schema and `FLU_*`/template tables in RUNBOOK mirror
+  `service/src/watcher/rules.ts` and `alertRunner.ts`.
