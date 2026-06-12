@@ -297,20 +297,15 @@ void test('malformed timestamps render a marker, never the literal "Invalid Date
     const dateSpan = el.querySelector('span.fp-date');
     assert.equal(dateSpan?.textContent, '--:--', 'a malformed DATE field also falls back');
 });
-void test('colorbar: a packet exercising all 11 styles renders each with its fp-color-N class', () => {
-    const fresh = new FluidityUI([pkt(7000, 'Colorbar', 'srsSerial')]);
-    fresh.packetAdd({
-        seq: 7001,
-        site: 'Colorbar',
-        plugin: 'srsSerial',
-        ts: '2026-06-12T00:00:00.000Z',
-        description: 'Colorbar device',
-        formattedData: Array.from({ length: 11 }, (_, n) => str(`bar-${n}`, n))
-    });
+void test('colorbar: the npm-run-colorbar packet renders every style with its fp-color-N class', async () => {
+    const { colorBarPacket, COLORBAR_STYLES } = await import('../bin/colorbar.js');
+    assert.equal(COLORBAR_STYLES.length, 11, 'the bar spans styles 0..10');
+    const fresh = new FluidityUI([pkt(7000, 'COLORBAR', 'colorbar')]);
+    fresh.packetAdd({ ...colorBarPacket(), seq: 7001 });
     const el = byId('fp-seq-7001');
-    for (let n = 0; n <= 10; n++) {
-        const span = el.querySelector(`span.fp-color-${n}`);
-        assert.ok(span, `style ${n} renders a span.fp-color-${n}`);
-        assert.equal(span.textContent, `bar-${n}`, `style ${n} carries its text`);
+    for (const { style, name } of COLORBAR_STYLES) {
+        const span = el.querySelector(`span.fp-color-${style}`);
+        assert.ok(span, `style ${style} renders a span.fp-color-${style}`);
+        assert.equal(span.textContent, `${style}:${name}`, `style ${style} carries its legend`);
     }
 });
