@@ -24,6 +24,7 @@ import { IncomingMessage } from 'node:http';
 import https from 'https';
 import { open, stat } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
+import { parseTokenizeConfig, toFields, TokenizeConfig } from './tokenize.js';
 
 const NODE_ENV: NodeEnv = nodeEnv();
 type SerialParser = ReadlineParser | RegexParser;
@@ -632,12 +633,20 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
     private timer: NodeJS.Timeout | undefined;
     private stopped = false;
     private polling = false;
+    //shared line tokenizer, on by default for a log source (a log is logs)
+    private readonly tok: TokenizeConfig;
 
     constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }: FileTailCollectorParams) {
         super({
             ...params,
             maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
         });
+
+        this.tok = parseTokenizeConfig(
+            extOpt(params.extendedOptions, 'tokenize'),
+            true,
+            `logTail [${params.description}]`
+        );
 
         if (typeof path !== 'string' || !path) {
             throw new Error(
@@ -660,10 +669,11 @@ export abstract class FileTailCollector extends DataCollector implements DataCol
         this.maxLineBytes = ml;
     }
 
-    //L1: the whole line as one STRING field (the line is already \r-stripped
-    //and non-empty by emitLine). L2 overrides this with the tokenizer.
+    //the line (already \r-stripped and non-empty by emitLine) through the
+    //shared tokenizer, or whole-line-as-STRING when tokenizing is off
     format(data: string, fh: FormatHelper): FormattedData[] | null {
-        return fh.e(data).done;
+        void fh;
+        return toFields(data, this.tok);
     }
 
     start(): void {

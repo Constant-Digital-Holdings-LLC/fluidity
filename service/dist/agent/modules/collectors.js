@@ -10,6 +10,7 @@ const log = fetchLogger(conf);
 import https from 'https';
 import { open, stat } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
+import { parseTokenizeConfig, toFields } from './tokenize.js';
 const NODE_ENV = nodeEnv();
 const MAX_PENDING_POSTS_ABS = 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -394,11 +395,13 @@ export class FileTailCollector extends DataCollector {
     timer;
     stopped = false;
     polling = false;
+    tok;
     constructor({ path, fromStart, pollIntervalMs, maxLineBytes, ...params }) {
         super({
             ...params,
             maxHttpsReqPerCollectorPerSec: params.maxHttpsReqPerCollectorPerSec ?? LOG_FLEET_DEFAULT_THROTTLE
         });
+        this.tok = parseTokenizeConfig(extOpt(params.extendedOptions, 'tokenize'), true, `logTail [${params.description}]`);
         if (typeof path !== 'string' || !path) {
             throw new Error(`file-tail collector requires a file path (string) for ${params.plugin}: ${params.description}`);
         }
@@ -416,7 +419,8 @@ export class FileTailCollector extends DataCollector {
         this.maxLineBytes = ml;
     }
     format(data, fh) {
-        return fh.e(data).done;
+        void fh;
+        return toFields(data, this.tok);
     }
     start() {
         log.info(`started: ${this.params.plugin} [${this.params.description}] tailing ${this.path}`);
