@@ -17,14 +17,21 @@ const apiKeyAuth =
         res.status(401).json({ error: 'unauthorized' });
     };
 
-export const makeRouter = (conf: MyConfigData | undefined, controller: FluidityController): Router => {
+export const makeRouter = (
+    conf: MyConfigData | undefined,
+    controller: FluidityController,
+    //populateDOM feeds res.locals that ONLY the EJS views consume; it is
+    //applied per view route here rather than globally, so the hot ingest
+    //paths (POST /FIFO, GET /SSE) don't pay for view-rendering setup
+    populateDOM: RequestHandler
+): Router => {
     const router = Router();
 
-    router.get('/', (req, res) => {
+    router.get('/', populateDOM, (req, res) => {
         res.render('index');
     });
 
-    router.get('/about', (req, res) => {
+    router.get('/about', populateDOM, (req, res) => {
         res.render('about');
     });
 

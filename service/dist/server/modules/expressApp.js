@@ -11,12 +11,11 @@ export const makeApp = (conf, log = fetchLogger(conf), controller = makeControll
     const app = express();
     app.use(httpLogger(log));
     const dcu = new DOMConfigUtil(conf, pubSafe);
-    app.use(dcu.populateDOM.bind(dcu));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.set('view engine', 'ejs');
     app.set('views', VIEWS_DIR);
-    app.use('/', makeRouter(conf, controller));
+    app.use('/', makeRouter(conf, controller, dcu.populateDOM.bind(dcu)));
     app.use(express.static(PUBLIC_DIR, {
         maxAge: (conf.httpCacheTTLSeconds ?? 5) * 1000
     }));

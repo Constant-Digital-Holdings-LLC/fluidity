@@ -7,12 +7,12 @@ const apiKeyAuth = (keys) => (req, res, next) => {
     }
     res.status(401).json({ error: 'unauthorized' });
 };
-export const makeRouter = (conf, controller) => {
+export const makeRouter = (conf, controller, populateDOM) => {
     const router = Router();
-    router.get('/', (req, res) => {
+    router.get('/', populateDOM, (req, res) => {
         res.render('index');
     });
-    router.get('/about', (req, res) => {
+    router.get('/about', populateDOM, (req, res) => {
         res.render('about');
     });
     router.get('/FIFO', controller.GET);

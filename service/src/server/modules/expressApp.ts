@@ -20,14 +20,15 @@ export const makeApp = (
     app.use(httpLogger(log));
 
     const dcu = new DOMConfigUtil(conf, pubSafe);
-    app.use(dcu.populateDOM.bind(dcu));
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
     app.set('view engine', 'ejs');
     app.set('views', VIEWS_DIR);
-    app.use('/', makeRouter(conf, controller));
+    //populateDOM is scoped to the view routes inside makeRouter (it only sets
+    //EJS locals); mounting it globally taxed every POST /FIFO and SSE request
+    app.use('/', makeRouter(conf, controller, dcu.populateDOM.bind(dcu)));
 
     app.use(
         express.static(PUBLIC_DIR, {

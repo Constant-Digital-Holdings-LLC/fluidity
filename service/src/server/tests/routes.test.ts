@@ -170,14 +170,38 @@ void test('SSE delivers a posted packet to a subscribed client', async () => {
     }
 });
 
-void test('dashboard and about pages render', async () => {
+void test('dashboard and about pages render with their injected config locals', async () => {
     const { server, base } = await startServer();
     try {
         for (const path of ['/', '/about']) {
             const res = await fetch(`${base}${path}`);
             assert.equal(res.status, 200, `${path} should render`);
-            assert.match(await res.text(), /<html/i);
+            const html = await res.text();
+            assert.match(html, /<html/i);
+            //populateDOM is now scoped to these view routes; if it stopped
+            //running here, the EJS configData locals would be missing (the
+            //template would 500 on Object.entries(configData)). The inlined
+            //<meta id="configData"> is what the client reads at first paint.
+            assert.match(html, /id="configData"/, `${path} inlines config for the client`);
+            assert.match(html, /data-app-name="Fluidity"/, `${path} carries the config payload`);
         }
+    } finally {
+        server.close();
+    }
+});
+
+void test('ingest routes do not depend on the view-locals middleware', async () => {
+    //POST /FIFO and GET /SSE never render EJS, so they must work without
+    //populateDOM having run - the whole point of scoping it off the hot path
+    const { server, base } = await startServer();
+    try {
+        const posted = await postPacket(base, packet());
+        assert.equal(posted.status, 200, 'POST /FIFO succeeds without view locals');
+
+        const fifo = await fetch(`${base}/FIFO`);
+        assert.equal(fifo.status, 200);
+        const arr = (await fifo.json()) as unknown[];
+        assert.equal(arr.length, 1, 'the posted packet is in the FIFO');
     } finally {
         server.close();
     }
