@@ -187,8 +187,10 @@ a:focus-visible {
 }
 
 .live-dot--fresh {
-    background: var(--color4);
-    box-shadow: 0 0 6px rgba(0, 253, 255, 0.55);
+    /* pink = alive: the dot joins the sparkline and cursor family, and
+       liveness decays along the logo gradient (pink -> peach -> gray) */
+    background: var(--accent-a);
+    box-shadow: 0 0 6px rgba(254, 141, 198, 0.6);
     animation: livePulse 2.4s ease-in-out infinite;
 }
 

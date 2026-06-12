@@ -38,7 +38,7 @@ const ACCENT: StyleDef = { hex: '#fe8dc6', ansi16: 95 };
 
 //liveness as shape + color so mono terminals still read it
 const LIVE_MARK: Record<string, { ch: string; def: StyleDef }> = {
-    fresh: { ch: '*', def: { hex: '#00fdff', ansi16: 96, bold: true } },
+    fresh: { ch: '*', def: { hex: '#fe8dc6', ansi16: 95, bold: true } },
     recent: { ch: '~', def: { hex: '#ffdab9', ansi16: 93 } },
     stale: { ch: '.', def: { hex: '#999999', ansi16: 90, dim: true } }
 };

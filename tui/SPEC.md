@@ -191,7 +191,8 @@ Default when stdout is a TTY. Alternate screen buffer, restored on exit.
   are highlighted (bold/underline brand pink, matching the web's
   "pink = active"; `*`-marked in mono). Each site carries a liveness mark
   (web parity, shape + color so mono still reads): `*` reporting within
-  ~2.5 min, `~` quiet up to ~7.5 min, `.` silent. Overflow shows
+  ~2.5 min (brand pink — alive), `~` quiet up to ~7.5 min (peach), `.`
+  silent (dim). Overflow shows
   `+N more`. Sites render uppercase (web parity).
 - **Header rate strip**: spare header width renders packet rate as a
   CP437-safe shade ramp (`░▒▓█`) in the brand accent — the web sparkline's

@@ -29,7 +29,7 @@ const helpLines = [
 ];
 const ACCENT = { hex: '#fe8dc6', ansi16: 95 };
 const LIVE_MARK = {
-    fresh: { ch: '*', def: { hex: '#00fdff', ansi16: 96, bold: true } },
+    fresh: { ch: '*', def: { hex: '#fe8dc6', ansi16: 95, bold: true } },
     recent: { ch: '~', def: { hex: '#ffdab9', ansi16: 93 } },
     stale: { ch: '.', def: { hex: '#999999', ansi16: 90, dim: true } }
 };
