@@ -22,6 +22,14 @@ export const buildCollectors = async (conf) => {
     if (!(Array.isArray(collectorsConf) && collectorsConf.length)) {
         throw new Error('In plugin config processing: no data collectors defined in configuration');
     }
+    for (const c of collectorsConf) {
+        const e = c.enabled;
+        if (e !== undefined && typeof e !== 'boolean') {
+            const name = c.description ?? c.plugin ?? '(unnamed)';
+            log.warn(`Agent: collector "${name}" has a non-boolean "enabled" value (${JSON.stringify(e)}) - it will LOAD. ` +
+                `To disable a collector use the bare boolean false (not a quoted "false", 0, or null).`);
+        }
+    }
     const enabled = collectorsConf.filter(c => c.enabled !== false);
     const skipped = collectorsConf.length - enabled.length;
     if (skipped > 0) {

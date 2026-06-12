@@ -45,6 +45,22 @@ export const buildCollectors = async (conf: MyConfigData): Promise<DataCollector
         throw new Error('In plugin config processing: no data collectors defined in configuration');
     }
 
+    //only the bare boolean false disables a collector. A non-boolean `enabled`
+    //(the string "false", 0, null, ...) does NOT disable it - so warn loudly
+    //rather than silently leave a collector the operator meant to switch off
+    //running. Same degrade-loudly doctrine as the udpStruct security options.
+    for (const c of collectorsConf) {
+        const e = (c as { enabled?: unknown }).enabled;
+        if (e !== undefined && typeof e !== 'boolean') {
+            const name =
+                (c as { description?: string }).description ?? (c as { plugin?: string }).plugin ?? '(unnamed)';
+            log.warn(
+                `Agent: collector "${name}" has a non-boolean "enabled" value (${JSON.stringify(e)}) - it will LOAD. ` +
+                    `To disable a collector use the bare boolean false (not a quoted "false", 0, or null).`
+            );
+        }
+    }
+
     //a collector stanza with "enabled": false is kept in config (documented,
     //easy to switch on) but not loaded. Anything other than an explicit false
     //(missing/true) loads, so enabling is the default and disabling is opt-in.

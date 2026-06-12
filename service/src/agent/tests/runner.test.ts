@@ -73,6 +73,42 @@ void test('a collector with "enabled": false is kept in config but not loaded', 
     onByDefault.forEach(c => c.stop());
 });
 
+void test('a non-boolean "enabled" warns and the collector still loads', async () => {
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...a: unknown[]): void => void warnings.push(a.join(' '));
+    let built: DataCollector[] = [];
+    try {
+        //"false" looks like a disable but is a string; only the bare boolean
+        //disables, so this collector loads - and that must be surfaced
+        built = await buildCollectors(
+            conf({
+                collectors: [
+                    { description: 'oops-quoted', plugin: 'vRep', pollIntervalSec: 3600, enabled: 'false' },
+                    { description: 'real-off', plugin: 'vRep', pollIntervalSec: 3600, enabled: false }
+                ]
+            })
+        );
+    } finally {
+        console.warn = origWarn;
+    }
+
+    //the quoted-false stanza still loaded; the bare-false one was skipped
+    assert.deepEqual(
+        built.map(c => c.params.description),
+        ['oops-quoted'],
+        'quoted "false" loads, bare false is skipped'
+    );
+    assert.ok(
+        warnings.some(w => /oops-quoted/.test(w) && /non-boolean "enabled"/.test(w) && /will LOAD/.test(w)),
+        `expected a non-boolean enabled warning, got: ${JSON.stringify(warnings)}`
+    );
+    //a real boolean false must NOT warn
+    assert.ok(!warnings.some(w => /real-off/.test(w)), 'a bare boolean false does not warn');
+
+    built.forEach(c => c.stop());
+});
+
 void test('missing site name is rejected', async () => {
     await assert.rejects(buildCollectors(conf({ site: undefined })), /site name/);
 });
