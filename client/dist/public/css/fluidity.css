@@ -5,11 +5,14 @@
 :root {
     /* packet palette - the suggestion contract (TUI parity, pinned by tests).
        change only in lockstep with tui/src/modules/theme.ts STYLES */
-    --color1: #53354a;
+    /* 1 & 5 are the muted mauves (the palette's recessive plum pair); lifted
+       from #53354a/#472e40, which sat at 1.4-2.0:1 on the cells - illegible.
+       Same hue family, raised lightness: still the quiet end, now readable. */
+    --color1: #a66e95;
     --color2: #706c9d;
     --color3: #54b0ed;
     --color4: #00fdff;
-    --color5: #472e40;
+    --color5: #a7628b;
     --color6: #fe95c6;
     --color7: #999;
     --color8: tan;

@@ -117,11 +117,11 @@ default palette on a dark background:
 | style | web CSS | truecolor | 16-color ANSI | attrs |
 |---|---|---|---|---|
 | 0 | `--light` | `#ffe5ff` | white (97) | |
-| 1 | `--color1` | `#53354a` | magenta (35) | dim |
+| 1 | `--color1` | `#a66e95` | magenta (35) | |
 | 2 | `--color2` | `#706c9d` | blue (34) | |
 | 3 | `--color3` | `#54b0ed` | bright blue (94) | **bold** (web uses `bolder`) |
 | 4 | `--color4` | `#00fdff` | bright cyan (96) | |
-| 5 | `--color5` | `#472e40` | magenta (35) | dim |
+| 5 | `--color5` | `#a7628b` | magenta (35) | |
 | 6 | `--color6` | `#fe95c6` | bright magenta (95) | |
 | 7 | `--color7` | `#999999` | bright black (90) | |
 | 8 | `--color8` | `tan` (#d2b48c) | yellow (33) | |

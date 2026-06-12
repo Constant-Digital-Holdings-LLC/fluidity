@@ -8,7 +8,7 @@ void test('paint produces the right SGR per tier', () => {
     assert.equal(paint('x', s3, '16'), '\x1b[1;94mx\x1b[0m');
     assert.equal(paint('x', s3, 'mono'), 'x');
     const s5 = styleDef(5);
-    assert.equal(paint('x', s5, '16'), '\x1b[2;35mx\x1b[0m');
+    assert.equal(paint('x', s5, '16'), '\x1b[35mx\x1b[0m');
 });
 void test('unknown styles fall back to style 0', () => {
     assert.deepEqual(styleDef(42), styleDef(0));

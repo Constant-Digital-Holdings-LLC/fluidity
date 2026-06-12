@@ -1,10 +1,10 @@
 const STYLES = [
     { hex: '#ffe5ff', ansi16: 97 },
-    { hex: '#53354a', ansi16: 35, dim: true },
+    { hex: '#a66e95', ansi16: 35 },
     { hex: '#706c9d', ansi16: 34 },
     { hex: '#54b0ed', ansi16: 94, bold: true },
     { hex: '#00fdff', ansi16: 96 },
-    { hex: '#472e40', ansi16: 35, dim: true },
+    { hex: '#a7628b', ansi16: 35 },
     { hex: '#fe95c6', ansi16: 95 },
     { hex: '#999999', ansi16: 90 },
     { hex: '#d2b48c', ansi16: 33 },

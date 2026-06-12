@@ -10,8 +10,8 @@ void test('paint produces the right SGR per tier', () => {
     assert.equal(paint('x', s3, '16'), '\x1b[1;94mx\x1b[0m');
     assert.equal(paint('x', s3, 'mono'), 'x');
 
-    const s5 = styleDef(5); //dim plum
-    assert.equal(paint('x', s5, '16'), '\x1b[2;35mx\x1b[0m');
+    const s5 = styleDef(5); //muted mauve, magenta in the 16-color tier (no longer dim)
+    assert.equal(paint('x', s5, '16'), '\x1b[35mx\x1b[0m');
 });
 
 void test('unknown styles fall back to style 0', () => {
