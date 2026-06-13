@@ -63,6 +63,41 @@
                     "format": "auto"
                 }
             }
+        },
+        {
+            "description": "Webhook Gateway (example - Uptime Kuma alerts)",
+            "plugin": "webhookJson",
+            "enabled": false,
+            "port": 2598,
+            "bind": "127.0.0.1",
+            "extendedOptions": {
+                "routes": [
+                    {
+                        "path": "/kuma",
+                        "site": "kuma",
+                        "plugin": "notify",
+                        "descriptionFrom": "monitor.name",
+                        "description": "Uptime Kuma",
+                        "fields": [
+                            {
+                                "from": "heartbeat.status",
+                                "map": {
+                                    "0": "[P5]",
+                                    "1": "[P4]"
+                                },
+                                "default": "[P3]",
+                                "styleMap": {
+                                    "0": 2,
+                                    "1": 3
+                                }
+                            },
+                            {
+                                "from": "msg"
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     ]
 }
