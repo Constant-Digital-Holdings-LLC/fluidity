@@ -23,4 +23,28 @@ void test('the sites pane strips control chars from an untrusted site name', () 
     assert.ok(!frame.includes(C1), 'no C1 CSI from the site name');
     assert.match(frame, /GH\[2JX/, 'the name renders with the control bytes stripped, residue inert');
 });
+void test('vRep heartbeats register presence but never a pane line; [v] reveals them for debugging', async () => {
+    const { handleKey } = await import('../modules/uiModel.js');
+    const st = initialState(120, 24, 'localhost:3000', 4000);
+    const hb = {
+        site: 'hub-agent',
+        plugin: 'vRep',
+        ts: '2026-06-11T00:00:00.000Z',
+        description: 'Agent Report',
+        formattedData: [{ suggestStyle: 10, field: 'Fluidity Agent 9.9.9', fieldType: 'STRING' }]
+    };
+    addPacket(st, hb, renderParts(hb, opts));
+    assert.equal(st.entries.length, 0, 'suppressed: no stream line');
+    assert.equal(st.seenSites.get('hub-agent'), 0, 'site registered with no packet count');
+    assert.ok(!st.seenCollectors.has('vRep'), 'vRep is not a collector type');
+    assert.ok((st.siteLastSeen.get('hub-agent') ?? 0) > 0, 'liveness marker stays fed');
+    assert.equal(st.columns.site, 0, 'a suppressed heartbeat does not widen columns');
+    handleKey(st, { name: 'heartbeats' });
+    addPacket(st, hb, renderParts(hb, opts));
+    assert.equal(st.entries.length, 1, 'revealed: heartbeat renders');
+    assert.equal(st.seenCollectors.get('vRep'), 1);
+    handleKey(st, { name: 'heartbeats' });
+    addPacket(st, hb, renderParts(hb, opts));
+    assert.equal(st.entries.length, 1, 'suppressed again');
+});
 //# sourceMappingURL=screen.test.js.map

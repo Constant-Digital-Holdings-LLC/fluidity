@@ -45,6 +45,9 @@ export interface UIState {
     paused: boolean;
     pausedAtCount: number;
     showHelp: boolean;
+    //vRep heartbeats are presence, not stream content: suppressed from the
+    //pane by default (they still feed liveness), revealable for debugging
+    showHeartbeats: boolean;
     quit: boolean;
 }
 
@@ -68,10 +71,23 @@ export const initialState = (cols: number, rows: number, serverHost: string, his
     paused: false,
     pausedAtCount: 0,
     showHelp: false,
+    showHeartbeats: false,
     quit: false
 });
 
 export const addPacket = (st: UIState, p: FluidityPacket, parts: RenderedParts): void => {
+    //a suppressed heartbeat still registers presence: the site appears in the
+    //registry and its liveness marker stays fresh, but no line, no collector
+    //registry entry, no column growth (mirrors the web client's site pill)
+    if (p.plugin === 'vRep' && !st.showHeartbeats) {
+        if (!st.seenSites.has(p.site)) st.seenSites.set(p.site, 0);
+        const hbAt = new Date(p.ts).getTime();
+        if (Number.isFinite(hbAt) && hbAt > (st.siteLastSeen.get(p.site) ?? 0)) {
+            st.siteLastSeen.set(p.site, hbAt);
+        }
+        return;
+    }
+
     st.entries.push({ site: p.site, plugin: p.plugin, parts });
     if (st.entries.length > st.historyLimit) {
         const overflow = st.entries.length - st.historyLimit;
@@ -170,6 +186,9 @@ export const handleKey = (st: UIState, key: Key): void => {
             break;
         case 'window':
             st.pulseWindowIdx = (st.pulseWindowIdx + 1) % PULSE_WINDOWS.length;
+            break;
+        case 'heartbeats':
+            st.showHeartbeats = !st.showHeartbeats;
             break;
         case 'help':
             st.showHelp = true;

@@ -24,6 +24,7 @@ const helpLines = [
     '  Tab        switch the bottom pane: sites <-> collectors',
     '  x          clear all filters',
     '  w          cycle the rate strip window (5m / 1h / 24h)',
+    '  v          reveal/hide vRep liveness heartbeats (debug)',
     '  j/k, arrows, PgUp/PgDn   scroll',
     '  g / G      top / bottom (G re-enables auto-scroll)',
     '  space      pause / resume',

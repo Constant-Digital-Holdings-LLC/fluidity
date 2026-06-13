@@ -195,7 +195,7 @@ class FilterManager {
         if (!seqs.size)
             index.delete(key);
     }
-    index(fp) {
+    noteSeen(fp) {
         var _a;
         const seenAt = new Date(fp.ts).getTime();
         if (Number.isFinite(seenAt)) {
@@ -203,6 +203,20 @@ class FilterManager {
             if (seenAt > prev)
                 this.siteLastSeen.set(fp.site, seenAt);
         }
+    }
+    notePresence(fp) {
+        this.renderType('SITE', fp);
+        this.noteSeen(fp);
+        const version = fp.formattedData
+            .map(f => (typeof f.field === 'string' ? f.field : isFluidityLink(f.field) ? f.field.name : ''))
+            .join(' ')
+            .trim();
+        const link = document.getElementById(`filter-site-${fp.site}`);
+        if (link && version)
+            link.title = `${fp.site} — ${version}`;
+    }
+    index(fp) {
+        this.noteSeen(fp);
         if (fp.seq) {
             this.indexAdd(this.siteIndex, fp.site, fp.seq);
             this.indexAdd(this.collectorIndex, fp.plugin, fp.seq);
@@ -456,6 +470,10 @@ export class FluidityUI {
         const maxCount = Number(conf === null || conf === void 0 ? void 0 : conf.maxClientHistory) || 4000;
         if (history && current) {
             fpArr.forEach(fp => {
+                if (fp.plugin === 'vRep') {
+                    this.fm.notePresence(fp);
+                    return;
+                }
                 if (pos === 'history') {
                     if (history.childElementCount > maxCount) {
                         this.evictOldest(history);

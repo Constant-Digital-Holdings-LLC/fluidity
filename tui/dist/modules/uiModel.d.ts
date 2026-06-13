@@ -34,6 +34,7 @@ export interface UIState {
     paused: boolean;
     pausedAtCount: number;
     showHelp: boolean;
+    showHeartbeats: boolean;
     quit: boolean;
 }
 export declare const initialState: (cols: number, rows: number, serverHost: string, historyLimit: number) => UIState;

@@ -21,9 +21,19 @@ export const initialState = (cols, rows, serverHost, historyLimit) => ({
     paused: false,
     pausedAtCount: 0,
     showHelp: false,
+    showHeartbeats: false,
     quit: false
 });
 export const addPacket = (st, p, parts) => {
+    if (p.plugin === 'vRep' && !st.showHeartbeats) {
+        if (!st.seenSites.has(p.site))
+            st.seenSites.set(p.site, 0);
+        const hbAt = new Date(p.ts).getTime();
+        if (Number.isFinite(hbAt) && hbAt > (st.siteLastSeen.get(p.site) ?? 0)) {
+            st.siteLastSeen.set(p.site, hbAt);
+        }
+        return;
+    }
     st.entries.push({ site: p.site, plugin: p.plugin, parts });
     if (st.entries.length > st.historyLimit) {
         const overflow = st.entries.length - st.historyLimit;
@@ -112,6 +122,9 @@ export const handleKey = (st, key) => {
             break;
         case 'window':
             st.pulseWindowIdx = (st.pulseWindowIdx + 1) % PULSE_WINDOWS.length;
+            break;
+        case 'heartbeats':
+            st.showHeartbeats = !st.showHeartbeats;
             break;
         case 'help':
             st.showHelp = true;

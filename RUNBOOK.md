@@ -64,6 +64,10 @@ same parsers and data path as real devices.
 > site showing "alive" on the dashboard even when no device data is flowing. The
 > dashboard's fresh/recent/stale windows are derived from the same constant, so
 > the heartbeat rate and the "looks stale" threshold stay aligned.
+> Heartbeats are **presence, not content**: they never render as stream lines
+> or a collector pill. They surface on the site pill itself — the liveness dot
+> stays fed, and hovering the pill shows the agent version the site reported.
+> In the TUI, press `v` to reveal raw heartbeat lines when debugging an agent.
 
 ### Serial devices
 

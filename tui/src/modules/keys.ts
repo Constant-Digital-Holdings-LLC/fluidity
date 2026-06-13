@@ -13,6 +13,7 @@ export type KeyName =
     | 'clear' //x
     | 'help' //?
     | 'window' //w - cycle the rate strip's time window
+    | 'heartbeats' //v - reveal/hide vRep liveness heartbeats (debug)
     | 'digit'
     | 'other';
 
@@ -83,6 +84,9 @@ export const parseKeys = (chunk: Buffer): Key[] => {
                 break;
             case 'w':
                 keys.push({ name: 'window' });
+                break;
+            case 'v':
+                keys.push({ name: 'heartbeats' });
                 break;
             case '?':
                 keys.push({ name: 'help' });

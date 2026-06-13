@@ -330,6 +330,40 @@ void test('resync to an empty (freshly restarted) FIFO still renders the next pa
     u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial'));
     assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
 });
+void test('vRep heartbeats are presence, not content: site pill + version tooltip, no pane line, no collector pill', () => {
+    const d = new JSDOM(`<!DOCTYPE html><html><body>
+      <div id="container-main">
+        <ul id="site-filter-list"></ul>
+        <ul id="collector-filter-list"></ul>
+        <span id="visibile-count"></span><span id="filter-count"></span>
+        <div id="loader"></div>
+        <div id="cell-data"><div id="history-data"></div><div id="current-data"></div><div id="end-data"></div></div>
+      </div></body></html>`);
+    d.window.HTMLElement.prototype.scrollIntoView = () => { };
+    g['window'] = d.window;
+    g['document'] = d.window.document;
+    g['HTMLElement'] = d.window.HTMLElement;
+    g['Element'] = d.window.Element;
+    g['NodeList'] = d.window.NodeList;
+    g['MouseEvent'] = d.window.MouseEvent;
+    const el = (id) => d.window.document.getElementById(id);
+    const hb = (seq) => pkt(seq, 'hub-agent', 'vRep', [str('Fluidity Agent 9.9.9', 10)]);
+    const u = new FluidityUI([hb(1), pkt(2, 'site-a', 'genericSerial')]);
+    assert.equal(el('history-data')?.childElementCount, 1, 'only the data packet renders');
+    assert.ok(!el('fp-seq-1'), 'the heartbeat has no pane line');
+    assert.ok(el('fp-seq-2'), 'the data packet renders normally');
+    const pill = el('filter-site-hub-agent');
+    assert.ok(pill, 'a heartbeat-only site still gets its pill');
+    assert.ok(el('live-site-hub-agent'), '...with a liveness dot');
+    assert.equal(pill.title, 'hub-agent — Fluidity Agent 9.9.9');
+    assert.ok(!el('filter-collector-vRep'));
+    assert.ok(el('filter-collector-genericSerial'));
+    u.packetAdd(hb(3));
+    assert.equal(el('current-data')?.childElementCount, 0);
+    const seen = new Date('2026-06-11T12:00:00.000Z').getTime();
+    u.refreshLiveness(seen + 60_000);
+    assert.ok(el('live-site-hub-agent')?.classList.contains('live-dot--fresh'));
+});
 void test('the Storing stat counts exactly the stored packets - 0 when the FIFO is empty', () => {
     const d = new JSDOM(`<!DOCTYPE html><html><body>
       <div id="container-main">

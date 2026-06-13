@@ -239,12 +239,35 @@ class FilterManager {
         if (!seqs.size) index.delete(key);
     }
 
-    private index(fp: FluidityPacket): void {
+    private noteSeen(fp: FluidityPacket): void {
         const seenAt = new Date(fp.ts).getTime();
         if (Number.isFinite(seenAt)) {
             const prev = this.siteLastSeen.get(fp.site) ?? 0;
             if (seenAt > prev) this.siteLastSeen.set(fp.site, seenAt);
         }
+    }
+
+    //vRep heartbeats are built-in presence, not stream content: they create/
+    //refresh the site pill (liveness dot + an agent-version tooltip) and never
+    //touch the seq indexes - a heartbeat has no DOM line to deindex on
+    //eviction, so indexing it would grow the maps forever. No collector pill
+    //either: vRep is not a configurable collector type.
+    public notePresence(fp: FluidityPacket): void {
+        this.renderType('SITE', fp); //idempotent; a heartbeat may be a site's first packet
+        this.noteSeen(fp);
+
+        const version = fp.formattedData
+            .map(f => (typeof f.field === 'string' ? f.field : isFluidityLink(f.field) ? f.field.name : ''))
+            .join(' ')
+            .trim();
+        const link = document.getElementById(`filter-site-${fp.site}`);
+        //the title doubles as the full-name reveal for truncated labels, so
+        //keep the site name first and append what the agent reports
+        if (link && version) link.title = `${fp.site} — ${version}`;
+    }
+
+    private index(fp: FluidityPacket): void {
+        this.noteSeen(fp);
 
         if (fp.seq) {
             this.indexAdd(this.siteIndex, fp.site, fp.seq);
@@ -590,6 +613,13 @@ export class FluidityUI {
 
         if (history && current) {
             fpArr.forEach(fp => {
+                //vRep is built-in presence, not stream content (RUNBOOK:
+                //"Liveness heartbeat"): surface it on the site pill, never as
+                //a pane line or a collector pill
+                if (fp.plugin === 'vRep') {
+                    this.fm.notePresence(fp);
+                    return;
+                }
                 if (pos === 'history') {
                     if (history.childElementCount > maxCount) {
                         this.evictOldest(history);

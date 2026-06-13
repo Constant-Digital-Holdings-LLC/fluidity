@@ -9,7 +9,9 @@ packets over HTTPS · **Web Service**
 (`service/src/server`) keeps a FIFO and broadcasts via SSE · **Dashboard**
 (`client/src/public`) and **TUI** (`tui/src`) render · **Watcher**
 (`service/src/watcher`) is a standalone SSE subscriber that fires alert
-programs on per-packet matches, silence, and frequency (see Watcher below). Core design rule: plugins
+programs on per-packet matches, silence, and frequency (see Watcher below).
+vRep heartbeats are presence, not content: clients keep them out of the
+stream panes and surface them as site metadata (liveness + version tooltip). Core design rule: plugins
 *suggest* (`fieldType`, `suggestStyle` on each `FluidityPacket`), the server
 relays without interpreting, each client decides presentation (CSS vs ANSI).
 Don't move rendering decisions serverward.
