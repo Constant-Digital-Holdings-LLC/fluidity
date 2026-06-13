@@ -64,11 +64,9 @@ class FilterManager {
         const currentElem = document.getElementById('current-data');
 
         if (visibileCountElem && filterCountElem && historyElem && currentElem) {
-            visibileCountElem.innerText = (
-                historyElem.childElementCount +
-                currentElem.childElementCount +
-                1
-            ).toString();
+            //exactly the packets in the DOM: history + live. (A stray +1 here
+            //used to show "Storing: 1" against an empty FIFO.)
+            visibileCountElem.innerText = (historyElem.childElementCount + currentElem.childElementCount).toString();
             filterCountElem.innerText = this.filterCount.toString();
 
             if (this.filterCount > 0) {

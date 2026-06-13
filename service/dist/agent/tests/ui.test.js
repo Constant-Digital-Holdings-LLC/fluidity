@@ -330,6 +330,40 @@ void test('resync to an empty (freshly restarted) FIFO still renders the next pa
     u.packetAdd(pkt(1, 'Fresh Site', 'srsSerial'));
     assert.ok(dom.window.document.getElementById('fp-seq-1'), "a brand-new server's first packet renders");
 });
+void test('the Storing stat counts exactly the stored packets - 0 when the FIFO is empty', () => {
+    const d = new JSDOM(`<!DOCTYPE html><html><body>
+      <div id="container-main">
+        <ul id="site-filter-list"></ul>
+        <ul id="collector-filter-list"></ul>
+        <span id="visibile-count"></span><span id="filter-count"></span>
+        <div id="loader"></div>
+        <div id="cell-data"><div id="history-data"></div><div id="current-data"></div><div id="end-data"></div></div>
+      </div></body></html>`);
+    d.window.HTMLElement.prototype.scrollIntoView = () => { };
+    Object.defineProperty(d.window.HTMLElement.prototype, 'innerText', {
+        get() {
+            return this.textContent ?? '';
+        },
+        set(value) {
+            this.textContent = value;
+        }
+    });
+    g['window'] = d.window;
+    g['document'] = d.window.document;
+    g['HTMLElement'] = d.window.HTMLElement;
+    g['Element'] = d.window.Element;
+    g['NodeList'] = d.window.NodeList;
+    g['MouseEvent'] = d.window.MouseEvent;
+    const count = () => d.window.document.getElementById('visibile-count')?.textContent ?? '';
+    new FluidityUI([]);
+    assert.equal(count(), '0');
+    new FluidityUI([
+        pkt(1, 'site-a', 'genericSerial'),
+        pkt(2, 'site-b', 'srsSerial'),
+        pkt(3, 'site-a', 'genericSerial')
+    ]);
+    assert.equal(count(), '3');
+});
 void test('pills truncate long labels and share a uniform, adaptive width per group', () => {
     const d = new JSDOM(`<!DOCTYPE html><html><body>
       <div id="container-main">

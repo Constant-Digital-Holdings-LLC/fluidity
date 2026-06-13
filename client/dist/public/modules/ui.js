@@ -37,9 +37,7 @@ class FilterManager {
         const historyElem = document.getElementById('history-data');
         const currentElem = document.getElementById('current-data');
         if (visibileCountElem && filterCountElem && historyElem && currentElem) {
-            visibileCountElem.innerText = (historyElem.childElementCount +
-                currentElem.childElementCount +
-                1).toString();
+            visibileCountElem.innerText = (historyElem.childElementCount + currentElem.childElementCount).toString();
             filterCountElem.innerText = this.filterCount.toString();
             if (this.filterCount > 0) {
                 filterCountElem.classList.add('stat-data-attention');
