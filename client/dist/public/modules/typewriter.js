@@ -1,11 +1,12 @@
 const MAX_CONCURRENT = 12;
 let active = 0;
 export const typeIn = (root, opts) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const reduced = (_b = (_a = globalThis.matchMedia) === null || _a === void 0 ? void 0 : _a.call(globalThis, '(prefers-reduced-motion: reduce)').matches) !== null && _b !== void 0 ? _b : false;
-    const raf = (_c = opts === null || opts === void 0 ? void 0 : opts.raf) !== null && _c !== void 0 ? _c : globalThis.requestAnimationFrame;
-    const now = (_d = opts === null || opts === void 0 ? void 0 : opts.now) !== null && _d !== void 0 ? _d : (() => performance.now());
-    if (reduced || typeof raf !== 'function' || active >= MAX_CONCURRENT)
+    const mobile = (_d = (_c = globalThis.matchMedia) === null || _c === void 0 ? void 0 : _c.call(globalThis, '(max-width: 767px)').matches) !== null && _d !== void 0 ? _d : false;
+    const raf = (_e = opts === null || opts === void 0 ? void 0 : opts.raf) !== null && _e !== void 0 ? _e : globalThis.requestAnimationFrame;
+    const now = (_f = opts === null || opts === void 0 ? void 0 : opts.now) !== null && _f !== void 0 ? _f : (() => performance.now());
+    if (reduced || mobile || typeof raf !== 'function' || active >= MAX_CONCURRENT)
         return;
     const walker = document.createTreeWalker(root, 4);
     const nodes = [];
@@ -20,7 +21,7 @@ export const typeIn = (root, opts) => {
     nodes.forEach(e => {
         e.node.data = '';
     });
-    const cps = (_e = opts === null || opts === void 0 ? void 0 : opts.cps) !== null && _e !== void 0 ? _e : 420;
+    const cps = (_g = opts === null || opts === void 0 ? void 0 : opts.cps) !== null && _g !== void 0 ? _g : 420;
     const start = now();
     active++;
     const apply = (count) => {

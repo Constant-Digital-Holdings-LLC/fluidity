@@ -220,6 +220,26 @@ void test('typewriter no-ops to instant text without a frame source', async () =
     assert.equal(root.textContent, 'hello');
 });
 
+void test('typewriter no-ops on a mobile-sized viewport, even with a frame source', async () => {
+    const { typeIn } = await import('#@client/modules/typewriter.js');
+    const g = globalThis as Record<string, unknown>;
+    const orig = g['matchMedia'];
+    //report a match for the max-width (mobile) query, not reduced-motion
+    g['matchMedia'] = (q: string): { matches: boolean } => ({ matches: q.includes('max-width') });
+    try {
+        const root = dom.window.document.createElement('div');
+        root.innerHTML = '<span>hello</span>';
+        const frames: ((t: number) => void)[] = [];
+        //a real frame source IS provided, so any no-op is the mobile gate alone
+        typeIn(root, { cps: 1000, raf: cb => frames.push(cb), now: () => 0 });
+        assert.equal(root.textContent, 'hello', 'text left intact (never blanked) on mobile');
+        assert.equal(frames.length, 0, 'no animation frame scheduled on mobile');
+    } finally {
+        if (orig === undefined) delete g['matchMedia'];
+        else g['matchMedia'] = orig;
+    }
+});
+
 void test('renderPulse draws once sized, and does not clear-by-resize on repaint', async () => {
     const { renderPulse } = await import('#@client/modules/pulse.js');
 

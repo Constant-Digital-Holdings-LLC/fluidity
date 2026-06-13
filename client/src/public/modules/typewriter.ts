@@ -1,7 +1,8 @@
 //fast typewriter reveal for live packet lines. Walks the element's text
 //nodes (the packet is many styled spans), blanks them, and restores
 //characters in document order on animation frames. Instant (no-op) when
-//rAF is unavailable (jsdom/tests) or the user prefers reduced motion.
+//rAF is unavailable (jsdom/tests), the user prefers reduced motion, or the
+//viewport is mobile-sized (the effect reads as jank on a small screen).
 
 export interface TypeOpts {
     cps?: number; //characters per second
@@ -14,10 +15,13 @@ let active = 0;
 
 export const typeIn = (root: HTMLElement, opts?: TypeOpts): void => {
     const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    //mobile-sized viewport: animating the bottom rows reads as jank on a phone,
+    //so render instantly (matches the CSS's 768px layout boundary)
+    const mobile = globalThis.matchMedia?.('(max-width: 767px)').matches ?? false;
     const raf = opts?.raf ?? globalThis.requestAnimationFrame;
     const now = opts?.now ?? ((): number => performance.now());
 
-    if (reduced || typeof raf !== 'function' || active >= MAX_CONCURRENT) return;
+    if (reduced || mobile || typeof raf !== 'function' || active >= MAX_CONCURRENT) return;
 
     //4 = NodeFilter.SHOW_TEXT (numeric to avoid relying on the global)
     const walker = document.createTreeWalker(root, 4);
