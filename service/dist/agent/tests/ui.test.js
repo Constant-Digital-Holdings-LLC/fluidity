@@ -235,7 +235,7 @@ void test('live lines type at a calm rate, go instant under a flood, and stay in
     };
     let seq = 901;
     for (let i = 0; i < 3; i++) {
-        clock += 700;
+        clock += 1200;
         fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
     assert.equal(typed.length, 3, 'calm lines animate');
@@ -244,7 +244,7 @@ void test('live lines type at a calm rate, go instant under a flood, and stay in
         clock += 50;
         fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.ok(typed.length - beforeFlood <= 3, 'at most the first few of the burst animate before the flood trips');
+    assert.ok(typed.length - beforeFlood <= 1, 'at most the first of the burst animates before the flood trips');
     clock += 1500;
     const beforeDip = typed.length;
     fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
@@ -257,9 +257,9 @@ void test('floodBypass trips above the rate and stays sticky through the cooldow
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     const inst = new UI([]);
     let bypassed = false;
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < 2; i++)
         bypassed = inst.floodBypass(1000);
-    assert.ok(bypassed, 'a 4th arrival inside the window trips the flood');
+    assert.ok(bypassed, 'a 2nd arrival inside the window trips the flood');
     assert.equal(inst.floodBypass(2100), true, 'the cooldown holds the bypass through a momentary dip');
     assert.equal(inst.floodBypass(5200), false, 'typing resumes once the cooldown lapses');
 });

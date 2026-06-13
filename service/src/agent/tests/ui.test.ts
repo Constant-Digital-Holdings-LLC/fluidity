@@ -305,22 +305,23 @@ void test('live lines type at a calm rate, go instant under a flood, and stay in
         typed.push(el.id);
     };
 
-    //calm (~1.4 pkt/s, 700ms apart): under the rate, so each line animates
+    //calm (<1 pkt/s, 1200ms apart): the trailing-1s window holds one arrival,
+    //not > the threshold, so each line animates
     let seq = 901;
     for (let i = 0; i < 3; i++) {
-        clock += 700;
+        clock += 1200;
         fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
     assert.equal(typed.length, 3, 'calm lines animate');
 
-    //flood: a tight burst pushes the trailing-second count past the rate; once
-    //tripped, lines render instantly
+    //flood: a tight burst pushes the trailing-second count past the rate (>1);
+    //once tripped, lines render instantly
     const beforeFlood = typed.length;
     for (let i = 0; i < 12; i++) {
         clock += 50;
         fresh.packetAdd(pkt(seq++, 'Verdugo Pk', 'srsSerial'));
     }
-    assert.ok(typed.length - beforeFlood <= 3, 'at most the first few of the burst animate before the flood trips');
+    assert.ok(typed.length - beforeFlood <= 1, 'at most the first of the burst animates before the flood trips');
 
     //sticky: 1.5s later the trailing-1s window has drained to one arrival, but
     //the cooldown keeps rendering instant - no mid-stream flicker
@@ -339,10 +340,10 @@ void test('floodBypass trips above the rate and stays sticky through the cooldow
     const { FluidityUI: UI } = await import('#@client/modules/ui.js');
     const inst = new UI([]) as unknown as { floodBypass: (now: number) => boolean };
 
-    //four arrivals in the same instant: the fourth trips the bypass (>3)
+    //two arrivals in the same instant: the second trips the bypass (>1)
     let bypassed = false;
-    for (let i = 0; i < 4; i++) bypassed = inst.floodBypass(1000);
-    assert.ok(bypassed, 'a 4th arrival inside the window trips the flood');
+    for (let i = 0; i < 2; i++) bypassed = inst.floodBypass(1000);
+    assert.ok(bypassed, 'a 2nd arrival inside the window trips the flood');
 
     //1.1s later the trailing-1s window has drained to a single arrival, but the
     //cooldown still holds typing off - no per-packet flicker mid-stream

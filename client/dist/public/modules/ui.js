@@ -286,7 +286,7 @@ class FilterManager {
         this.index(fp);
     }
 }
-const TYPE_BYPASS_PER_SEC = 3;
+const TYPE_BYPASS_PER_SEC = 1;
 const TYPE_FLOOD_COOLDOWN_MS = 3000;
 export class FluidityUI {
     constructor(history) {

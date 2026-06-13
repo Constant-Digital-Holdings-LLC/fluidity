@@ -371,10 +371,9 @@ class FilterManager {
 //real time and the bottom rows blink; past it we render instantly. The bypass
 //is sticky for a cooldown: once a burst trips it, typing stays off until the
 //stream is genuinely calm again, so a momentary dip in a noisy feed doesn't
-//flicker the effect back on. (A busy multi-site SRS feed runs a few packets/s
-//of mostly COR noise; once COR is suppressed the rate drops and typing resumes
-//and looks clean.)
-const TYPE_BYPASS_PER_SEC = 3;
+//flicker the effect back on. Kept deliberately low (1/s) so the typewriter only
+//runs on a true trickle; any busier feed renders instantly.
+const TYPE_BYPASS_PER_SEC = 1;
 const TYPE_FLOOD_COOLDOWN_MS = 3000;
 
 export class FluidityUI {
