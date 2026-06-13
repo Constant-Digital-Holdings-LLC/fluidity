@@ -15,6 +15,7 @@ export interface RuleSelector {
 }
 
 export type RuleTrigger =
+    | { type: 'match' }
     | { type: 'silence'; windowMs: number }
     | { type: 'frequency'; count: number; windowMs: number };
 
@@ -113,7 +114,12 @@ const parseTrigger = (raw: unknown, where: string): RuleTrigger => {
         }
         return { type: 'frequency', count, windowMs: parseDuration(o['window'], `${where}.trigger.window`) };
     }
-    throw new Error(`${where}.trigger.type must be "silence" or "frequency"`);
+    if (type === 'match') {
+        //per-packet routing: fire on every matching packet. Burst safety lives
+        //in the runner (cooldown/maxPerHour/queue), not in a window here.
+        return { type: 'match' };
+    }
+    throw new Error(`${where}.trigger.type must be "match", "silence" or "frequency"`);
 };
 
 export interface ParseRulesOptions {

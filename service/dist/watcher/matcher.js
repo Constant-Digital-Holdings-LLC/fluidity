@@ -50,7 +50,10 @@ export class PatternMatcher {
                 st.lastSeenMs = t;
                 st.lastSeenTs = p.ts;
             }
-            if (r.trigger.type === 'silence') {
+            if (r.trigger.type === 'match') {
+                this.onFire({ rule: r, reason: 'match', packet: p, count: 1 });
+            }
+            else if (r.trigger.type === 'silence') {
                 if (st.firedSilence) {
                     st.firedSilence = false;
                     if (r.recover)
@@ -88,7 +91,7 @@ export class PatternMatcher {
                     });
                 }
             }
-            else {
+            else if (r.trigger.type === 'frequency') {
                 this.prune(st, r.trigger.windowMs, nowMs);
                 if (st.hits.length < r.trigger.count)
                     st.firedFreq = false;

@@ -83,7 +83,10 @@ const parseTrigger = (raw, where) => {
         }
         return { type: 'frequency', count, windowMs: parseDuration(o['window'], `${where}.trigger.window`) };
     }
-    throw new Error(`${where}.trigger.type must be "silence" or "frequency"`);
+    if (type === 'match') {
+        return { type: 'match' };
+    }
+    throw new Error(`${where}.trigger.type must be "match", "silence" or "frequency"`);
 };
 export const parseRules = (raw, opts = {}) => {
     if (raw === undefined)

@@ -75,8 +75,9 @@ export class PatternMatcher {
         }
     }
 
-    //a live packet: update last-seen, recover a silenced rule, and edge-fire a
-    //frequency rule when its window first reaches the threshold
+    //a live packet: update last-seen, fire a match rule per packet, recover a
+    //silenced rule, and edge-fire a frequency rule when its window first
+    //reaches the threshold
     observe(p: FluidityPacket, nowMs: number): void {
         const t = packetMs(p, nowMs);
         for (const r of this.rules) {
@@ -89,7 +90,11 @@ export class PatternMatcher {
                 st.lastSeenTs = p.ts;
             }
 
-            if (r.trigger.type === 'silence') {
+            if (r.trigger.type === 'match') {
+                //per-packet routing: every matching packet fires; rate safety
+                //is the runner's job (cooldown/maxPerHour/queue/circuit)
+                this.onFire({ rule: r, reason: 'match', packet: p, count: 1 });
+            } else if (r.trigger.type === 'silence') {
                 if (st.firedSilence) {
                     st.firedSilence = false;
                     if (r.recover) this.onFire({ rule: r, reason: 'recover', packet: p, count: 1 });
@@ -128,7 +133,7 @@ export class PatternMatcher {
                         ...(st.lastSeenTs ? { lastSeenTs: st.lastSeenTs } : {})
                     });
                 }
-            } else {
+            } else if (r.trigger.type === 'frequency') {
                 this.prune(st, r.trigger.windowMs, nowMs);
                 if (st.hits.length < r.trigger.count) st.firedFreq = false;
             }

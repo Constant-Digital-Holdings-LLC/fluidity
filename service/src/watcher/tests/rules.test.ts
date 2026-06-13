@@ -110,6 +110,14 @@ void test('parseRules: checkExec is invoked per enabled rule', () => {
     );
 });
 
+void test('parseRules: a match trigger parses with no window/count', () => {
+    const { rules } = parseRules([
+        { name: 'route', match: { text: '\\[P[45]\\]' }, trigger: { type: 'match' }, exec: '/bin/true' }
+    ]);
+    assert.equal(rules.length, 1);
+    assert.deepEqual(rules[0]?.trigger, { type: 'match' });
+});
+
 void test('parseRules: misconfiguration throws at parse time', () => {
     const base = { name: 'a', match: { site: 's' }, trigger: { type: 'silence', window: '1m' }, exec: '/bin/true' };
     assert.throws(() => parseRules('nope'), /must be an array/);
@@ -117,7 +125,10 @@ void test('parseRules: misconfiguration throws at parse time', () => {
     assert.throws(() => parseRules([{ ...base, match: {} }]), /at least one of site\/plugin\/text/);
     assert.throws(() => parseRules([{ ...base, match: { text: '(' } }]), /not a valid regex/);
     assert.throws(() => parseRules([{ ...base, match: { text: '(a+)+' } }]), /nested unbounded quantifier/);
-    assert.throws(() => parseRules([{ ...base, trigger: { type: 'nope' } }]), /must be "silence" or "frequency"/);
+    assert.throws(
+        () => parseRules([{ ...base, trigger: { type: 'nope' } }]),
+        /must be "match", "silence" or "frequency"/
+    );
     assert.throws(
         () => parseRules([{ ...base, trigger: { type: 'frequency', count: 0, window: '1m' } }]),
         /count must be an integer/

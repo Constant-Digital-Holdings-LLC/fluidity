@@ -339,7 +339,7 @@ const templateVars = (e: FireEvent, count: number): Vars => {
         rule: rule.name,
         reason: e.reason,
         count: String(count),
-        window: humanMs(rule.trigger.windowMs),
+        window: 'windowMs' in rule.trigger ? humanMs(rule.trigger.windowMs) : '',
         site: '',
         plugin: '',
         description: '',

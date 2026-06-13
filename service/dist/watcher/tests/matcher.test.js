@@ -92,6 +92,23 @@ void test('frequency edge-fires once at the threshold, then re-arms after the wi
     m.observe(pkt('s', (t += 100)), t);
     assert.equal(fires.length, 2);
 });
+void test('match fires on every matching packet, even a sustained stream', () => {
+    const { m, fires } = collect(rules([
+        { name: 'route', match: { site: 's', text: '\\[P5\\]' }, trigger: { type: 'match' }, exec: '/bin/true' }
+    ]));
+    m.setConnected(true);
+    let t = 1_000_000;
+    m.observe(pkt('s', t, '[P5] disk failing'), t);
+    m.observe(pkt('s', (t += 200), '[P5] array degraded'), t);
+    m.observe(pkt('s', (t += 200), '[P5] sensor critical'), t);
+    assert.equal(fires.length, 3);
+    assert.ok(fires.every(f => f.reason === 'match' && f.count === 1 && f.packet !== undefined));
+    m.observe(pkt('other', (t += 200), '[P5] x'), t);
+    m.observe(pkt('s', (t += 200), '[P3] info'), t);
+    assert.equal(fires.length, 3);
+    m.evaluate(t + 60_000);
+    assert.equal(fires.length, 3);
+});
 void test('a packet that matches no rule fires nothing', () => {
     const { m, fires } = collect(rules([{ name: 'hb', match: { site: 's' }, trigger: { type: 'silence', window: '60s' }, exec: '/bin/true' }]));
     m.setConnected(true);

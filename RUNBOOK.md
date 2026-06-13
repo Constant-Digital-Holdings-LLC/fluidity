@@ -50,6 +50,7 @@ share. Anything other than an explicit `false` loads normally.
 | `srsSerial`     | Sierra Radio Systems controllers (C22A telemetry) | strict frame parsing; `suppress` noise filter                    |
 | `logTail`       | a growing log file                                | tokenizer on by default; rotation/truncation safe                |
 | `udpStruct`     | microcontrollers over UDP                          | the agent's UDP gateway; optional SipHash auth                   |
+| `webhookJson`   | anything that POSTs JSON webhooks                  | the agent's HTTP gateway; config-mapped fields; optional token   |
 | `hamLive`       | ham.live live-nets API                            | the Net Watcher; **disabled by default**                         |
 
 No hardware? Point any serial collector at a **simulator**: `sim://generic`
@@ -131,6 +132,73 @@ printf '%s' "$HEX" | xxd -r -p | nc -u -w1 your-agent-host 17996
 ```
 
 A site named `hello` appears with the field "hi from netcat".
+
+### Webhooks / JSON sources
+
+Third-party systems that can only emit webhooks (Uptime Kuma, Grafana, CI,
+home automation) POST their **native JSON** to the agent's HTTP gateway; a
+per-route mapping config turns it into packets — no fluidity-aware client and
+no bespoke adapter service per integration. An Uptime Kuma route:
+
+```json
+{
+    "description": "Uptime Kuma",
+    "plugin": "webhookJson",
+    "port": 2598,
+    "bind": "0.0.0.0",
+    "extendedOptions": {
+        "routes": [
+            {
+                "path": "/kuma",
+                "site": "kuma",
+                "plugin": "notify",
+                "descriptionFrom": "monitor.name",
+                "description": "Uptime Kuma",
+                "fields": [
+                    {
+                        "from": "heartbeat.status",
+                        "map": { "0": "[P5]", "1": "[P4]" },
+                        "default": "[P3]",
+                        "styleMap": { "0": 2, "1": 3 }
+                    },
+                    { "from": "msg" }
+                ]
+            }
+        ]
+    }
+}
+```
+
+Point Kuma's *Webhook* notification at `http://agent-host:2598/kuma`
+(content type `application/json`) and a DOWN alert arrives as
+`[P5] [Plex] [Down] …` — ready for a watcher rule matching `\[P[45]\]` to
+escalate, exactly like the heartbeat recipe below.
+
+How a route maps a payload:
+
+- **`fields`** (required) — each entry becomes one `formattedData` field, in
+  order. `from` walks a dot-path through objects and arrays
+  (`heartbeat.status`, `items.0.name`); strings ride as-is, scalars
+  stringify, structures dump as JSON. `const` emits a literal instead.
+- **`map` / `default`** — a value-translation table on the extracted string,
+  with `default` catching both a map miss and an absent path. No map: the raw
+  value rides through. Absent value and no default: the field is omitted
+  (every field omitted → the request is answered `200 ok (empty)` and counted
+  as `empty-mapping`, so a source whose payload shape changed is visible).
+- **`suggestStyle` / `styleMap`** — static or value-keyed style suggestion
+  (keyed on the extracted value, like `map`).
+- **`site` / `plugin` / `descriptionFrom` / `description`** — per-route packet
+  identity overrides (like `udpStruct`'s per-packet identity); unset values
+  fall back to the agent/collector identity.
+
+`GET /health` answers `200 {"ok":true}` on every gateway (wire it to an
+uptime monitor). The listener is plain HTTP intended for the LAN — front it
+with a reverse proxy if it must cross one — and supports optional auth via
+`extendedOptions.token`: senders then need `Authorization: Bearer <token>` (or
+`x-webhook-token`). A misconfigured token refuses to start, like every
+security option. Like `udpStruct`, the gateway funnels many sources through
+one upstream throttle, so it defaults to a fleet rate (50 posts/sec;
+`maxHttpsReqPerCollectorPerSec` tunes it) and answers `503` when saturated.
 
 ---
 
@@ -219,7 +287,7 @@ is the silence/coalesce check cadence (default 1000).
 | `name`       |    ✓     | —                                        | unique rule id                                                                       |
 | `enabled`    |          | `true`                                   | `false` skips the rule at load                                                       |
 | `match`      |    ✓     | —                                        | selector — at least one of `site`/`plugin`/`text` (a rule must not match everything) |
-| `trigger`    |    ✓     | —                                        | `silence` or `frequency` (below)                                                     |
+| `trigger`    |    ✓     | —                                        | `match`, `silence` or `frequency` (below)                                            |
 | `exec`       |    ✓     | —                                        | absolute path to the program to run; checked executable at startup                   |
 | `args`       |          | `[]`                                     | static argv passed to the program                                                    |
 | `message`    |          | `{{rule}}: {{reason}} {{site}} {{text}}` | template rendered to the program's **stdin**                                         |
@@ -239,6 +307,11 @@ bare number meaning milliseconds.
 
 ### Triggers
 
+- **`match`** — `{ "type": "match" }` — fire on **every** matching packet (the
+  routing / forwarding case, e.g. relay urgent messages to a push service). No
+  window, no edge detection; burst safety comes from the runner's `cooldown` /
+  `maxPerHour` / queue limits, so a forwarding rule usually wants
+  `"cooldown": 0` and a deliberately raised `maxPerHour`.
 - **`silence`** — `{ "type": "silence", "window": "120s" }` — fire once when no
   matching packet arrives within the window (the heartbeat / dead-man case).
   With `recover: true`, fire again when the source returns. Under-frequency
@@ -274,7 +347,7 @@ channels:
 | `message` placeholder | env var            | value                                                |
 | --------------------- | ------------------ | ---------------------------------------------------- |
 | `{{rule}}`            | `FLU_RULE`         | the rule name                                        |
-| `{{reason}}`          | `FLU_REASON`       | `match` (storm), `silence`, or `recover`             |
+| `{{reason}}`          | `FLU_REASON`       | `match` (per-packet or storm), `silence`, `recover`  |
 | `{{count}}`           | `FLU_COUNT`        | matches represented (includes coalesced ones)        |
 | `{{site}}`            | `FLU_SITE`         | packet site                                          |
 | `{{plugin}}`          | `FLU_PLUGIN`       | packet plugin                                        |
@@ -285,7 +358,7 @@ channels:
 | `{{raw}}`             | `FLU_RAW`          | raw payload, if the packet carried one               |
 | `{{silenceSec}}`      | `FLU_SILENCE_SEC`  | seconds of silence (silence trigger)                 |
 | `{{lastSeen}}`        | —                  | last-seen timestamp (silence trigger)                |
-| `{{window}}`          | —                  | the trigger window, human-readable                   |
+| `{{window}}`          | —                  | the trigger window, human-readable (empty for match) |
 
 With `format: "json"`, stdin is `{ rule, reason, count, packet }` for a match,
 or `{ rule, reason, count, silenceSec, lastSeen }` for a silence — pipe it to
