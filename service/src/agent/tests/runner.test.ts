@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildCollectors } from '../modules/runner.js';
 import { MyConfigData } from '#@shared/modules/fluidityConfig.js';
-import { DataCollector } from '../modules/collectors.js';
+import { DataCollector, FormatHelper } from '../modules/collectors.js';
 
 const conf = (over: Record<string, unknown> = {}): MyConfigData =>
     ({
@@ -32,6 +32,9 @@ void test('a valid config yields the user collectors plus the internal vRep hear
         120,
         'the internal heartbeat runs at HEARTBEAT_SEC'
     );
+    //the heartbeat renders in the quiet tone (style 10, --dark): it exists to
+    //keep a site alive on the dashboard, not to draw the eye to a version
+    assert.equal(hb?.format('Fluidity Agent x.y.z', new FormatHelper())?.[0]?.suggestStyle, 10);
 
     //the sim feeder holds a timer; release handles so the test process can exit
     built.forEach(c => c.stop());

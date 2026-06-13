@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildCollectors } from '../modules/runner.js';
-import { DataCollector } from '../modules/collectors.js';
+import { DataCollector, FormatHelper } from '../modules/collectors.js';
 const conf = (over = {}) => ({
     appName: 'Fluidity',
     appVersion: 'test',
@@ -16,6 +16,7 @@ void test('a valid config yields the user collectors plus the internal vRep hear
     built.forEach(c => assert.ok(c instanceof DataCollector));
     const hb = built.find(c => c.params.plugin === 'vRep');
     assert.equal(hb.pollIntervalSec, 120, 'the internal heartbeat runs at HEARTBEAT_SEC');
+    assert.equal(hb?.format('Fluidity Agent x.y.z', new FormatHelper())?.[0]?.suggestStyle, 10);
     built.forEach(c => c.stop());
 });
 void test('vRep is internal: a configured vRep stanza is ignored (with a warning) in favor of the heartbeat', async () => {
