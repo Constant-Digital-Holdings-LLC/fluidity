@@ -204,6 +204,9 @@ class FilterManager {
                 this.siteLastSeen.set(fp.site, seenAt);
         }
     }
+    siteTitle(site, version) {
+        return version ? `${site} — ${version}` : `${site} — version pending…`;
+    }
     notePresence(fp) {
         this.renderType('SITE', fp);
         this.noteSeen(fp);
@@ -213,7 +216,7 @@ class FilterManager {
             .trim();
         const link = document.getElementById(`filter-site-${fp.site}`);
         if (link && version)
-            link.title = `${fp.site} — ${version}`;
+            link.title = this.siteTitle(fp.site, version);
     }
     index(fp) {
         this.noteSeen(fp);
@@ -248,7 +251,7 @@ class FilterManager {
             typeIcon.classList.add('fa-circle-nodes');
         }
         else if (type === 'SITE') {
-            a.title = fp.site;
+            a.title = this.siteTitle(fp.site);
             a.innerText = truncatePillLabel(fp.site);
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');

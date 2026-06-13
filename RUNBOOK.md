@@ -67,7 +67,11 @@ same parsers and data path as real devices.
 > Heartbeats are **presence, not content**: they never render as stream lines
 > or a collector pill. They surface on the site pill itself — the liveness dot
 > stays fed, and hovering the pill shows the agent version the site reported.
-> In the TUI, press `v` to reveal raw heartbeat lines when debugging an agent.
+> The version is shown only once a heartbeat has actually been observed in the
+> current session — it is **never cached** (a stale version could mislead an
+> operator), so a freshly-loaded pill reads `version pending…` until that
+> site's next heartbeat arrives, then fills in and updates live. In the TUI,
+> press `v` to reveal raw heartbeat lines when debugging an agent.
 
 ### Serial devices
 

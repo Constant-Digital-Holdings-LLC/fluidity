@@ -356,6 +356,9 @@ void test('vRep heartbeats are presence, not content: site pill + version toolti
     assert.ok(pill, 'a heartbeat-only site still gets its pill');
     assert.ok(el('live-site-hub-agent'), '...with a liveness dot');
     assert.equal(pill.title, 'hub-agent — Fluidity Agent 9.9.9');
+    assert.equal(el('filter-site-site-a')?.title, 'site-a — version pending…');
+    u.packetAdd(pkt(4, 'site-a', 'vRep', [str('Fluidity Agent 1.0.1', 10)]));
+    assert.equal(el('filter-site-site-a')?.title, 'site-a — Fluidity Agent 1.0.1');
     assert.ok(!el('filter-collector-vRep'));
     assert.ok(el('filter-collector-genericSerial'));
     u.packetAdd(hb(3));
@@ -434,7 +437,7 @@ void test('pills truncate long labels and share a uniform, adaptive width per gr
         return el;
     };
     const longLink = link(`filter-site-${longSite}`);
-    assert.equal(longLink.title, longSite);
+    assert.equal(longLink.title, `${longSite} — version pending…`);
     assert.equal(longLink.textContent, `${longSite.slice(0, 15)}..`);
     assert.equal((longLink.textContent ?? '').length, 17);
     assert.equal(link('filter-site-gate-1').textContent, 'gate-1');

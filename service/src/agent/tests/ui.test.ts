@@ -487,6 +487,15 @@ void test('vRep heartbeats are presence, not content: site pill + version toolti
     assert.ok(el('live-site-hub-agent'), '...with a liveness dot');
     assert.equal(pill.title, 'hub-agent — Fluidity Agent 9.9.9');
 
+    //site-a's heartbeat was NOT in history: its version is unknown, so the
+    //pill reads "version pending…" (never a cached/guessed value) rather than
+    //a bare name - the honest "haven't heard a heartbeat yet" state
+    assert.equal(el('filter-site-site-a')?.title, 'site-a — version pending…');
+
+    //...and it resolves the moment site-a's first live heartbeat is observed
+    u.packetAdd(pkt(4, 'site-a', 'vRep', [str('Fluidity Agent 1.0.1', 10)]));
+    assert.equal(el('filter-site-site-a')?.title, 'site-a — Fluidity Agent 1.0.1');
+
     //and vRep is not a collector type: no pill, only the real collector's
     assert.ok(!el('filter-collector-vRep'));
     assert.ok(el('filter-collector-genericSerial'));
@@ -578,9 +587,11 @@ void test('pills truncate long labels and share a uniform, adaptive width per gr
         return el;
     };
 
-    //full name in id + title; visible label truncated to 15 + '..'
+    //full name in id + title (the title leads with the full site name, so it
+    //still reveals a truncated label; the version readout trails it - pending
+    //until a heartbeat is seen); visible label truncated to 15 + '..'
     const longLink = link(`filter-site-${longSite}`);
-    assert.equal(longLink.title, longSite);
+    assert.equal(longLink.title, `${longSite} — version pending…`);
     assert.equal(longLink.textContent, `${longSite.slice(0, 15)}..`);
     assert.equal((longLink.textContent ?? '').length, 17);
     //a short name renders in full

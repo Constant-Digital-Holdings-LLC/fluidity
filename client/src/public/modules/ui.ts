@@ -252,6 +252,15 @@ class FilterManager {
     //touch the seq indexes - a heartbeat has no DOM line to deindex on
     //eviction, so indexing it would grow the maps forever. No collector pill
     //either: vRep is not a configurable collector type.
+    //the site pill's title doubles as the full-name reveal for a truncated
+    //label AND the agent-version readout. The version is shown only once a
+    //vRep heartbeat has actually been observed this session - deliberately
+    //never cached (a stale version could mislead an admin into a bad call),
+    //so until the live heartbeat arrives the pill reads "version pending…".
+    private siteTitle(site: string, version?: string): string {
+        return version ? `${site} — ${version}` : `${site} — version pending…`;
+    }
+
     public notePresence(fp: FluidityPacket): void {
         this.renderType('SITE', fp); //idempotent; a heartbeat may be a site's first packet
         this.noteSeen(fp);
@@ -261,9 +270,7 @@ class FilterManager {
             .join(' ')
             .trim();
         const link = document.getElementById(`filter-site-${fp.site}`);
-        //the title doubles as the full-name reveal for truncated labels, so
-        //keep the site name first and append what the agent reports
-        if (link && version) link.title = `${fp.site} — ${version}`;
+        if (link && version) link.title = this.siteTitle(fp.site, version);
     }
 
     private index(fp: FluidityPacket): void {
@@ -309,7 +316,9 @@ class FilterManager {
             a.id = `filter-collector-${fp.plugin}`;
             typeIcon.classList.add('fa-circle-nodes');
         } else if (type === 'SITE') {
-            a.title = fp.site;
+            //every site starts "version pending…"; notePresence fills the real
+            //version in when this site's heartbeat is observed (never cached)
+            a.title = this.siteTitle(fp.site);
             a.innerText = truncatePillLabel(fp.site);
             a.id = `filter-site-${fp.site}`;
             typeIcon.classList.add('fa-tower-cell');
