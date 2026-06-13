@@ -3,11 +3,13 @@
 Real-time serial data aggregator. Five components in one monorepo:
 **Agent** (`service/src/agent`) reads serial devices via plugins — and acts as
 a UDP forwarding gateway for microcontrollers (`udpStruct` collector, see UDP
-ingest below) — and POSTs packets over HTTPS · **Web Service**
+ingest below) and an HTTP gateway for webhook sources (`webhookJson`
+collector: per-route config maps third-party JSON to packets) — and POSTs
+packets over HTTPS · **Web Service**
 (`service/src/server`) keeps a FIFO and broadcasts via SSE · **Dashboard**
 (`client/src/public`) and **TUI** (`tui/src`) render · **Watcher**
 (`service/src/watcher`) is a standalone SSE subscriber that fires alert
-programs on patterns/silence (see Watcher below). Core design rule: plugins
+programs on per-packet matches, silence, and frequency (see Watcher below). Core design rule: plugins
 *suggest* (`fieldType`, `suggestStyle` on each `FluidityPacket`), the server
 relays without interpreting, each client decides presentation (CSS vs ANSI).
 Don't move rendering decisions serverward.
@@ -98,8 +100,9 @@ Don't move rendering decisions serverward.
   watches, and exec risk stays out of the hardened ingest path). `sseFollow`
   reconciles `/FIFO` + dedups (a service-side reimpl of the TUI transport —
   build order forbids service→tui imports); `PatternMatcher` (pure, clock
-  injected) gates `silence` on connection state and judges absence by packet
-  `ts`, never local arrival, so a dropped pipe isn't a dead site; `AlertRunner`
+  injected) fires `match` rules per packet (routing/forwarding; burst safety
+  is the runner's), gates `silence` on connection state and judges absence by
+  packet `ts`, never local arrival, so a dropped pipe isn't a dead site; `AlertRunner`
   bounds exec (concurrency cap + shed queue + per-rule cooldown/coalesce +
   token bucket + timeout + circuit breaker). **Security:** untrusted packet
   text reaches alert programs only as data (stdin/FLU_* env/argv array,
